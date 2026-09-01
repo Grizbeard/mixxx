@@ -85,6 +85,11 @@ const QString kDatabaseDirectory = QStringLiteral("_Serato_");
 const QString kDatabaseFilename = QStringLiteral("database V2");
 const QString kCrateDirectory = QStringLiteral("Subcrates");
 const QString kCrateFilter = QStringLiteral("*.crate");
+// Serato encodes crate folders in the crate's file name, e.g. a crate
+// named "Techno%%Peak Time.crate" is displayed by Serato inside a
+// "Techno" folder. This has no equivalent in Mixxx's own crate schema,
+// so we only reconstruct it for display in the Serato sidebar tree.
+const QString kCrateFolderDelimiter = QStringLiteral("%%");
 const QString kSmartCrateDirectory = QStringLiteral("Smart Crates");
 const QString kSmartCrateFilter = QStringLiteral("*.scrate");
 
@@ -638,7 +643,11 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* dat
     if (crateDir.cd(kCrateDirectory)) {
         QStringList filters;
         filters << kCrateFilter;
-        const auto entryList = crateDir.entryList(filters);
+        const auto entryList = crateDir.entryList(filters, QDir::NoFilter, QDir::Name);
+        // Maps a folder's full "%%"-joined path to the TreeItem already
+        // created for it, so sibling crates that share a folder prefix
+        // nest under the same folder node instead of creating duplicates.
+        QMap<QString, TreeItem*> folderItemsByPath;
         for (const QString& entry : entryList) {
             QString crateFilePath = crateDir.filePath(entry);
             QString crateName = parseCrate(
@@ -646,12 +655,34 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* dat
                     databaseDir.path(),
                     crateFilePath,
                     trackIdMap);
-            if (!crateName.isEmpty()) {
-                TreeItem* crateItem = databaseItem->appendChild(crateName,
-                        QList<QVariant>{
-                                QVariant(crateFilePath), QVariant(true)});
-                crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
+            if (crateName.isEmpty()) {
+                continue;
             }
+
+            QStringList pathSegments = crateName.split(
+                    kCrateFolderDelimiter, Qt::SkipEmptyParts);
+            if (pathSegments.isEmpty()) {
+                // The crate name was made up entirely of delimiters; treat
+                // the original name as a single, non-nested crate.
+                pathSegments = QStringList{crateName};
+            }
+
+            TreeItem* parentItem = databaseItem;
+            QString folderPath;
+            for (int i = 0; i < pathSegments.size() - 1; ++i) {
+                folderPath += (i == 0 ? QString() : kCrateFolderDelimiter) + pathSegments[i];
+                TreeItem* folderItem = folderItemsByPath.value(folderPath, nullptr);
+                if (!folderItem) {
+                    folderItem = parentItem->appendChild(pathSegments[i]);
+                    folderItemsByPath.insert(folderPath, folderItem);
+                }
+                parentItem = folderItem;
+            }
+
+            TreeItem* crateItem = parentItem->appendChild(pathSegments.last(),
+                    QList<QVariant>{
+                            QVariant(crateFilePath), QVariant(true)});
+            crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
         }
     } else {
         qWarning() << "Failed to open crate directory: "
