@@ -8,6 +8,10 @@
 const QString CRATETABLE_ID = QStringLiteral("id");
 const QString CRATETABLE_NAME = QStringLiteral("name");
 
+// Id of the crate this crate is nested inside, or NULL for a crate at the
+// top level of the crate tree.
+const QString CRATETABLE_PARENT_ID = QStringLiteral("parent_id");
+
 // TODO(XXX): Fix AutoDJ database design.
 // Crates should have no dependency on AutoDJ stuff. Which
 // crates are used as a source for AutoDJ has to be stored
