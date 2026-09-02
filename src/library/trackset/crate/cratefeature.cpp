@@ -458,7 +458,7 @@ void CrateFeature::slotCreateSubcrate() {
     const CrateId crateId =
             CrateFeatureHelper(m_pTrackCollection, m_pConfig)
                     .createEmptyCrate(parentId);
-    if (crateId.isValid()) {
+    if (crateId.isValid() && m_pSidebarWidget) {
         // Expand the parent so the new subcrate is actually visible.
         m_pSidebarWidget->selectChildIndex(indexFromCrateId(crateId), false);
     }
@@ -568,7 +568,10 @@ void CrateFeature::slotMoveCrate() {
     // The crate changed its place in the tree, so the whole branch layout is
     // stale and a label update would not be enough.
     rebuildChildModel(crateId);
-    m_pSidebarWidget->selectChildIndex(indexFromCrateId(crateId), false);
+    if (m_pSidebarWidget) {
+        // Expand the new parent so the crate is visible where it landed.
+        m_pSidebarWidget->selectChildIndex(indexFromCrateId(crateId), false);
+    }
 }
 
 void CrateFeature::deleteItem(const QModelIndex& index) {
