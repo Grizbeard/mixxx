@@ -429,12 +429,10 @@ QString parseCrate(
     return crateName;
 }
 
-// databaseName and databaseFilePath are passed by value rather than read back
-// off databaseItem. The caller replaces that item's data as soon as this task
-// is handed off, and reading it here at the same time raced on the QVariant's
-// shared data, which corrupted the heap.
-QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
-        TreeItem* databaseItem,
+// Runs on a worker thread, so it is handed everything it needs by value and
+// touches no tree item the GUI thread can see. The crates it builds come back
+// in the result, detached, to be attached on the GUI thread.
+SeratoDatabaseParseResult parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
         QString databaseName,
         QString databaseFilePath) {
     QDir databaseDir = QFileInfo(databaseFilePath).dir();
@@ -471,7 +469,7 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
     if (!QFile(databaseFilePath).exists()) {
         qWarning() << "Serato database file not found: "
                    << databaseFilePath;
-        return databaseFilePath;
+        return {databaseFilePath, {}};
     }
 
     // The pooler limits the lifetime all thread-local connections,
@@ -483,7 +481,7 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
     VERIFY_OR_DEBUG_ASSERT(database.isOpen()) {
         qWarning() << "Failed to open database for Serato parser."
                    << database.lastError();
-        return QString();
+        return {};
     }
 
     //Give thread a low priority
@@ -540,14 +538,14 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
         qWarning() << "Failed to open file "
                    << databaseFilePath
                    << " for reading.";
-        return QString();
+        return {};
     }
 
     int playlistId = createPlaylist(database, databaseFilePath, databaseDir.path());
     if (playlistId < 0) {
         qWarning() << "Failed to create library playlist for "
                    << databaseFilePath;
-        return QString();
+        return {};
     }
 
     int trackCount = 0;
@@ -568,7 +566,7 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
                        << " field from "
                        << databaseFilePath
                        << ".";
-            return QString();
+            return {};
         }
 
         // Parse field data
@@ -639,6 +637,11 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
     }
 
     // Parse Crates
+    //
+    // The crates are returned to the caller rather than attached here,
+    // because attaching them would mean this thread writing into the tree
+    // the GUI thread is reading.
+    QList<TreeItem*> crateItems;
     QDir crateDir = QDir(databaseDir);
     if (crateDir.cd(kCrateDirectory)) {
         QStringList filters;
@@ -652,9 +655,10 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
                     crateFilePath,
                     trackIdMap);
             if (!crateName.isEmpty()) {
-                TreeItem* crateItem = databaseItem->appendChild(crateName,
-                        QList<QVariant>{
-                                QVariant(crateFilePath), QVariant(true)});
+                TreeItem* crateItem = new TreeItem(crateName,
+                        QVariant(QList<QVariant>{
+                                QVariant(crateFilePath), QVariant(true)}));
+                crateItems.append(crateItem);
                 crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
             }
         }
@@ -667,7 +671,7 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
 
     transaction.commit();
 
-    return databaseFilePath;
+    return {databaseFilePath, {}};
 }
 
 // This function is executed in a separate thread other than the main thread
@@ -909,7 +913,7 @@ SeratoFeature::SeratoFeature(
             this,
             &SeratoFeature::onSeratoDatabasesFound);
     connect(&m_tracksFutureWatcher,
-            &QFutureWatcher<QString>::finished,
+            &QFutureWatcher<SeratoDatabaseParseResult>::finished,
             this,
             &SeratoFeature::onTracksFound);
 
@@ -1060,10 +1064,13 @@ void SeratoFeature::activateChild(const QModelIndex& index) {
         data[1] = QVariant(true);
         item->setData(QVariant(data));
 
+        // Remember which item the crates belong under. The parse hands them
+        // back detached, and by then this item pointer may be long gone.
+        m_parsingDatabaseLabel = databaseName;
+
         // Let a worker thread do the parsing
         m_tracksFuture = QtConcurrent::run(parseDatabase,
                 static_cast<Library*>(parent())->dbConnectionPool(),
-                item,
                 databaseName,
                 playlist);
         m_tracksFutureWatcher.setFuture(m_tracksFuture);
@@ -1137,12 +1144,47 @@ void SeratoFeature::onSeratoDatabasesFound() {
 
 void SeratoFeature::onTracksFound() {
     qDebug() << "onTracksFound";
-    m_pSidebarModel->triggerRepaint();
 
-    QString databasePlaylist = m_tracksFuture.result();
+    const SeratoDatabaseParseResult result = m_tracksFuture.result();
 
-    qDebug() << "Show Serato Database Playlist: " << databasePlaylist;
+    // Attach the crates the parse built. This runs on the GUI thread, which
+    // is the whole reason the parse returns them detached instead of adding
+    // them to the tree itself.
+    std::vector<std::unique_ptr<TreeItem>> crateRows;
+    crateRows.reserve(result.crateItems.size());
+    for (TreeItem* pCrateItem : result.crateItems) {
+        crateRows.push_back(std::unique_ptr<TreeItem>(pCrateItem));
+    }
+
+    // Find the database item by label. An index or a pointer taken before
+    // the parse started would not have survived the device list being
+    // refreshed in the meantime.
+    TreeItem* pRootItem = m_pSidebarModel->getRootItem();
+    QModelIndex databaseIndex;
+    if (pRootItem) {
+        for (int row = 0; row < pRootItem->childRows(); ++row) {
+            if (pRootItem->child(row)->getLabel() == m_parsingDatabaseLabel) {
+                databaseIndex = m_pSidebarModel->index(row, 0);
+                break;
+            }
+        }
+    }
+    if (databaseIndex.isValid()) {
+        if (!crateRows.empty()) {
+            m_pSidebarModel->insertTreeItemRows(
+                    std::move(crateRows), 0, databaseIndex);
+        }
+    } else {
+        // The device went away while it was being parsed, so the crates have
+        // nowhere to go. crateRows owns them and frees them here.
+        qWarning() << "Discarding" << crateRows.size()
+                   << "Serato crates because the device"
+                   << m_parsingDatabaseLabel << "is gone";
+    }
+    m_parsingDatabaseLabel.clear();
+
+    qDebug() << "Show Serato Database Playlist: " << result.databasePlaylistPath;
     emit saveModelState();
-    m_pSeratoPlaylistModel->setPlaylist(databasePlaylist);
+    m_pSeratoPlaylistModel->setPlaylist(result.databasePlaylistPath);
     emit showTrackModel(m_pSeratoPlaylistModel);
 }
