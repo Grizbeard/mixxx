@@ -48,6 +48,16 @@ class SeratoFeature : public BaseExternalLibraryFeature {
     std::unique_ptr<BaseSqlTableModel> createPlaylistModelForPlaylist(
             const QVariant& data) override;
 
+    // Serato's own crate folders are worth keeping when importing into Mixxx,
+    // now that Mixxx crates can be nested too.
+    bool preservesStructureOnCrateImport() const override {
+        return true;
+    }
+    // A Serato crate that has subcrates displays their tracks as well, so the
+    // import has to ask for the crate's own tracks instead.
+    std::unique_ptr<BaseSqlTableModel> createPlaylistModelForItemItself(
+            const QVariant& data) override;
+
     parented_ptr<TreeItemModel> m_pSidebarModel;
     SeratoPlaylistModel* m_pSeratoPlaylistModel;
 
