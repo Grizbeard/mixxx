@@ -214,8 +214,8 @@ void BaseExternalLibraryFeature::importCrateTree(QList<CrateImportItem> items) {
         const QString label = item.label.trimmed();
         Crate crate;
         crate.setName(CrateFeatureHelper(m_pTrackCollection, m_pConfig)
-                              .proposeNameForNewCrate(
-                                      label.isEmpty() ? tr("Imported Crate") : label));
+                        .proposeNameForNewCrate(
+                                label.isEmpty() ? tr("Imported Crate") : label));
         crate.setParentId(parentCrateId);
 
         CrateId crateId;

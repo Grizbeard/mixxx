@@ -29,7 +29,6 @@ class CrateFeatureHelper : public QObject {
             const QString& initialName = QString()) const;
 
   private:
-
     TrackCollection* m_pTrackCollection;
 
     UserSettingsPointer m_pConfig;

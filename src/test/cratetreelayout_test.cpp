@@ -1,9 +1,9 @@
+#include "library/trackset/crate/cratetreelayout.h"
+
 #include <gtest/gtest.h>
 
 #include <QStringList>
 #include <string>
-
-#include "library/trackset/crate/cratetreelayout.h"
 
 namespace {
 
