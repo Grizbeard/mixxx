@@ -108,6 +108,9 @@ CrateId CrateFeatureHelper::duplicateCrate(const Crate& oldCrate) {
                     QStringLiteral("%1 %2")
                             .arg(oldCrate.getName(), tr("copy", "//:")));
     Crate newCrate;
+    // Keep the copy alongside the original rather than dropping it at the top
+    // level, which is where a crate with no parent would land.
+    newCrate.setParentId(oldCrate.getParentId());
     for (;;) {
         bool ok = false;
         auto newName =

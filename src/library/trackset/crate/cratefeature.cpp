@@ -322,7 +322,7 @@ void CrateFeature::activateChild(const QModelIndex& index) {
     m_lastRightClickedIndex = QModelIndex();
     m_prevSiblingCrate = CrateId();
     emit saveModelState();
-    m_crateTableModel.selectCrate(crateId);
+    m_crateTableModel.selectCrate(crateId, shouldIncludeSubcrateTracks(crateId));
     emit showTrackModel(&m_crateTableModel);
     emit enableCoverArtDisplay(true);
 }
@@ -345,12 +345,22 @@ bool CrateFeature::activateCrate(CrateId crateId) {
     m_lastRightClickedIndex = QModelIndex();
     m_prevSiblingCrate = CrateId();
     emit saveModelState();
-    m_crateTableModel.selectCrate(crateId);
+    m_crateTableModel.selectCrate(crateId, shouldIncludeSubcrateTracks(crateId));
     emit showTrackModel(&m_crateTableModel);
     emit enableCoverArtDisplay(true);
     // Update selection
     emit featureSelect(this, m_lastClickedIndex);
     return true;
+}
+
+bool CrateFeature::shouldIncludeSubcrateTracks(CrateId crateId) const {
+    if (!m_pConfig->getValue<bool>(
+                kShowSubcrateTracksConfigKey, kShowSubcrateTracksDefault)) {
+        return false;
+    }
+    // A crate without subcrates would produce the same track list either way,
+    // so keep using the cheaper query for it.
+    return m_pTrackCollection->crates().hasChildCrates(crateId);
 }
 
 bool CrateFeature::readLastRightClickedCrate(Crate* pCrate) const {
@@ -1088,6 +1098,17 @@ void CrateFeature::slotCrateContentChanged(CrateId crateId) {
     QSet<CrateId> updatedCrateIds;
     updatedCrateIds.insert(crateId);
     updateChildModel(updatedCrateIds);
+
+    // A crate displayed together with its subcrates' tracks also has to
+    // refresh when one of those subcrates changes. The change is reported for
+    // the subcrate, so nothing else would notice that the displayed track
+    // list just became stale.
+    const CrateId displayedCrateId = m_crateTableModel.selectedCrate();
+    if (displayedCrateId.isValid() && displayedCrateId != crateId &&
+            shouldIncludeSubcrateTracks(displayedCrateId) &&
+            m_pTrackCollection->crates().isAncestorOf(displayedCrateId, crateId)) {
+        m_crateTableModel.select();
+    }
 }
 
 void CrateFeature::slotUpdateCrateLabels(const QSet<CrateId>& updatedCrateIds) {

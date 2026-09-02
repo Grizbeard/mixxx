@@ -300,6 +300,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
     }
 
     spinBox_sidebar_hover_expand_delay->setValue(kSidebarHoverExpandDelayDefault);
+    checkBox_show_subcrate_tracks->setChecked(kShowSubcrateTracksDefault);
 
     checkBox_show_rhythmbox->setChecked(true);
     checkBox_show_banshee->setChecked(true);
@@ -464,6 +465,11 @@ void DlgPrefLibrary::slotUpdate() {
                     kSidebarHoverExpandDelayConfigKey,
                     kSidebarHoverExpandDelayDefault);
     spinBox_sidebar_hover_expand_delay->setValue(sidebarHoverExpandDelay);
+
+    checkBox_show_subcrate_tracks->setChecked(
+            m_pConfig->getValue(
+                    kShowSubcrateTracksConfigKey,
+                    kShowSubcrateTracksDefault));
 }
 
 void DlgPrefLibrary::slotCancel() {
@@ -686,6 +692,10 @@ void DlgPrefLibrary::slotApply() {
     int sidebarHoverExpandDelay = spinBox_sidebar_hover_expand_delay->value();
     m_pConfig->setValue(kSidebarHoverExpandDelayConfigKey, sidebarHoverExpandDelay);
     emit m_pLibrary->setSidebarHoverExpandDelay(sidebarHoverExpandDelay);
+
+    m_pConfig->set(
+            kShowSubcrateTracksConfigKey,
+            ConfigValue(checkBox_show_subcrate_tracks->isChecked()));
 
     // TODO(rryan): Don't save here.
     m_pConfig->save();
