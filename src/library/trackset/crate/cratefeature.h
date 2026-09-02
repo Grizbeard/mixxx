@@ -1,13 +1,16 @@
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QModelIndex>
 #include <QPointer>
+#include <QSet>
 #include <QUrl>
 #include <QVariant>
 
 #include "library/trackset/basetracksetfeature.h"
 #include "library/trackset/crate/crate.h"
+#include "library/trackset/crate/cratesummary.h"
 #include "library/trackset/crate/cratetablemodel.h"
 #include "preferences/usersettings.h"
 #include "track/trackid.h"
@@ -57,6 +60,8 @@ class CrateFeature : public BaseTrackSetFeature {
 #endif
 
   private slots:
+    void slotCreateSubcrate();
+    void slotMoveCrate();
     void slotDeleteCrate();
     void slotRenameCrate();
     void slotDuplicateCrate();
@@ -89,11 +94,27 @@ class CrateFeature : public BaseTrackSetFeature {
             TreeItem* pTreeItem,
             const CrateSummary& crateSummary) const;
 
+    /// Create tree items for every crate nested inside parentId, recursively,
+    /// and append them to pParentItem. Crates already covered by an enclosing
+    /// call are listed in visitedCrateIds and skipped, so that a parent cycle
+    /// that slipped past CrateStorage cannot recurse endlessly.
+    void appendCrateTreeItems(
+            TreeItem* pParentItem,
+            CrateId parentId,
+            const QHash<CrateId, QList<CrateSummary>>& summariesByParentId,
+            QSet<CrateId>* pVisitedCrateIds);
+
     QModelIndex rebuildChildModel(CrateId selectedCrateId = CrateId());
     void updateChildModel(const QSet<CrateId>& updatedCrateIds);
 
     CrateId crateIdFromIndex(const QModelIndex& index) const;
     QModelIndex indexFromCrateId(CrateId crateId) const;
+    QModelIndex findCrateIndex(const QModelIndex& parentIndex, CrateId crateId) const;
+
+    /// Ask the user for a crate to nest crateId inside, offering the top level
+    /// and every crate that is not crateId itself or nested below it. Returns
+    /// false if the user cancelled.
+    bool askForNewParentCrate(CrateId crateId, CrateId* pNewParentId) const;
 
     bool isChildIndexSelectedInSidebar(const QModelIndex& index);
     bool readLastRightClickedCrate(Crate* pCrate) const;
@@ -116,6 +137,8 @@ class CrateFeature : public BaseTrackSetFeature {
     TrackId m_selectedTrackId;
 
     parented_ptr<QAction> m_pCreateCrateAction;
+    parented_ptr<QAction> m_pCreateSubcrateAction;
+    parented_ptr<QAction> m_pMoveCrateAction;
     parented_ptr<QAction> m_pDeleteCrateAction;
     parented_ptr<QAction> m_pRenameCrateAction;
     parented_ptr<QAction> m_pLockCrateAction;

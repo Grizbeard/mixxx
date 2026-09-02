@@ -17,7 +17,9 @@ class CrateFeatureHelper : public QObject {
             UserSettingsPointer pConfig);
     ~CrateFeatureHelper() override = default;
 
-    CrateId createEmptyCrate();
+    /// Ask for a name and create an empty crate, nested inside parentId if a
+    /// valid id is given, otherwise at the top level.
+    CrateId createEmptyCrate(CrateId parentId = CrateId());
     CrateId duplicateCrate(const Crate& oldCrate);
 
   private:
