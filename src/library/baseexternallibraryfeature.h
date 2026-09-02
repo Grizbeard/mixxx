@@ -72,13 +72,31 @@ class BaseExternalLibraryFeature : public LibraryFeature {
   private:
     void addToAutoDJ(PlaylistDAO::AutoDJSendLoc loc);
 
-    /// Create one Mixxx crate per item in the subtree rooted at pTreeItem,
-    /// nested under parentCrateId, and return how many crates were created.
-    int importSubtreeAsNestedCrates(const TreeItem* pTreeItem, CrateId parentCrateId);
+    /// One item of a subtree that is being imported, captured up front so
+    /// that the import never reads a TreeItem again once it has started.
+    struct CrateImportItem {
+        QString label;
+        QVariant data;
+        /// Position of this item's parent in the list, or -1 for the item the
+        /// import started from. A parent always precedes its children.
+        int parentIndex;
+        QList<TrackId> trackIds;
+    };
 
-    /// The number of items in the subtree rooted at pTreeItem, including
-    /// pTreeItem itself.
-    static int countSubtreeItems(const TreeItem* pTreeItem);
+    /// The Mixxx track ids for the tracks this item holds itself, adding any
+    /// that are not in the library yet. label is only used for logging.
+    QList<TrackId> collectTrackIdsForItemItself(
+            const QVariant& data, const QString& label);
+
+    /// Flatten the subtree rooted at pTreeItem into items, parents first.
+    ///
+    /// The tree is copied rather than walked lazily because the import shows
+    /// a dialog and writes to the database, and both of those let the library
+    /// tree be rebuilt underneath us. A TreeItem pointer does not survive
+    /// that; the captured label and data do.
+    static void flattenSubtreeForImport(const TreeItem* pTreeItem,
+            int parentIndex,
+            QList<CrateImportItem>* pItems);
 
     // Caution: Make sure this is reset whenever the library tree is updated,
     // so that the internalPointer() does not become dangling
