@@ -710,23 +710,21 @@ void CrateFeature::slotAutoDjTrackSourceChanged() {
 void CrateFeature::appendCrateTreeItems(
         TreeItem* pParentItem,
         CrateId parentId,
-        const QHash<CrateId, QList<CrateSummary>>& summariesByParentId,
-        QSet<CrateId>* pVisitedCrateIds) {
-    const QList<CrateSummary> childSummaries = summariesByParentId.value(parentId);
+        const CrateTreeLayout& layout,
+        QSet<CrateId>* pPlacedCrateIds) {
+    const QList<CrateSummary> childSummaries = layout.childrenOf(parentId);
     for (const CrateSummary& childSummary : childSummaries) {
-        if (pVisitedCrateIds->contains(childSummary.getId())) {
+        if (pPlacedCrateIds->contains(childSummary.getId())) {
             // Only reachable if a parent cycle made it into the database.
-            qWarning() << "Skipping crate" << childSummary.getId()
-                       << "that is nested inside itself";
             continue;
         }
-        pVisitedCrateIds->insert(childSummary.getId());
+        pPlacedCrateIds->insert(childSummary.getId());
         TreeItem* pChildItem = pParentItem->appendChild(QString());
         updateTreeItemForCrateSummary(pChildItem, childSummary);
         appendCrateTreeItems(pChildItem,
                 childSummary.getId(),
-                summariesByParentId,
-                pVisitedCrateIds);
+                layout,
+                pPlacedCrateIds);
     }
 }
 
@@ -745,54 +743,52 @@ QModelIndex CrateFeature::rebuildChildModel(CrateId selectedCrateId) {
     }
     m_pSidebarModel->removeRows(0, pRootItem->childRows());
 
-    // Read every crate summary once and group it by its parent, so that the
-    // whole tree can be built from a single query. The summaries arrive
-    // ordered by name, which each group inherits.
-    QHash<CrateId, QList<CrateSummary>> summariesByParentId;
+    // Read every crate summary once and let the layout group them, so that
+    // the whole tree costs a single query. The summaries arrive ordered by
+    // name, which the layout preserves.
+    QList<CrateSummary> allCrateSummaries;
+    allCrateSummaries.reserve(m_pTrackCollection->crates().countCrates());
     CrateSummarySelectResult crateSummaries(
             m_pTrackCollection->crates().selectCrateSummaries());
     CrateSummary crateSummary;
     while (crateSummaries.populateNext(&crateSummary)) {
-        summariesByParentId[crateSummary.getParentId()].append(crateSummary);
+        allCrateSummaries.append(crateSummary);
     }
+    const CrateTreeLayout layout =
+            CrateTreeLayout::fromCrateSummaries(allCrateSummaries);
 
-    QSet<CrateId> visitedCrateIds;
+    QSet<CrateId> placedCrateIds;
     std::vector<std::unique_ptr<TreeItem>> modelRows;
-    const QList<CrateSummary> topLevelSummaries =
-            summariesByParentId.value(CrateId());
-    modelRows.reserve(topLevelSummaries.size());
+    const QList<CrateSummary> topLevelSummaries = layout.childrenOf(CrateId());
+    modelRows.reserve(topLevelSummaries.size() + layout.unreachableCrates().size());
     for (const CrateSummary& topLevelSummary : topLevelSummaries) {
-        visitedCrateIds.insert(topLevelSummary.getId());
+        placedCrateIds.insert(topLevelSummary.getId());
         auto pTreeItem = newTreeItemForCrateSummary(topLevelSummary);
         appendCrateTreeItems(pTreeItem.get(),
                 topLevelSummary.getId(),
-                summariesByParentId,
-                &visitedCrateIds);
+                layout,
+                &placedCrateIds);
         modelRows.push_back(std::move(pTreeItem));
     }
 
-    // Every crate has to end up somewhere in the tree. A crate that no walk
-    // from the top level reached sits in a parent cycle, and hiding it would
-    // look to the user like the crate had been lost. Show it at the top level
-    // instead until a database repair untangles the cycle.
-    for (auto it = summariesByParentId.constBegin();
-            it != summariesByParentId.constEnd();
-            ++it) {
-        for (const CrateSummary& strandedSummary : it.value()) {
-            if (visitedCrateIds.contains(strandedSummary.getId())) {
-                continue;
-            }
-            qWarning() << "Crate" << strandedSummary.getId()
-                       << "is not reachable from the top level and is shown "
-                          "there instead";
-            visitedCrateIds.insert(strandedSummary.getId());
-            auto pTreeItem = newTreeItemForCrateSummary(strandedSummary);
-            appendCrateTreeItems(pTreeItem.get(),
-                    strandedSummary.getId(),
-                    summariesByParentId,
-                    &visitedCrateIds);
-            modelRows.push_back(std::move(pTreeItem));
+    // Every crate has to end up somewhere. A crate the descent never reached
+    // sits in a parent cycle, and leaving it out would look to the user like
+    // the crate had been lost, so show it at the top level until a database
+    // repair untangles the cycle.
+    for (const CrateSummary& unreachableSummary : layout.unreachableCrates()) {
+        if (placedCrateIds.contains(unreachableSummary.getId())) {
+            continue;
         }
+        qWarning() << "Crate" << unreachableSummary.getId()
+                   << "is not reachable from the top level and is shown "
+                      "there instead";
+        placedCrateIds.insert(unreachableSummary.getId());
+        auto pTreeItem = newTreeItemForCrateSummary(unreachableSummary);
+        appendCrateTreeItems(pTreeItem.get(),
+                unreachableSummary.getId(),
+                layout,
+                &placedCrateIds);
+        modelRows.push_back(std::move(pTreeItem));
     }
 
     // Append all the newly created TreeItems in a dynamic way to the childmodel

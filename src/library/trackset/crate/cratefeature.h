@@ -12,6 +12,7 @@
 #include "library/trackset/crate/crate.h"
 #include "library/trackset/crate/cratesummary.h"
 #include "library/trackset/crate/cratetablemodel.h"
+#include "library/trackset/crate/cratetreelayout.h"
 #include "preferences/usersettings.h"
 #include "track/trackid.h"
 #include "util/parented_ptr.h"
@@ -95,14 +96,14 @@ class CrateFeature : public BaseTrackSetFeature {
             const CrateSummary& crateSummary) const;
 
     /// Create tree items for every crate nested inside parentId, recursively,
-    /// and append them to pParentItem. Crates already covered by an enclosing
-    /// call are listed in visitedCrateIds and skipped, so that a parent cycle
-    /// that slipped past CrateStorage cannot recurse endlessly.
+    /// and append them to pParentItem. Crates an enclosing call already placed
+    /// are listed in placedCrateIds and skipped, so that a parent cycle which
+    /// slipped past CrateStorage cannot recurse endlessly.
     void appendCrateTreeItems(
             TreeItem* pParentItem,
             CrateId parentId,
-            const QHash<CrateId, QList<CrateSummary>>& summariesByParentId,
-            QSet<CrateId>* pVisitedCrateIds);
+            const CrateTreeLayout& layout,
+            QSet<CrateId>* pPlacedCrateIds);
 
     QModelIndex rebuildChildModel(CrateId selectedCrateId = CrateId());
     void updateChildModel(const QSet<CrateId>& updatedCrateIds);
