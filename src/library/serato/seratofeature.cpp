@@ -2,11 +2,13 @@
 
 #include <QBuffer>
 #include <QMap>
+#include <QSet>
 #include <QStandardPaths>
 #include <QTextCodec>
 #include <QtConcurrentRun>
 #include <QtDebug>
 #include <QtEndian>
+#include <algorithm>
 
 #include "library/dao/trackschema.h"
 #include "library/library.h"
@@ -334,11 +336,28 @@ inline QString parseCrateTrackPath(QIODevice* buffer) {
     return location;
 }
 
+// One node of the crate tree, keyed elsewhere by its "%%"-delimited path.
+struct SeratoCrateNode {
+    // Path of the ".crate" file backing this node. Empty for folder levels
+    // that Serato has no crate file of its own for.
+    QString filePath;
+    // Tracks of this crate alone, in the order they appear in the file.
+    QList<int> trackIds;
+};
+
+// A crate path paired with its split segments, so the tree can be ordered
+// without splitting each path again on every comparison.
+struct SeratoCratePath {
+    QStringList segments;
+    QString path;
+};
+
 QString parseCrate(
         const QSqlDatabase& database,
         const QString& databasePath,
         const QString& crateFilePath,
-        const QMap<QString, int>& trackIdMap) {
+        const QMap<QString, int>& trackIdMap,
+        QList<int>* pTrackIds) {
     QString crateName = QFileInfo(crateFilePath).baseName();
     qDebug() << "Parsing crate"
              << crateName
@@ -403,6 +422,9 @@ QString parseCrate(
             if (!location.isEmpty()) {
                 int trackId = trackIdMap.value(location, -1);
                 insertTrackIntoPlaylist(database, playlistId, trackId, trackCount);
+                if (pTrackIds) {
+                    pTrackIds->append(trackId);
+                }
                 trackCount++;
                 break;
             }
@@ -644,45 +666,141 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* dat
         QStringList filters;
         filters << kCrateFilter;
         const auto entryList = crateDir.entryList(filters, QDir::NoFilter, QDir::Name);
-        // Maps a folder's full "%%"-joined path to the TreeItem already
-        // created for it, so sibling crates that share a folder prefix
-        // nest under the same folder node instead of creating duplicates.
-        QMap<QString, TreeItem*> folderItemsByPath;
+
+        // Collect every crate keyed by its "%%"-delimited folder path before
+        // building any tree items. A crate that also has subcrates must become
+        // a single node rather than a crate node and a folder node side by
+        // side, and that is only known once all crates have been seen.
+        QMap<QString, SeratoCrateNode> nodesByPath;
+        QSet<QString> pathsWithChildren;
         for (const QString& entry : entryList) {
             QString crateFilePath = crateDir.filePath(entry);
-            QString crateName = parseCrate(
+            QList<int> trackIds;
+            QString cratePath = parseCrate(
                     database,
                     databaseDir.path(),
                     crateFilePath,
-                    trackIdMap);
-            if (crateName.isEmpty()) {
+                    trackIdMap,
+                    &trackIds);
+            if (cratePath.isEmpty()) {
                 continue;
             }
 
-            QStringList pathSegments = crateName.split(
-                    kCrateFolderDelimiter, Qt::SkipEmptyParts);
-            if (pathSegments.isEmpty()) {
-                // The crate name was made up entirely of delimiters; treat
-                // the original name as a single, non-nested crate.
-                pathSegments = QStringList{crateName};
+            SeratoCrateNode& node = nodesByPath[cratePath];
+            node.filePath = crateFilePath;
+            node.trackIds = trackIds;
+
+            // Serato has no crate file for a folder that only groups other
+            // crates, so materialize any missing ancestor levels.
+            const QStringList segments =
+                    cratePath.split(kCrateFolderDelimiter, Qt::SkipEmptyParts);
+            for (int i = 1; i < segments.size(); ++i) {
+                const QString ancestorPath = QStringList(segments.mid(0, i))
+                                                     .join(kCrateFolderDelimiter);
+                pathsWithChildren.insert(ancestorPath);
+                if (!nodesByPath.contains(ancestorPath)) {
+                    nodesByPath.insert(ancestorPath, SeratoCrateNode());
+                }
             }
+        }
+
+        // Order the crates the way Serato lists them, comparing folder names
+        // case-insensitively, and always visiting a parent before anything
+        // nested inside it so the parent tree item already exists.
+        QList<SeratoCratePath> orderedPaths;
+        orderedPaths.reserve(nodesByPath.size());
+        for (auto it = nodesByPath.constBegin(); it != nodesByPath.constEnd(); ++it) {
+            const QStringList segments =
+                    it.key().split(kCrateFolderDelimiter, Qt::SkipEmptyParts);
+            if (segments.isEmpty()) {
+                continue;
+            }
+            orderedPaths.append(SeratoCratePath{segments, it.key()});
+        }
+        std::sort(orderedPaths.begin(),
+                orderedPaths.end(),
+                [](const SeratoCratePath& lhs, const SeratoCratePath& rhs) {
+                    const qsizetype commonSize =
+                            std::min(lhs.segments.size(), rhs.segments.size());
+                    for (qsizetype i = 0; i < commonSize; ++i) {
+                        int diff = QString::compare(lhs.segments.at(i),
+                                rhs.segments.at(i),
+                                Qt::CaseInsensitive);
+                        if (diff == 0) {
+                            // Keep the order stable and deterministic for
+                            // names that differ only in case.
+                            diff = QString::compare(lhs.segments.at(i),
+                                    rhs.segments.at(i),
+                                    Qt::CaseSensitive);
+                        }
+                        if (diff != 0) {
+                            return diff < 0;
+                        }
+                    }
+                    // A parent path is a prefix of every path nested inside it,
+                    // so the shorter one has to come first.
+                    return lhs.segments.size() < rhs.segments.size();
+                });
+
+        QMap<QString, TreeItem*> itemsByPath;
+        for (const SeratoCratePath& orderedPath : orderedPaths) {
+            const QStringList& segments = orderedPath.segments;
+            const QString& cratePath = orderedPath.path;
 
             TreeItem* parentItem = databaseItem;
-            QString folderPath;
-            for (int i = 0; i < pathSegments.size() - 1; ++i) {
-                folderPath += (i == 0 ? QString() : kCrateFolderDelimiter) + pathSegments[i];
-                TreeItem* folderItem = folderItemsByPath.value(folderPath, nullptr);
-                if (!folderItem) {
-                    folderItem = parentItem->appendChild(pathSegments[i]);
-                    folderItemsByPath.insert(folderPath, folderItem);
-                }
-                parentItem = folderItem;
+            if (segments.size() > 1) {
+                const QString parentPath =
+                        QStringList(segments.mid(0, segments.size() - 1))
+                                .join(kCrateFolderDelimiter);
+                parentItem = itemsByPath.value(parentPath, databaseItem);
             }
 
-            TreeItem* crateItem = parentItem->appendChild(pathSegments.last(),
-                    QList<QVariant>{
-                            QVariant(crateFilePath), QVariant(true)});
+            // A crate without subcrates shows its own tracks. A crate that has
+            // subcrates shows its own tracks plus those of every crate nested
+            // below it, mirroring Serato's "include subcrate tracks" view.
+            QString playlistPath = nodesByPath.value(cratePath).filePath;
+            if (pathsWithChildren.contains(cratePath)) {
+                playlistPath = crateDir.filePath(cratePath);
+                const int playlistId = createPlaylist(
+                        database, playlistPath, databaseDir.path());
+                if (playlistId < 0) {
+                    qWarning() << "Failed to create aggregate playlist for crate"
+                               << cratePath;
+                    continue;
+                }
+
+                const QString descendantPrefix = cratePath + kCrateFolderDelimiter;
+                QSet<int> seenTrackIds;
+                int trackCount = 0;
+                for (auto nested = nodesByPath.constBegin();
+                        nested != nodesByPath.constEnd();
+                        ++nested) {
+                    if (nested.key() != cratePath &&
+                            !nested.key().startsWith(descendantPrefix)) {
+                        continue;
+                    }
+                    for (int trackId : nested.value().trackIds) {
+                        // Skip tracks missing from the database, and list a
+                        // track shared by several subcrates only once.
+                        if (trackId < 0 || seenTrackIds.contains(trackId)) {
+                            continue;
+                        }
+                        seenTrackIds.insert(trackId);
+                        insertTrackIntoPlaylist(
+                                database, playlistId, trackId, trackCount);
+                        trackCount++;
+                    }
+                }
+            }
+
+            QVariant itemData;
+            if (!playlistPath.isEmpty()) {
+                itemData = QVariant(QList<QVariant>{
+                        QVariant(playlistPath), QVariant(true)});
+            }
+            TreeItem* crateItem = parentItem->appendChild(segments.last(), itemData);
             crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
+            itemsByPath.insert(cratePath, crateItem);
         }
     } else {
         qWarning() << "Failed to open crate directory: "
