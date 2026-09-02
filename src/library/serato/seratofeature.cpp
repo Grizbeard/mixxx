@@ -429,9 +429,14 @@ QString parseCrate(
     return crateName;
 }
 
-QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* databaseItem) {
-    QString databaseName = databaseItem->getLabel();
-    QString databaseFilePath = databaseItem->getData().toList().at(0).toString();
+// databaseName and databaseFilePath are passed by value rather than read back
+// off databaseItem. The caller replaces that item's data as soon as this task
+// is handed off, and reading it here at the same time raced on the QVariant's
+// shared data, which corrupted the heap.
+QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
+        TreeItem* databaseItem,
+        QString databaseName,
+        QString databaseFilePath) {
     QDir databaseDir = QFileInfo(databaseFilePath).dir();
 
     QDir databaseRootDir = QDir(databaseDir);
@@ -1044,14 +1049,24 @@ void SeratoFeature::activateChild(const QModelIndex& index) {
     qDebug() << "SeratoFeature::activateChild " << item->getLabel();
 
     if (!isPlaylist) {
-        // Let a worker thread do the parsing
-        m_tracksFuture = QtConcurrent::run(parseDatabase, static_cast<Library*>(parent())->dbConnectionPool(), item);
-        m_tracksFutureWatcher.setFuture(m_tracksFuture);
-
         // This device is now a playlist element, future activations should
-        // treat is as such
+        // treat is as such.
+        //
+        // Do this before handing the task off, and give the task its own copy
+        // of what it needs from this item. Writing the item's data here while
+        // the task read it back off the same item raced on the QVariant's
+        // shared data and corrupted the heap.
+        const QString databaseName = item->getLabel();
         data[1] = QVariant(true);
         item->setData(QVariant(data));
+
+        // Let a worker thread do the parsing
+        m_tracksFuture = QtConcurrent::run(parseDatabase,
+                static_cast<Library*>(parent())->dbConnectionPool(),
+                item,
+                databaseName,
+                playlist);
+        m_tracksFutureWatcher.setFuture(m_tracksFuture);
     } else {
         qDebug() << "Activate Serato Playlist: " << playlist;
         emit saveModelState();
