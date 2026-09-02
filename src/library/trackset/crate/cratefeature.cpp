@@ -3,6 +3,8 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QStandardPaths>
 #include <algorithm>
 #include <vector>
@@ -594,29 +596,84 @@ void CrateFeature::slotDeleteCrate() {
             storePrevSiblingCrateId(crateId);
         }
 
-        // Say what happens to the subcrates, so that deleting a crate that
-        // groups others is not mistaken for deleting all of them.
-        QString question =
-                tr("Do you really want to delete crate <b>%1</b>?")
-                        .arg(crate.getName());
-        const int childCrateCount =
-                m_pTrackCollection->crates().collectDescendantCrateIds(crateId).size();
-        if (childCrateCount > 0) {
-            question += QStringLiteral("<p>") +
-                    tr("The %n crate(s) inside it will be kept and moved up one "
-                       "level.",
-                            "",
-                            childCrateCount) +
-                    QStringLiteral("</p>");
-        }
-        QMessageBox::StandardButton btn = QMessageBox::question(nullptr,
-                tr("Confirm Deletion"),
-                question,
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No);
-        if (btn == QMessageBox::Yes) {
+        const QList<CrateId> descendantCrateIds =
+                m_pTrackCollection->crates().collectDescendantCrateIds(crateId);
+
+        // A crate with nothing nested inside it has only one possible
+        // outcome, so keep the plain confirmation for it.
+        if (descendantCrateIds.isEmpty()) {
+            const QMessageBox::StandardButton btn = QMessageBox::question(
+                    m_pSidebarWidget,
+                    tr("Confirm Deletion"),
+                    tr("Do you really want to delete crate <b>%1</b>?")
+                            .arg(crate.getName()),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No);
+            if (btn != QMessageBox::Yes) {
+                return;
+            }
             if (m_pTrackCollection->deleteCrate(crateId)) {
                 qDebug() << "Deleted crate" << crate;
+                return;
+            }
+            qWarning() << "Failed to delete selected crate";
+            return;
+        }
+
+        // Deleting the subtree would take a locked crate with it, which is
+        // the one thing locking is meant to prevent, so that choice is not
+        // offered while one is in there.
+        QStringList lockedCrateNames;
+        for (const CrateId& descendantCrateId : descendantCrateIds) {
+            Crate descendantCrate;
+            if (m_pTrackCollection->crates().readCrateById(
+                        descendantCrateId, &descendantCrate) &&
+                    descendantCrate.isLocked()) {
+                lockedCrateNames.append(descendantCrate.getName());
+            }
+        }
+
+        QString question = tr("Do you really want to delete crate <b>%1</b>?")
+                                   .arg(crate.getName());
+        question += QStringLiteral("<p>") +
+                tr("It contains %n other crate(s).", "", descendantCrateIds.size()) +
+                QStringLiteral("</p>");
+        if (!lockedCrateNames.isEmpty()) {
+            question += QStringLiteral("<p>") +
+                    tr("They can only be kept, because %1 is locked.")
+                            .arg(lockedCrateNames.join(QStringLiteral(", "))) +
+                    QStringLiteral("</p>");
+        }
+
+        QMessageBox messageBox(m_pSidebarWidget);
+        messageBox.setIcon(QMessageBox::Question);
+        messageBox.setWindowTitle(tr("Confirm Deletion"));
+        messageBox.setText(question);
+        QPushButton* pKeepButton = messageBox.addButton(
+                tr("Keep Subcrates"), QMessageBox::AcceptRole);
+        QPushButton* pDeleteAllButton = nullptr;
+        if (lockedCrateNames.isEmpty()) {
+            pDeleteAllButton = messageBox.addButton(
+                    tr("Delete Subcrates"), QMessageBox::DestructiveRole);
+        }
+        QPushButton* pCancelButton = messageBox.addButton(QMessageBox::Cancel);
+        // Neither outcome is safe enough to be the default.
+        messageBox.setDefaultButton(pCancelButton);
+        messageBox.exec();
+
+        if (messageBox.clickedButton() == pCancelButton) {
+            return;
+        }
+        if (messageBox.clickedButton() == pDeleteAllButton) {
+            if (m_pTrackCollection->deleteCrateTree(crateId)) {
+                qDebug() << "Deleted crate" << crate << "and"
+                         << descendantCrateIds.size() << "crates inside it";
+                return;
+            }
+        } else if (messageBox.clickedButton() == pKeepButton) {
+            if (m_pTrackCollection->deleteCrate(crateId)) {
+                qDebug() << "Deleted crate" << crate
+                         << "and kept the crates inside it";
                 return;
             }
         } else {
