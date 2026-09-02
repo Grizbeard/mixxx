@@ -31,8 +31,9 @@ public:
 
     // Returns a serialized protobuf of the current state.
     QString saveState() const;
-    // Apply the state to the provided view.  The data in the object may be
-    // changed if the header format has changed.
+    // Apply the state to the provided view. Columns which are not part of the
+    // view's model are ignored, columns of the model which the state has no
+    // record for are made visible so they can be discovered.
     void restoreState(WTrackTableViewHeader* pHeaders);
 
     // returns false if no headers are listed to be shown.

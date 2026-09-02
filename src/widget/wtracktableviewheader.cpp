@@ -2,8 +2,10 @@
 
 #include <QCheckBox>
 #include <QContextMenuEvent>
+#include <QHash>
 #include <QLabel>
 #include <QPainter>
+#include <QSet>
 #include <QStyleOptionHeader>
 #include <QTextOption>
 #include <QWidgetAction>
@@ -21,8 +23,17 @@ HeaderViewState::HeaderViewState(const WTrackTableViewHeader& headers) {
     QAbstractItemModel* model = headers.model();
     for (int vi = 0; vi < headers.count(); ++vi) {
         int li = headers.logicalIndex(vi);
+        const QString column_name = model->headerData(
+                                                 li, Qt::Horizontal, TrackModel::kHeaderNameRole)
+                                            .toString();
+        // If there was some sort of error getting the column id,
+        // we have to skip this one. (Happens with non-displayed columns)
+        if (column_name.isEmpty()) {
+            continue;
+        }
         mixxx::library::HeaderViewState::HeaderState* header_state =
                 m_view_state.add_header_state();
+        header_state->set_column_name(column_name.toStdString());
         header_state->set_hidden(headers.isSectionHidden(li));
         // Unfortunately sectionSize() is always 0 for hidden columns. Though,
         // QHeaderView keeps track of hidden sizes internally, and we do the same.
@@ -45,17 +56,11 @@ HeaderViewState::HeaderViewState(const WTrackTableViewHeader& headers) {
             }
         }
         header_state->set_size(size);
+        // Note: the indices are only stored for backwards compatibility,
+        // restoreState() matches columns by name and takes the column order
+        // from the order of the records.
         header_state->set_logical_index(li);
         header_state->set_visual_index(vi);
-        const QString column_name = model->headerData(
-                                                 li, Qt::Horizontal, TrackModel::kHeaderNameRole)
-                                            .toString();
-        // If there was some sort of error getting the column id,
-        // we have to skip this one. (Happens with non-displayed columns)
-        if (column_name.isEmpty()) {
-            continue;
-        }
-        header_state->set_column_name(column_name.toStdString());
     }
     m_view_state.set_sort_indicator_shown(headers.isSortIndicatorShown());
     if (m_view_state.sort_indicator_shown()) {
@@ -88,50 +93,65 @@ QString HeaderViewState::saveState() const {
 }
 
 void HeaderViewState::restoreState(WTrackTableViewHeader* pHeaders) {
-    const int max_columns =
-            math_min(pHeaders->count(), m_view_state.header_state_size());
+    QAbstractItemModel* pModel = pHeaders->model();
+    VERIFY_OR_DEBUG_ASSERT(pModel) {
+        return;
+    }
 
-    typedef QMap<QString, mixxx::library::HeaderViewState::HeaderState*> state_map;
-    state_map map;
+    // Collect the names of the columns we have a record for.
+    QSet<QString> storedColumns;
     for (int i = 0; i < m_view_state.header_state_size(); ++i) {
-        map[QString::fromStdString(m_view_state.header_state(i).column_name())] =
-                m_view_state.mutable_header_state(i);
+        storedColumns.insert(
+                QString::fromStdString(m_view_state.header_state(i).column_name()));
     }
 
-    // First set all sections to be hidden and update logical indexes.
+    // Map the name of every column of the model to its logical index, and hide
+    // all columns we have a record for. The loop below then restores their
+    // stored visibility, size and position.
+    QHash<QString, int> modelColumns;
     for (int li = 0; li < pHeaders->count(); ++li) {
-        bool hidden = true;
-        auto it = map.find(pHeaders->model()->headerData(
-                                                    li, Qt::Horizontal, TrackModel::kHeaderNameRole)
-                        .toString());
-        if (it == map.end()) {
-            // This is a column for which the stored state doesn't have a record,
-            // so this is likely a new column, added by last update.
-            // Enforce visible so it can be discovered.
-            qDebug() << "Header view: enforce visibility of new/unknown column"
-                     << pHeaders->model()->headerData(
-                                                 li, Qt::Horizontal)
-                                .toString() // translated name
-                     << pHeaders->model()->headerData(
-                                                 li, Qt::Horizontal, TrackModel::kHeaderNameRole)
-                                .toString(); // internal name
-            hidden = false;
-        } else {
-            it.value()->set_logical_index(li);
-        }
-        pHeaders->setSectionHidden(li, hidden);
-    }
-
-    // Now restore
-    for (int vi = 0; vi < max_columns; ++vi) {
-        const mixxx::library::HeaderViewState::HeaderState& header =
-                m_view_state.header_state(vi);
-        const int li = header.logical_index();
-
-        if (li < 0 || li >= pHeaders->count()) {
-            qWarning() << "Header view: skipping restore for invalid column index" << li;
+        const QString columnName =
+                pModel->headerData(li, Qt::Horizontal, TrackModel::kHeaderNameRole)
+                        .toString();
+        if (columnName.isEmpty()) {
+            // Internal columns have no name. They are hidden by the track view,
+            // so leave them alone.
             continue;
         }
+        modelColumns.insert(columnName, li);
+        if (storedColumns.contains(columnName)) {
+            pHeaders->setSectionHidden(li, true);
+        } else {
+            // This is a column for which the stored state doesn't have a record,
+            // so this is either a new column, added by last update, or a column
+            // only this view has while the state was stored by another view.
+            // Enforce visible so it can be discovered.
+            qDebug() << "Header view: enforce visibility of new/unknown column"
+                     << pModel->headerData(li, Qt::Horizontal).toString() // translated name
+                     << columnName;                                       // internal name
+            const int defaultWidth =
+                    pModel->headerData(li, pHeaders->orientation(), TrackModel::kHeaderWidthRole)
+                            .toInt();
+            if (defaultWidth > 0) {
+                pHeaders->resizeSection(li, defaultWidth);
+            }
+            pHeaders->setSectionHidden(li, false);
+        }
+    }
+
+    // Now restore the stored columns, in the order they were stored in.
+    int vi = 0;
+    for (int i = 0; i < m_view_state.header_state_size(); ++i) {
+        const mixxx::library::HeaderViewState::HeaderState& header =
+                m_view_state.header_state(i);
+        const auto it = modelColumns.constFind(
+                QString::fromStdString(header.column_name()));
+        if (it == modelColumns.constEnd()) {
+            // A column this model doesn't have. Either it was removed by an
+            // update, or the state was stored by a view with more columns.
+            continue;
+        }
+        const int li = *it;
 
         pHeaders->setSectionHidden(li, header.hidden());
         // If the stored size is 0 or less than the minimum column width,
@@ -146,6 +166,7 @@ void HeaderViewState::restoreState(WTrackTableViewHeader* pHeaders) {
         if (from != -1) {
             pHeaders->moveSection(from, vi);
         }
+        ++vi;
     }
     if (m_view_state.sort_indicator_shown()) {
         pHeaders->setSortIndicator(
