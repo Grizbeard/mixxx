@@ -1,7 +1,9 @@
 #include "library/baseexternallibraryfeature.h"
 
+#include <QCoreApplication>
 #include <QMenu>
 #include <QMessageBox>
+#include <QProgressDialog>
 
 #include "library/basesqltablemodel.h"
 #include "library/library.h"
@@ -141,6 +143,115 @@ BaseExternalLibraryFeature::createPlaylistModelForItemItself(const QVariant& dat
     return createPlaylistModelForPlaylist(data);
 }
 
+void BaseExternalLibraryFeature::importCrateTree(QList<CrateImportItem> items) {
+    VERIFY_OR_DEBUG_ASSERT(!items.isEmpty()) {
+        return;
+    }
+    kLogger.info() << "Importing a crate tree of" << items.size() << "items";
+
+    // Reading the tracks dominates the time, since each one that is missing
+    // from the library is added and has its tags parsed, so both phases share
+    // one bar rather than a fast one following a slow one.
+    QProgressDialog progress(m_pSidebarWidget);
+    progress.setWindowTitle(tr("Importing Crates"));
+    progress.setWindowModality(Qt::ApplicationModal);
+    progress.setAutoReset(false);
+    progress.setAutoClose(false);
+    progress.setMinimumDuration(0);
+    progress.setMaximum(items.size() * 2);
+    progress.setValue(0);
+
+    // Resolve every track before creating any crate. Reading these models
+    // adds the missing tracks to the library, and interleaving that with
+    // crate writes means each write is reacted to while another model is
+    // mid-read. The flat import reads everything first for the same reason.
+    //
+    // Events are processed between items and never while a model's rows are
+    // being read, because re-entering during a read is what makes a model
+    // change underneath the loop.
+    for (int i = 0; i < items.size(); ++i) {
+        CrateImportItem& item = items[i];
+        progress.setLabelText(tr("Reading tracks from \"%1\"...").arg(item.label));
+        progress.setValue(i);
+        QCoreApplication::processEvents();
+        if (progress.wasCanceled()) {
+            // Nothing has been written to the crates table yet, so stopping
+            // here leaves no half-built tree behind.
+            kLogger.info() << "Crate tree import cancelled before creating any crate";
+            return;
+        }
+        item.trackIds = collectTrackIdsForItemItself(item.data, item.label);
+    }
+
+    kLogger.info() << "Creating" << items.size() << "crates";
+    QList<CrateId> crateIds;
+    crateIds.reserve(items.size());
+    int createdCount = 0;
+    bool cancelled = false;
+    for (int i = 0; i < items.size(); ++i) {
+        const CrateImportItem& item = items.at(i);
+        progress.setLabelText(tr("Creating crate \"%1\"...").arg(item.label));
+        progress.setValue(items.size() + i);
+        QCoreApplication::processEvents();
+        if (progress.wasCanceled()) {
+            kLogger.info() << "Crate tree import cancelled after creating"
+                           << createdCount << "crates";
+            cancelled = true;
+            break;
+        }
+
+        // A parent always precedes its children, so its crate id is known by
+        // the time a child needs it.
+        CrateId parentCrateId;
+        if (item.parentIndex >= 0) {
+            parentCrateId = crateIds.at(item.parentIndex);
+        }
+
+        // Crate names are unique across the collection rather than among
+        // siblings, so two folders that both hold a "Warmup" arrive as
+        // "Warmup" and "Warmup 2". An empty label would otherwise make a
+        // crate with no name, which repairDatabase() deletes on sight.
+        const QString label = item.label.trimmed();
+        Crate crate;
+        crate.setName(CrateFeatureHelper(m_pTrackCollection, m_pConfig)
+                        .proposeNameForNewCrate(
+                                label.isEmpty() ? tr("Imported Crate") : label));
+        crate.setParentId(parentCrateId);
+
+        CrateId crateId;
+        if (m_pTrackCollection->insertCrate(crate, &crateId)) {
+            if (!item.trackIds.isEmpty()) {
+                m_pTrackCollection->addCrateTracks(crateId, item.trackIds);
+            }
+            ++createdCount;
+        } else {
+            kLogger.warning() << "Failed to create crate" << crate.getName()
+                              << "while importing a crate tree";
+        }
+        // Recorded even when invalid, so that the parent indices of the items
+        // that follow still line up.
+        crateIds.append(crateId);
+    }
+    progress.setValue(progress.maximum());
+    progress.close();
+
+    kLogger.info() << "Created" << createdCount << "of" << items.size() << "crates";
+    if (cancelled) {
+        QMessageBox::information(m_pSidebarWidget,
+                tr("Import Stopped"),
+                tr("Stopped after creating %1 of %2 crates. The crates already "
+                   "created were kept.")
+                        .arg(QString::number(createdCount),
+                                QString::number(items.size())));
+    } else if (createdCount < items.size()) {
+        QMessageBox::warning(m_pSidebarWidget,
+                tr("Crate Creation Failed"),
+                tr("Only %1 of %2 crates could be created.")
+                        .arg(QString::number(createdCount),
+                                QString::number(items.size())));
+    }
+}
+
 QList<TrackId> BaseExternalLibraryFeature::collectTrackIdsForItemItself(
         const QVariant& data, const QString& label) {
     // Only the tracks this item holds itself. The items below it are imported
@@ -224,63 +335,7 @@ void BaseExternalLibraryFeature::slotImportAsMixxxCrate() {
             return;
         }
 
-        // Resolve every track before creating any crate. Reading these models
-        // adds the missing tracks to the library, and interleaving that with
-        // crate writes means each write is reacted to while another model is
-        // mid-read. The flat import below reads everything first for the same
-        // reason.
-        kLogger.info() << "Importing a crate tree of" << items.size() << "items";
-        for (CrateImportItem& item : items) {
-            item.trackIds = collectTrackIdsForItemItself(item.data, item.label);
-        }
-
-        kLogger.info() << "Creating" << items.size() << "crates";
-        QList<CrateId> crateIds;
-        crateIds.reserve(items.size());
-        int createdCount = 0;
-        for (const CrateImportItem& item : items) {
-            // A parent always precedes its children, so its crate id is known
-            // by the time a child needs it.
-            CrateId parentCrateId;
-            if (item.parentIndex >= 0) {
-                parentCrateId = crateIds.at(item.parentIndex);
-            }
-
-            // Crate names are unique across the collection rather than among
-            // siblings, so two folders that both hold a "Warmup" arrive as
-            // "Warmup" and "Warmup 2". An empty label would otherwise make a
-            // crate with no name, which repairDatabase() deletes on sight.
-            const QString label = item.label.trimmed();
-            Crate crate;
-            crate.setName(CrateFeatureHelper(m_pTrackCollection, m_pConfig)
-                            .proposeNameForNewCrate(label.isEmpty()
-                                            ? tr("Imported Crate")
-                                            : label));
-            crate.setParentId(parentCrateId);
-
-            CrateId crateId;
-            if (m_pTrackCollection->insertCrate(crate, &crateId)) {
-                if (!item.trackIds.isEmpty()) {
-                    m_pTrackCollection->addCrateTracks(crateId, item.trackIds);
-                }
-                ++createdCount;
-            } else {
-                kLogger.warning() << "Failed to create crate" << crate.getName()
-                                  << "while importing a crate tree";
-            }
-            // Recorded even when invalid, so that the parent indices of the
-            // items that follow still line up.
-            crateIds.append(crateId);
-        }
-
-        kLogger.info() << "Created" << createdCount << "of" << items.size() << "crates";
-        if (createdCount < items.size()) {
-            QMessageBox::warning(nullptr,
-                    tr("Crate Creation Failed"),
-                    tr("Only %1 of %2 crates could be created.")
-                            .arg(QString::number(createdCount),
-                                    QString::number(items.size())));
-        }
+        importCrateTree(std::move(items));
         return;
     }
 

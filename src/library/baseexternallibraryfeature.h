@@ -88,6 +88,10 @@ class BaseExternalLibraryFeature : public LibraryFeature {
     QList<TrackId> collectTrackIdsForItemItself(
             const QVariant& data, const QString& label);
 
+    /// Resolve the tracks for a flattened subtree and create a Mixxx crate
+    /// for each of its items, showing progress and allowing a cancel.
+    void importCrateTree(QList<CrateImportItem> items);
+
     /// Flatten the subtree rooted at pTreeItem into items, parents first.
     ///
     /// The tree is copied rather than walked lazily because the import shows
