@@ -419,7 +419,7 @@ TEST_F(CrateStorageTest, treeQueriesTerminateOnACycle) {
     ASSERT_TRUE(FwdSqlQuery(dbConnection(),
             QStringLiteral("UPDATE crates SET parent_id=%1 WHERE id=%2")
                     .arg(thirdId.toString(), firstId.toString()))
-                        .execPrepared());
+                    .execPrepared());
 
     // Walking down, walking up, and the track subselect all have to return.
     const QList<CrateId> descendants =
@@ -456,7 +456,7 @@ TEST_F(CrateStorageTest, repairDatabaseDetachesMissingParent) {
     // onDeletingCrate() performs, to simulate a damaged database.
     ASSERT_TRUE(FwdSqlQuery(dbConnection(),
             QStringLiteral("DELETE FROM crates WHERE id=%1").arg(parentId.toString()))
-                        .execPrepared());
+                    .execPrepared());
     ASSERT_EQ(parentId, parentIdOf(childId));
 
     m_crateStorage.repairDatabase(dbConnection());
@@ -473,7 +473,7 @@ TEST_F(CrateStorageTest, repairDatabaseBreaksParentCycle) {
     ASSERT_TRUE(FwdSqlQuery(dbConnection(),
             QStringLiteral("UPDATE crates SET parent_id=%1 WHERE id=%2")
                     .arg(secondId.toString(), firstId.toString()))
-                        .execPrepared());
+                    .execPrepared());
     ASSERT_TRUE(childIdsOf(CrateId()).isEmpty());
 
     m_crateStorage.repairDatabase(dbConnection());
