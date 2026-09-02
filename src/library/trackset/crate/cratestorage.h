@@ -262,6 +262,14 @@ class CrateStorage : public virtual /*implements*/ SqlStorage {
     bool onDeletingCrate(
             CrateId crateId);
 
+    /// Delete a crate together with every crate nested below it, rather than
+    /// lifting those out the way onDeletingCrate() does. The ids of all the
+    /// crates that were deleted are appended to pDeletedCrateIds, deepest
+    /// first, so that the caller can report each one.
+    bool onDeletingCrateTree(
+            CrateId crateId,
+            QList<CrateId>* pDeletedCrateIds);
+
     /// Nest crateId inside newParentId, or move it to the top level by passing
     /// an invalid newParentId. Fails if the move would create a cycle, i.e. if
     /// newParentId is crateId itself or one of its descendants.
