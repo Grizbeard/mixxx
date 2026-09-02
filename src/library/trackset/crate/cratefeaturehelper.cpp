@@ -33,17 +33,32 @@ QString CrateFeatureHelper::proposeNameForNewCrate(
     return proposedName;
 }
 
-CrateId CrateFeatureHelper::createEmptyCrate() {
+CrateId CrateFeatureHelper::createEmptyCrate(CrateId parentId) {
+    QString parentCrateName;
+    if (parentId.isValid()) {
+        Crate parentCrate;
+        VERIFY_OR_DEBUG_ASSERT(
+                m_pTrackCollection->crates().readCrateById(parentId, &parentCrate)) {
+            qWarning() << "Cannot create a crate inside non-existent crate" << parentId;
+            return CrateId();
+        }
+        parentCrateName = parentCrate.getName();
+    }
     const QString proposedCrateName =
             proposeNameForNewCrate(tr("New Crate"));
     Crate newCrate;
+    newCrate.setParentId(parentId);
     for (;;) {
         bool ok = false;
         auto newName =
                 QInputDialog::getText(
                         nullptr,
-                        tr("Create New Crate"),
-                        tr("Enter name for new crate:"),
+                        parentId.isValid() ? tr("Create New Subcrate")
+                                           : tr("Create New Crate"),
+                        parentId.isValid()
+                                ? tr("Enter name for new crate inside \"%1\":")
+                                          .arg(parentCrateName)
+                                : tr("Enter name for new crate:"),
                         QLineEdit::Normal,
                         proposedCrateName,
                         &ok)
