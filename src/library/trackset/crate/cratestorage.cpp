@@ -469,10 +469,14 @@ QString CrateStorage::formatSubselectQueryForCrateTreeTrackIds(CrateId crateId) 
     // expression, then collect the tracks of every crate it reached. DISTINCT
     // keeps a track that sits in several of those crates from being listed
     // more than once.
+    //
+    // UNION rather than UNION ALL: a parent cycle would make UNION ALL revisit
+    // the same crates forever, and this query has to terminate even against a
+    // database that should not have been possible to create.
     return QStringLiteral(
             "SELECT DISTINCT %1 FROM %2 WHERE %3 IN ("
             "WITH RECURSIVE crate_tree(%4) AS ("
-            "SELECT %5 UNION ALL "
+            "SELECT %5 UNION "
             "SELECT %6.%4 FROM %6 JOIN crate_tree ON %6.%7=crate_tree.%4"
             ") SELECT %4 FROM crate_tree)")
             .arg(CRATETRACKSTABLE_TRACKID,
@@ -505,10 +509,12 @@ QList<CrateId> CrateStorage::collectDescendantCrateIds(CrateId crateId) const {
     VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
         return descendantIds;
     }
+    // UNION rather than UNION ALL, so that a parent cycle below crateId
+    // terminates the recursion instead of revisiting those crates forever.
     FwdSqlQuery query(m_database,
             QStringLiteral(
                     "WITH RECURSIVE crate_tree(%1) AS ("
-                    "SELECT %2 UNION ALL "
+                    "SELECT %2 UNION "
                     "SELECT %3.%1 FROM %3 JOIN crate_tree ON %3.%4=crate_tree.%1"
                     ") SELECT %1 FROM crate_tree WHERE %1<>%2")
                     .arg(CRATETABLE_ID,
@@ -530,10 +536,14 @@ bool CrateStorage::isAncestorOf(CrateId ancestorId, CrateId crateId) const {
     }
     // Walk upwards from crateId rather than collecting all descendants of
     // ancestorId, since the chain of ancestors is at most as deep as the tree.
+    //
+    // UNION rather than UNION ALL matters most here. This runs on the write
+    // path that rejects cycles, so if a cycle ever did reach the database,
+    // UNION ALL would walk it forever and hang on every crate update.
     FwdSqlQuery query(m_database,
             QStringLiteral(
                     "WITH RECURSIVE crate_ancestors(%1) AS ("
-                    "SELECT %2 UNION ALL "
+                    "SELECT %2 UNION "
                     "SELECT %3.%4 FROM %3 JOIN crate_ancestors "
                     "ON %3.%1=crate_ancestors.%1 WHERE %3.%4 IS NOT NULL"
                     ") SELECT COUNT(*) FROM crate_ancestors WHERE %1=%5")
