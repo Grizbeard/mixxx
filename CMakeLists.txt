@@ -1483,6 +1483,7 @@ add_library(
   src/library/trackset/crate/cratefeaturehelper.cpp
   src/library/trackset/crate/cratestorage.cpp
   src/library/trackset/crate/cratetablemodel.cpp
+  src/library/trackset/crate/cratetreelayout.cpp
   src/library/trackset/playlistfeature.cpp
   src/library/trackset/setlogfeature.cpp
   src/library/trackset/tracksettablemodel.cpp
@@ -2911,6 +2912,7 @@ if(BUILD_TESTING)
     src/test/coverartcache_test.cpp
     src/test/coverartutils_test.cpp
     src/test/cratestorage_test.cpp
+    src/test/cratetreelayout_test.cpp
     src/test/cue_test.cpp
     src/test/cuecontrol_test.cpp
     src/test/dbconnectionpool_test.cpp
