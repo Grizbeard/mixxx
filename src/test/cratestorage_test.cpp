@@ -322,6 +322,35 @@ TEST_F(CrateStorageTest, crateTreeTrackIdsFollowMovedCrates) {
                     CrateStorage::formatSubselectQueryForCrateTreeTrackIds(secondId)));
 }
 
+TEST_F(CrateStorageTest, crateTreeSubselectWorksInsideATemporaryView) {
+    // CrateTableModel embeds the subselect in a CREATE TEMPORARY VIEW, so the
+    // recursive CTE ends up nested inside an IN (...) inside a view
+    // definition. That is a different composition than running the subselect
+    // on its own, and the model ignores the result of creating the view, so a
+    // failure here would silently show an empty track table.
+    const CrateId rootId = createCrate("Root");
+    const CrateId childId = createCrate("Child", rootId);
+    addCrateTracks(rootId, {1});
+    addCrateTracks(childId, {2});
+
+    const QString viewName = QStringLiteral("crate_tree_test_view");
+    FwdSqlQuery createView(dbConnection(),
+            QStringLiteral("CREATE TEMPORARY VIEW IF NOT EXISTS %1 AS "
+                           "SELECT id FROM library WHERE id IN (%2)")
+                    .arg(viewName,
+                            CrateStorage::formatSubselectQueryForCrateTreeTrackIds(
+                                    rootId)));
+    ASSERT_TRUE(createView.execPrepared());
+
+    // The library table has no rows here, so the view is expected to be
+    // empty. What matters is that it is valid and queryable at all.
+    FwdSqlQuery selectFromView(dbConnection(),
+            QStringLiteral("SELECT COUNT(*) FROM %1").arg(viewName));
+    ASSERT_TRUE(selectFromView.execPrepared());
+    ASSERT_TRUE(selectFromView.next());
+    EXPECT_EQ(0, selectFromView.fieldValue(0).toInt());
+}
+
 TEST_F(CrateStorageTest, repairDatabaseDetachesMissingParent) {
     const CrateId parentId = createCrate("Parent");
     const CrateId childId = createCrate("Child", parentId);
