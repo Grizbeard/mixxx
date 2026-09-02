@@ -22,10 +22,13 @@ class CrateFeatureHelper : public QObject {
     CrateId createEmptyCrate(CrateId parentId = CrateId());
     CrateId duplicateCrate(const Crate& oldCrate);
 
-  private:
+    /// Return initialName if no crate uses it, otherwise the same name with a
+    /// " 2", " 3", ... suffix appended until it is free. Crate names are
+    /// unique across the whole collection, not just among siblings.
     QString proposeNameForNewCrate(
             const QString& initialName = QString()) const;
 
+  private:
     TrackCollection* m_pTrackCollection;
 
     UserSettingsPointer m_pConfig;

@@ -793,10 +793,15 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* dat
                 }
             }
 
+            // The third element is the crate's own playlist, which differs
+            // from the first whenever the first is an aggregate. Importing
+            // the tree into Mixxx needs each crate's own tracks, while
+            // everything else follows what the crate displays.
             QVariant itemData;
             if (!playlistPath.isEmpty()) {
-                itemData = QVariant(QList<QVariant>{
-                        QVariant(playlistPath), QVariant(true)});
+                itemData = QVariant(QList<QVariant>{QVariant(playlistPath),
+                        QVariant(true),
+                        QVariant(nodesByPath.value(cratePath).filePath)});
             }
             TreeItem* crateItem = parentItem->appendChild(segments.last(), itemData);
             crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
@@ -1109,6 +1114,23 @@ SeratoFeature::createPlaylistModelForPlaylist(const QVariant& data) {
     return pModel;
 }
 
+std::unique_ptr<BaseSqlTableModel>
+SeratoFeature::createPlaylistModelForItemItself(const QVariant& data) {
+    VERIFY_OR_DEBUG_ASSERT(data.canConvert<QVariantList>()) {
+        return {};
+    }
+    const QVariantList playlists = data.toList();
+    // The third element is the crate's own playlist. It is empty for a folder
+    // Serato has no crate file for, which contributes no tracks of its own.
+    if (playlists.size() < 3 || playlists.at(2).toString().isEmpty()) {
+        return {};
+    }
+    auto pModel = std::make_unique<SeratoPlaylistModel>(
+            this, m_pLibrary->trackCollectionManager(), m_trackSource);
+    pModel->setPlaylist(playlists.at(2).toString());
+    return pModel;
+}
+
 QVariant SeratoFeature::title() {
     return m_title;
 }
@@ -1176,15 +1198,17 @@ void SeratoFeature::activateChild(const QModelIndex& index) {
         return;
     }
 
-    // TreeItem list data holds 2 values in a QList:
+    // TreeItem list data holds 2 or 3 values in a QList:
     //
     //     1. Playlist Name/Path (QString)
     //     2. isPlaylist (boolean)
+    //     3. The crate's own playlist path, for crate items only (QString)
     //
     // If the second element is false, then the database does still have to be
-    // parsed.
+    // parsed. The third element is absent on the per-device database items,
+    // which are not crates and so have no crate file of their own.
     QList<QVariant> data = item->getData().toList();
-    VERIFY_OR_DEBUG_ASSERT(data.size() == 2) {
+    VERIFY_OR_DEBUG_ASSERT(data.size() >= 2) {
         return;
     }
     QString playlist = data[0].toString();

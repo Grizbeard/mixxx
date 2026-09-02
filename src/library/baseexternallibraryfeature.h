@@ -7,10 +7,12 @@
 
 #include "library/dao/playlistdao.h"
 #include "library/libraryfeature.h"
+#include "library/trackset/crate/crateid.h"
 #include "util/parented_ptr.h"
 
 class BaseSqlTableModel;
 class TrackCollection;
+class TreeItem;
 
 class BaseExternalLibraryFeature : public LibraryFeature {
     Q_OBJECT
@@ -34,6 +36,22 @@ class BaseExternalLibraryFeature : public LibraryFeature {
     virtual void appendTrackIdsFromRightClickIndex(QList<TrackId>* trackIds,
             QString* pPlaylist);
 
+    /// Whether importing an item that has children should recreate that
+    /// structure as nested Mixxx crates instead of flattening it into a
+    /// single crate. Off by default, so a library only takes the nested path
+    /// once it has been checked against that library's own tree.
+    virtual bool preservesStructureOnCrateImport() const {
+        return false;
+    }
+
+    /// A model over the tracks belonging to this item alone, excluding
+    /// anything nested below it. Defaults to the model the item displays,
+    /// which is already correct wherever a parent item shows only its own
+    /// tracks. A library whose parent items display an aggregate has to
+    /// override this or every level would import the same tracks again.
+    virtual std::unique_ptr<BaseSqlTableModel> createPlaylistModelForItemItself(
+            const QVariant& data);
+
   private slots:
     void slotAddToAutoDJ();
     void slotAddToAutoDJTop();
@@ -53,6 +71,14 @@ class BaseExternalLibraryFeature : public LibraryFeature {
 
   private:
     void addToAutoDJ(PlaylistDAO::AutoDJSendLoc loc);
+
+    /// Create one Mixxx crate per item in the subtree rooted at pTreeItem,
+    /// nested under parentCrateId, and return how many crates were created.
+    int importSubtreeAsNestedCrates(const TreeItem* pTreeItem, CrateId parentCrateId);
+
+    /// The number of items in the subtree rooted at pTreeItem, including
+    /// pTreeItem itself.
+    static int countSubtreeItems(const TreeItem* pTreeItem);
 
     // Caution: Make sure this is reset whenever the library tree is updated,
     // so that the internalPointer() does not become dangling
