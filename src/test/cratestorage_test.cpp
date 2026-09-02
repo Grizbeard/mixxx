@@ -248,6 +248,59 @@ TEST_F(CrateStorageTest, deletingTopLevelCrateLiftsChildrenToTopLevel) {
     EXPECT_EQ(QList<CrateId>{childId}, childIdsOf(CrateId()));
 }
 
+TEST_F(CrateStorageTest, deletingCrateTreeRemovesTheWholeSubtree) {
+    const CrateId grandParentId = createCrate("GrandParent");
+    const CrateId parentId = createCrate("Parent", grandParentId);
+    const CrateId childId = createCrate("Child", parentId);
+    const CrateId leafId = createCrate("Leaf", childId);
+    const CrateId siblingId = createCrate("Sibling", grandParentId);
+    addCrateTracks(childId, {1, 2});
+
+    QList<CrateId> deletedIds;
+    ASSERT_TRUE(m_crateStorage.onDeletingCrateTree(parentId, &deletedIds));
+
+    // Everything from the crate downwards is gone, deepest first so that a
+    // caller can report each deletion in a sensible order.
+    EXPECT_EQ(QList<CrateId>({leafId, childId, parentId}), deletedIds);
+    EXPECT_FALSE(m_crateStorage.readCrateById(parentId));
+    EXPECT_FALSE(m_crateStorage.readCrateById(childId));
+    EXPECT_FALSE(m_crateStorage.readCrateById(leafId));
+    // The tracks of the deleted crates go with them.
+    EXPECT_EQ(0u, m_crateStorage.countCrateTracks(childId));
+
+    // Everything outside the subtree is untouched.
+    EXPECT_TRUE(m_crateStorage.readCrateById(grandParentId));
+    EXPECT_EQ(QList<CrateId>{siblingId}, childIdsOf(grandParentId));
+}
+
+TEST_F(CrateStorageTest, deletingCrateTreeOfALeafDeletesJustThatCrate) {
+    const CrateId parentId = createCrate("Parent");
+    const CrateId childId = createCrate("Child", parentId);
+
+    QList<CrateId> deletedIds;
+    ASSERT_TRUE(m_crateStorage.onDeletingCrateTree(childId, &deletedIds));
+
+    EXPECT_EQ(QList<CrateId>{childId}, deletedIds);
+    EXPECT_TRUE(m_crateStorage.readCrateById(parentId));
+    EXPECT_TRUE(childIdsOf(parentId).isEmpty());
+}
+
+TEST_F(CrateStorageTest, deletingCrateKeepsSubcratesWhileDeletingTreeDoesNot) {
+    // The two deletion paths differ only in what happens to the crates
+    // nested inside, so pin both against the same shape.
+    const CrateId keptParentId = createCrate("Kept Parent");
+    const CrateId keptChildId = createCrate("Kept Child", keptParentId);
+    ASSERT_TRUE(m_crateStorage.onDeletingCrate(keptParentId));
+    EXPECT_TRUE(m_crateStorage.readCrateById(keptChildId));
+    EXPECT_FALSE(parentIdOf(keptChildId).isValid());
+
+    const CrateId goneParentId = createCrate("Gone Parent");
+    const CrateId goneChildId = createCrate("Gone Child", goneParentId);
+    QList<CrateId> deletedIds;
+    ASSERT_TRUE(m_crateStorage.onDeletingCrateTree(goneParentId, &deletedIds));
+    EXPECT_FALSE(m_crateStorage.readCrateById(goneChildId));
+}
+
 TEST_F(CrateStorageTest, renamingCrateKeepsItsParent) {
     const CrateId parentId = createCrate("Parent");
     const CrateId childId = createCrate("Child", parentId);

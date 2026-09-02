@@ -588,6 +588,39 @@ bool CrateStorage::isValidParentFor(CrateId crateId, CrateId parentId) const {
     return !isAncestorOf(crateId, parentId);
 }
 
+bool CrateStorage::onDeletingCrateTree(
+        CrateId crateId, QList<CrateId>* pDeletedCrateIds) {
+    DEBUG_ASSERT(pDeletedCrateIds != nullptr);
+    VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
+        kLogger.warning() << "Cannot delete crate tree without a valid id";
+        return false;
+    }
+
+    // Delete the crates nested inside this one first. By the time each crate
+    // is deleted it has no children left, so the reparenting that
+    // onDeletingCrate() performs finds nothing to lift out and the whole
+    // subtree goes away instead of being flattened into the parent.
+    QList<CrateId> childIds;
+    {
+        CrateSelectResult children(selectChildCrates(crateId));
+        Crate child;
+        while (children.populateNext(&child)) {
+            childIds.append(child.getId());
+        }
+    }
+    for (const CrateId& childId : childIds) {
+        if (!onDeletingCrateTree(childId, pDeletedCrateIds)) {
+            return false;
+        }
+    }
+
+    if (!onDeletingCrate(crateId)) {
+        return false;
+    }
+    pDeletedCrateIds->append(crateId);
+    return true;
+}
+
 bool CrateStorage::onMovingCrate(CrateId crateId, CrateId newParentId) {
     Crate crate;
     VERIFY_OR_DEBUG_ASSERT(readCrateById(crateId, &crate)) {
