@@ -36,6 +36,12 @@ extern const ConfigKey kApplyPlayedTrackColorConfigKey;
 
 extern const ConfigKey kEditMetadataSelectedClickConfigKey;
 
+/// Whether selecting a crate that has subcrates also lists the tracks of
+/// every crate nested below it.
+extern const ConfigKey kShowSubcrateTracksConfigKey;
+
+const bool kShowSubcrateTracksDefault = true;
+
 extern const ConfigKey kHistoryMinTracksToKeepConfigKey;
 
 const int kHistoryMinTracksToKeepDefault = 1;

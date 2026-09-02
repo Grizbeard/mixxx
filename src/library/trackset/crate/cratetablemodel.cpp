@@ -25,9 +25,10 @@ CrateTableModel::CrateTableModel(
                   "mixxx.db.model.crate") {
 }
 
-void CrateTableModel::selectCrate(CrateId crateId) {
+void CrateTableModel::selectCrate(CrateId crateId, bool includeSubcrateTracks) {
     //qDebug() << "CrateTableModel::setCrate()" << crateId;
-    if (crateId == m_selectedCrate) {
+    if (crateId == m_selectedCrate &&
+            includeSubcrateTracks == m_selectedCrateIncludesSubcrateTracks) {
         qDebug() << "Already focused on crate " << crateId;
         return;
     }
@@ -42,8 +43,14 @@ void CrateTableModel::selectCrate(CrateId crateId) {
     }
 
     m_selectedCrate = crateId;
+    m_selectedCrateIncludesSubcrateTracks = includeSubcrateTracks;
 
-    QString tableName = QStringLiteral("crate_%1").arg(m_selectedCrate.toString());
+    // The two modes need separate view names. The view is created only if it
+    // does not exist yet, so reusing one name would keep serving whichever
+    // track set was requested first.
+    QString tableName = includeSubcrateTracks
+            ? QStringLiteral("crate_tree_%1").arg(m_selectedCrate.toString())
+            : QStringLiteral("crate_%1").arg(m_selectedCrate.toString());
     QStringList columns;
     columns << LIBRARYTABLE_ID
             << "'' AS " + LIBRARYTABLE_PREVIEW
@@ -63,8 +70,11 @@ void CrateTableModel::selectCrate(CrateId crateId) {
                             columns.join(","),
                             LIBRARY_TABLE,
                             LIBRARYTABLE_ID,
-                            CrateStorage::formatSubselectQueryForCrateTrackIds(
-                                    crateId),
+                            includeSubcrateTracks
+                                    ? CrateStorage::formatSubselectQueryForCrateTreeTrackIds(
+                                              crateId)
+                                    : CrateStorage::formatSubselectQueryForCrateTrackIds(
+                                              crateId),
                             LIBRARYTABLE_MIXXXDELETED);
     FwdSqlQuery(m_database, queryString).execPrepared();
 

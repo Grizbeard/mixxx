@@ -119,6 +119,10 @@ class CrateFeature : public BaseTrackSetFeature {
     bool isChildIndexSelectedInSidebar(const QModelIndex& index);
     bool readLastRightClickedCrate(Crate* pCrate) const;
 
+    /// Whether selecting this crate should also list the tracks of the crates
+    /// nested below it, i.e. the setting is on and the crate has subcrates.
+    bool shouldIncludeSubcrateTracks(CrateId crateId) const;
+
     QString formatRootViewHtml() const;
 
     const QIcon m_lockedCrateIcon;
