@@ -10,7 +10,9 @@ class CrateTableModel final : public TrackSetTableModel {
     CrateTableModel(QObject* parent, TrackCollectionManager* pTrackCollectionManager);
     ~CrateTableModel() final = default;
 
-    void selectCrate(CrateId crateId = CrateId());
+    /// Show the tracks of a crate. With includeSubcrateTracks the tracks of
+    /// every crate nested below it are listed as well, each track once.
+    void selectCrate(CrateId crateId = CrateId(), bool includeSubcrateTracks = false);
     CrateId selectedCrate() const {
         return m_selectedCrate;
     }
@@ -29,5 +31,9 @@ class CrateTableModel final : public TrackSetTableModel {
 
   private:
     CrateId m_selectedCrate;
+    // Whether the current selection includes the tracks of nested crates.
+    // Kept so that toggling the setting re-selects instead of being mistaken
+    // for a repeated selection of the same crate.
+    bool m_selectedCrateIncludesSubcrateTracks = false;
     QHash<CrateId, QString> m_searchTexts;
 };

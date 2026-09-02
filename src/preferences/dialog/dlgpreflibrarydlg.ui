@@ -458,6 +458,17 @@
        </widget>
       </item>
 
+      <item row="1" column="0" colspan="3">
+       <widget class="QCheckBox" name="checkBox_show_subcrate_tracks">
+        <property name="text">
+         <string>Show tracks of subcrates on their parent crate</string>
+        </property>
+        <property name="toolTip">
+         <string>Selecting a crate that contains other crates also lists the tracks of every crate nested inside it. Each track is listed once.</string>
+        </property>
+       </widget>
+      </item>
+
      </layout>
     </widget>
    </item>

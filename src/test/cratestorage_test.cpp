@@ -38,6 +38,27 @@ class CrateStorageTest : public LibraryTest {
         return childIds;
     }
 
+    void addCrateTracks(CrateId crateId, const QList<int>& trackNumbers) {
+        QList<TrackId> trackIds;
+        for (int trackNumber : trackNumbers) {
+            trackIds.append(TrackId(QVariant(trackNumber)));
+        }
+        EXPECT_TRUE(m_crateStorage.onAddingCrateTracks(crateId, trackIds));
+    }
+
+    /// Execute one of the track id subselect queries and return what it
+    /// matched, sorted so that the result is order-independent.
+    QList<int> runTrackIdSubselect(const QString& subselect) {
+        QList<int> trackNumbers;
+        FwdSqlQuery query(dbConnection(), subselect);
+        EXPECT_TRUE(query.execPrepared());
+        while (query.next()) {
+            trackNumbers.append(query.fieldValue(0).toInt());
+        }
+        std::sort(trackNumbers.begin(), trackNumbers.end());
+        return trackNumbers;
+    }
+
     CrateStorage m_crateStorage;
 };
 
@@ -237,6 +258,68 @@ TEST_F(CrateStorageTest, renamingCrateKeepsItsParent) {
     ASSERT_TRUE(m_crateStorage.onUpdatingCrate(child));
 
     EXPECT_EQ(parentId, parentIdOf(childId));
+}
+
+TEST_F(CrateStorageTest, crateTreeTrackIdsCollectNestedCrates) {
+    const CrateId rootId = createCrate("Root");
+    const CrateId branchId = createCrate("Branch", rootId);
+    const CrateId leafId = createCrate("Leaf", branchId);
+    const CrateId unrelatedId = createCrate("Unrelated");
+
+    addCrateTracks(rootId, {1});
+    addCrateTracks(branchId, {2});
+    // Track 1 sits in both the root and the leaf, three levels apart.
+    addCrateTracks(leafId, {1, 3});
+    addCrateTracks(unrelatedId, {9});
+
+    // Without subcrates each crate reports only its own tracks.
+    EXPECT_EQ(QList<int>({1}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTrackIds(rootId)));
+
+    // With subcrates the whole subtree is collected, and the shared track is
+    // listed once rather than twice.
+    EXPECT_EQ(QList<int>({1, 2, 3}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(rootId)));
+    // Track 1 is reported here too, because the leaf holding it is nested
+    // below the branch even though the branch itself does not contain it.
+    EXPECT_EQ(QList<int>({1, 2, 3}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(branchId)));
+    // A leaf crate reports exactly its own tracks either way.
+    EXPECT_EQ(QList<int>({1, 3}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(leafId)));
+    // A crate outside the subtree contributes nothing.
+    EXPECT_EQ(QList<int>({9}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(unrelatedId)));
+}
+
+TEST_F(CrateStorageTest, crateTreeTrackIdsFollowMovedCrates) {
+    const CrateId firstId = createCrate("First");
+    const CrateId secondId = createCrate("Second");
+    const CrateId childId = createCrate("Child", firstId);
+
+    addCrateTracks(firstId, {1});
+    addCrateTracks(secondId, {2});
+    addCrateTracks(childId, {3});
+
+    EXPECT_EQ(QList<int>({1, 3}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(firstId)));
+
+    ASSERT_TRUE(m_crateStorage.onMovingCrate(childId, secondId));
+
+    // The subtree query has no cached state, so the moved crate's tracks
+    // follow it immediately.
+    EXPECT_EQ(QList<int>({1}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(firstId)));
+    EXPECT_EQ(QList<int>({2, 3}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(secondId)));
 }
 
 TEST_F(CrateStorageTest, repairDatabaseDetachesMissingParent) {
