@@ -484,6 +484,32 @@ bool TrackCollection::updateCrate(
     return true;
 }
 
+bool TrackCollection::moveCrate(
+        CrateId crateId,
+        CrateId newParentId) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+
+    // Transactional
+    SqlTransaction transaction(m_database);
+    VERIFY_OR_DEBUG_ASSERT(transaction) {
+        return false;
+    }
+    // A rejected move is an ordinary outcome rather than a bug: the caller may
+    // have asked to nest a crate inside one of its own descendants.
+    if (!m_crates.onMovingCrate(crateId, newParentId)) {
+        transaction.rollback();
+        return false;
+    }
+    VERIFY_OR_DEBUG_ASSERT(transaction.commit()) {
+        return false;
+    }
+
+    // Emit signals
+    emit crateUpdated(crateId);
+
+    return true;
+}
+
 bool TrackCollection::deleteCrate(
         CrateId crateId) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);

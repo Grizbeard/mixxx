@@ -26,7 +26,20 @@ class Crate : public DbNamedEntity<CrateId> {
         m_autoDjSource = autoDjSource;
     }
 
+    /// Id of the crate this crate is nested inside. An invalid id means the
+    /// crate sits at the top level of the crate tree.
+    CrateId getParentId() const {
+        return m_parentId;
+    }
+    void setParentId(CrateId parentId = CrateId()) {
+        m_parentId = parentId;
+    }
+    bool hasParent() const {
+        return m_parentId.isValid();
+    }
+
   private:
     bool m_locked;
     bool m_autoDjSource;
+    CrateId m_parentId;
 };
