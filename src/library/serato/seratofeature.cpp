@@ -334,7 +334,9 @@ QString parseCrate(
         const QString& databasePath,
         const QString& crateFilePath,
         const QMap<QString, int>& trackIdMap) {
-    QString crateName = QFileInfo(crateFilePath).baseName();
+    // completeBaseName() strips only the ".crate" suffix, so crate names that
+    // contain dots survive intact.
+    QString crateName = QFileInfo(crateFilePath).completeBaseName();
     qDebug() << "Parsing crate"
              << crateName
              << "at" << crateFilePath;
