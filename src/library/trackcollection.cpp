@@ -532,6 +532,32 @@ bool TrackCollection::deleteCrate(
     return true;
 }
 
+bool TrackCollection::deleteCrateTree(
+        CrateId crateId) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
+
+    // Transactional
+    SqlTransaction transaction(m_database);
+    VERIFY_OR_DEBUG_ASSERT(transaction) {
+        return false;
+    }
+    QList<CrateId> deletedCrateIds;
+    VERIFY_OR_DEBUG_ASSERT(m_crates.onDeletingCrateTree(crateId, &deletedCrateIds)) {
+        transaction.rollback();
+        return false;
+    }
+    VERIFY_OR_DEBUG_ASSERT(transaction.commit()) {
+        return false;
+    }
+
+    // Emit signals, once the whole subtree is really gone
+    for (const CrateId& deletedCrateId : deletedCrateIds) {
+        emit crateDeleted(deletedCrateId);
+    }
+
+    return true;
+}
+
 bool TrackCollection::addCrateTracks(
         CrateId crateId,
         const QList<TrackId>& trackIds) {

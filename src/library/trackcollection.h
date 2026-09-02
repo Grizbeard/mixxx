@@ -85,6 +85,9 @@ class TrackCollection : public QObject,
     /// anything if the move would create a cycle.
     bool moveCrate(CrateId crateId, CrateId newParentId);
     bool deleteCrate(CrateId crateId);
+    /// Delete a crate and every crate nested below it, instead of lifting
+    /// those out to where the deleted crate sat.
+    bool deleteCrateTree(CrateId crateId);
     bool addCrateTracks(CrateId crateId, const QList<TrackId>& trackIds);
     bool removeCrateTracks(CrateId crateId, const QList<TrackId>& trackIds);
 
