@@ -69,6 +69,18 @@ void CrateFeature::initActions() {
             this,
             &CrateFeature::slotCreateCrate);
 
+    m_pCreateSubcrateAction = make_parented<QAction>(tr("Create New Subcrate"), this);
+    connect(m_pCreateSubcrateAction.get(),
+            &QAction::triggered,
+            this,
+            &CrateFeature::slotCreateSubcrate);
+
+    m_pMoveCrateAction = make_parented<QAction>(tr("Move To..."), this);
+    connect(m_pMoveCrateAction.get(),
+            &QAction::triggered,
+            this,
+            &CrateFeature::slotMoveCrate);
+
     m_pRenameCrateAction = make_parented<QAction>(tr("Rename"), this);
     connect(m_pRenameCrateAction.get(),
             &QAction::triggered,
@@ -388,6 +400,7 @@ void CrateFeature::onRightClickChild(
 
     m_pDeleteCrateAction->setEnabled(!crate.isLocked());
     m_pRenameCrateAction->setEnabled(!crate.isLocked());
+    m_pMoveCrateAction->setEnabled(!crate.isLocked());
     m_pImportPlaylistAction->setEnabled(!crate.isLocked());
 
     m_pAutoDjTrackSourceAction->setChecked(crate.isAutoDjSource());
@@ -396,8 +409,10 @@ void CrateFeature::onRightClickChild(
 
     QMenu menu(m_pSidebarWidget);
     menu.addAction(m_pCreateCrateAction.get());
+    menu.addAction(m_pCreateSubcrateAction.get());
     menu.addSeparator();
     menu.addAction(m_pRenameCrateAction.get());
+    menu.addAction(m_pMoveCrateAction.get());
     menu.addAction(m_pDuplicateCrateAction.get());
     menu.addAction(m_pDeleteCrateAction.get());
     menu.addAction(m_pLockCrateAction.get());
@@ -423,6 +438,127 @@ void CrateFeature::slotCreateCrate() {
         // expand Crates and scroll to new crate
         m_pSidebarWidget->selectChildIndex(indexFromCrateId(crateId), false);
     }
+}
+
+void CrateFeature::slotCreateSubcrate() {
+    const CrateId parentId = crateIdFromIndex(m_lastRightClickedIndex);
+    VERIFY_OR_DEBUG_ASSERT(parentId.isValid()) {
+        return;
+    }
+    const CrateId crateId =
+            CrateFeatureHelper(m_pTrackCollection, m_pConfig)
+                    .createEmptyCrate(parentId);
+    if (crateId.isValid()) {
+        // Expand the parent so the new subcrate is actually visible.
+        m_pSidebarWidget->selectChildIndex(indexFromCrateId(crateId), false);
+    }
+}
+
+bool CrateFeature::askForNewParentCrate(CrateId crateId, CrateId* pNewParentId) const {
+    DEBUG_ASSERT(pNewParentId != nullptr);
+    const CrateStorage& crateStorage = m_pTrackCollection->crates();
+
+    // Read the whole crate list once so that full paths can be shown, which
+    // is what makes the choices distinguishable when names repeat at
+    // different depths.
+    QHash<CrateId, Crate> cratesById;
+    {
+        CrateSelectResult crates(crateStorage.selectCrates());
+        Crate crate;
+        while (crates.populateNext(&crate)) {
+            cratesById.insert(crate.getId(), crate);
+        }
+    }
+
+    // Anything nested below the crate is not a legal destination, and neither
+    // is the crate itself.
+    const QList<CrateId> descendantIds =
+            crateStorage.collectDescendantCrateIds(crateId);
+    QSet<CrateId> excludedIds(descendantIds.begin(), descendantIds.end());
+    excludedIds.insert(crateId);
+
+    const QString topLevelChoice = tr("(Top level)");
+    QStringList choices({topLevelChoice});
+    QList<CrateId> choiceIds({CrateId()});
+    for (auto it = cratesById.constBegin(); it != cratesById.constEnd(); ++it) {
+        if (excludedIds.contains(it.key())) {
+            continue;
+        }
+        // Build the path by walking up to the top level.
+        QStringList pathSegments;
+        for (CrateId pathId = it.key(); pathId.isValid();) {
+            const Crate pathCrate = cratesById.value(pathId);
+            pathSegments.prepend(pathCrate.getName());
+            pathId = pathCrate.getParentId();
+            if (pathSegments.size() > cratesById.size()) {
+                // Defensive: a cycle would loop forever otherwise.
+                break;
+            }
+        }
+        choices.append(pathSegments.join(QStringLiteral(" / ")));
+        choiceIds.append(it.key());
+    }
+
+    // Sort the crate paths, keeping the top-level entry first.
+    QList<int> order;
+    order.reserve(choices.size() - 1);
+    for (int i = 1; i < choices.size(); ++i) {
+        order.append(i);
+    }
+    std::sort(order.begin(), order.end(), [&choices](int lhs, int rhs) {
+        return QString::compare(choices.at(lhs), choices.at(rhs), Qt::CaseInsensitive) < 0;
+    });
+    QStringList sortedChoices({topLevelChoice});
+    QList<CrateId> sortedChoiceIds({CrateId()});
+    for (int i : order) {
+        sortedChoices.append(choices.at(i));
+        sortedChoiceIds.append(choiceIds.at(i));
+    }
+
+    const Crate crate = cratesById.value(crateId);
+    int currentIndex = sortedChoiceIds.indexOf(crate.getParentId());
+    if (currentIndex < 0) {
+        currentIndex = 0;
+    }
+
+    bool ok = false;
+    const QString selected = QInputDialog::getItem(nullptr,
+            tr("Move Crate"),
+            tr("Move \"%1\" into:").arg(crate.getName()),
+            sortedChoices,
+            currentIndex,
+            false,
+            &ok);
+    if (!ok) {
+        return false;
+    }
+    const int selectedIndex = sortedChoices.indexOf(selected);
+    VERIFY_OR_DEBUG_ASSERT(selectedIndex >= 0) {
+        return false;
+    }
+    *pNewParentId = sortedChoiceIds.at(selectedIndex);
+    return true;
+}
+
+void CrateFeature::slotMoveCrate() {
+    const CrateId crateId = crateIdFromIndex(m_lastRightClickedIndex);
+    VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
+        return;
+    }
+    CrateId newParentId;
+    if (!askForNewParentCrate(crateId, &newParentId)) {
+        return;
+    }
+    if (!m_pTrackCollection->moveCrate(crateId, newParentId)) {
+        QMessageBox::warning(nullptr,
+                tr("Moving Crate Failed"),
+                tr("The crate could not be moved there."));
+        return;
+    }
+    // The crate changed its place in the tree, so the whole branch layout is
+    // stale and a label update would not be enough.
+    rebuildChildModel(crateId);
+    m_pSidebarWidget->selectChildIndex(indexFromCrateId(crateId), false);
 }
 
 void CrateFeature::deleteItem(const QModelIndex& index) {
@@ -547,6 +683,29 @@ void CrateFeature::slotAutoDjTrackSourceChanged() {
     }
 }
 
+void CrateFeature::appendCrateTreeItems(
+        TreeItem* pParentItem,
+        CrateId parentId,
+        const QHash<CrateId, QList<CrateSummary>>& summariesByParentId,
+        QSet<CrateId>* pVisitedCrateIds) {
+    const QList<CrateSummary> childSummaries = summariesByParentId.value(parentId);
+    for (const CrateSummary& childSummary : childSummaries) {
+        if (pVisitedCrateIds->contains(childSummary.getId())) {
+            // Only reachable if a parent cycle made it into the database.
+            qWarning() << "Skipping crate" << childSummary.getId()
+                       << "that is nested inside itself";
+            continue;
+        }
+        pVisitedCrateIds->insert(childSummary.getId());
+        TreeItem* pChildItem = pParentItem->appendChild(QString());
+        updateTreeItemForCrateSummary(pChildItem, childSummary);
+        appendCrateTreeItems(pChildItem,
+                childSummary.getId(),
+                summariesByParentId,
+                pVisitedCrateIds);
+    }
+}
+
 QModelIndex CrateFeature::rebuildChildModel(CrateId selectedCrateId) {
     qDebug() << "CrateFeature::rebuildChildModel()" << selectedCrateId;
 
@@ -558,19 +717,30 @@ QModelIndex CrateFeature::rebuildChildModel(CrateId selectedCrateId) {
     }
     m_pSidebarModel->removeRows(0, pRootItem->childRows());
 
-    std::vector<std::unique_ptr<TreeItem>> modelRows;
-    modelRows.reserve(m_pTrackCollection->crates().countCrates());
-
-    int selectedRow = -1;
+    // Read every crate summary once and group it by its parent, so that the
+    // whole tree can be built from a single query. The summaries arrive
+    // ordered by name, which each group inherits.
+    QHash<CrateId, QList<CrateSummary>> summariesByParentId;
     CrateSummarySelectResult crateSummaries(
             m_pTrackCollection->crates().selectCrateSummaries());
     CrateSummary crateSummary;
     while (crateSummaries.populateNext(&crateSummary)) {
-        modelRows.push_back(newTreeItemForCrateSummary(crateSummary));
-        if (selectedCrateId == crateSummary.getId()) {
-            // save index for selection
-            selectedRow = static_cast<int>(modelRows.size()) - 1;
-        }
+        summariesByParentId[crateSummary.getParentId()].append(crateSummary);
+    }
+
+    QSet<CrateId> visitedCrateIds;
+    std::vector<std::unique_ptr<TreeItem>> modelRows;
+    const QList<CrateSummary> topLevelSummaries =
+            summariesByParentId.value(CrateId());
+    modelRows.reserve(topLevelSummaries.size());
+    for (const CrateSummary& topLevelSummary : topLevelSummaries) {
+        visitedCrateIds.insert(topLevelSummary.getId());
+        auto pTreeItem = newTreeItemForCrateSummary(topLevelSummary);
+        appendCrateTreeItems(pTreeItem.get(),
+                topLevelSummary.getId(),
+                summariesByParentId,
+                &visitedCrateIds);
+        modelRows.push_back(std::move(pTreeItem));
     }
 
     // Append all the newly created TreeItems in a dynamic way to the childmodel
@@ -579,11 +749,12 @@ QModelIndex CrateFeature::rebuildChildModel(CrateId selectedCrateId) {
     // Update rendering of crates depending on the currently selected track
     slotTrackSelected(m_selectedTrackId);
 
-    if (selectedRow >= 0) {
-        return m_pSidebarModel->index(selectedRow, 0);
-    } else {
-        return QModelIndex();
+    // The selected crate can sit at any depth, so let the recursive lookup
+    // find it rather than tracking a row while building.
+    if (selectedCrateId.isValid()) {
+        return indexFromCrateId(selectedCrateId);
     }
+    return QModelIndex();
 }
 
 void CrateFeature::updateChildModel(const QSet<CrateId>& updatedCrateIds) {
@@ -621,21 +792,34 @@ CrateId CrateFeature::crateIdFromIndex(const QModelIndex& index) const {
     return CrateId(item->getData());
 }
 
+QModelIndex CrateFeature::findCrateIndex(
+        const QModelIndex& parentIndex, CrateId crateId) const {
+    for (int row = 0; row < m_pSidebarModel->rowCount(parentIndex); ++row) {
+        QModelIndex index = m_pSidebarModel->index(row, 0, parentIndex);
+        TreeItem* pTreeItem = m_pSidebarModel->getItem(index);
+        DEBUG_ASSERT(pTreeItem != nullptr);
+        if (crateIdFromIndex(index) == crateId) {
+            return index;
+        }
+        // A crate that has subcrates is a match in its own right, so keep
+        // descending instead of only considering leaf nodes.
+        const QModelIndex childIndex = findCrateIndex(index, crateId);
+        if (childIndex.isValid()) {
+            return childIndex;
+        }
+    }
+    return QModelIndex();
+}
+
 QModelIndex CrateFeature::indexFromCrateId(CrateId crateId) const {
     VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
         return QModelIndex();
     }
-    for (int row = 0; row < m_pSidebarModel->rowCount(); ++row) {
-        QModelIndex index = m_pSidebarModel->index(row, 0);
-        TreeItem* pTreeItem = m_pSidebarModel->getItem(index);
-        DEBUG_ASSERT(pTreeItem != nullptr);
-        if (!pTreeItem->hasChildren() && // leaf node
-                (CrateId(pTreeItem->getData()) == crateId)) {
-            return index;
-        }
+    const QModelIndex index = findCrateIndex(QModelIndex(), crateId);
+    if (!index.isValid()) {
+        qDebug() << "Tree item for crate not found:" << crateId;
     }
-    qDebug() << "Tree item for crate not found:" << crateId;
-    return QModelIndex();
+    return index;
 }
 
 void CrateFeature::slotImportPlaylist() {
@@ -874,9 +1058,9 @@ void CrateFeature::storePrevSiblingCrateId(CrateId crateId) {
         if (newIndex.isValid()) {
             TreeItem* pTreeItem = m_pSidebarModel->getItem(newIndex);
             DEBUG_ASSERT(pTreeItem != nullptr);
-            if (!pTreeItem->hasChildren()) {
-                m_prevSiblingCrate = crateIdFromIndex(newIndex);
-            }
+            // Any sibling will do. A sibling that has subcrates of its own is
+            // still a crate that can be selected.
+            m_prevSiblingCrate = crateIdFromIndex(newIndex);
         }
     }
 }
