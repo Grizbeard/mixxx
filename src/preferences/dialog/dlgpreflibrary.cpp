@@ -271,6 +271,7 @@ void DlgPrefLibrary::slotResetToDefaults() {
     checkBox_serato_metadata_export->setChecked(false);
     checkBox_use_relative_path->setChecked(false);
     checkBox_edit_metadata_selected_clicked->setChecked(kEditMetadataSelectedClickDefault);
+    checkBox_shared_column_layout->setChecked(kSharedColumnLayoutDefault);
     radioButton_dbclick_deck->setChecked(true);
     spinbox_bpm_precision->setValue(BaseTrackTableModel::kBpmColumnPrecisionDefault);
     checkbox_played_track_color->setChecked(
@@ -416,6 +417,10 @@ void DlgPrefLibrary::slotUpdate() {
             kEditMetadataSelectedClickDefault);
     checkBox_edit_metadata_selected_clicked->setChecked(editMetadataSelectedClick);
     m_pLibrary->setEditMetadataSelectedClick(editMetadataSelectedClick);
+
+    checkBox_shared_column_layout->setChecked(m_pConfig->getValue(
+            kSharedColumnLayoutConfigKey,
+            kSharedColumnLayoutDefault));
 
     checkBox_enable_search_completions->setChecked(m_pConfig->getValue(
             kEnableSearchCompletionsConfigKey,
@@ -662,6 +667,9 @@ void DlgPrefLibrary::slotApply() {
             ConfigValue(checkBox_edit_metadata_selected_clicked->checkState()));
     m_pLibrary->setEditMetadataSelectedClick(
             checkBox_edit_metadata_selected_clicked->checkState());
+
+    m_pConfig->set(kSharedColumnLayoutConfigKey,
+            ConfigValue(checkBox_shared_column_layout->isChecked()));
 
     QFont font = m_pLibrary->getTrackTableFont();
     if (m_originalTrackTableFont != font) {

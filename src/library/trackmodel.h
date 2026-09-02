@@ -21,6 +21,11 @@ class TrackModel {
     // This role provides the tuning frequency in Hz
     static constexpr int kTuningFrequencyRole = Qt::UserRole + 3;
 
+    /// Namespace of the settings that are not specific to one kind of view,
+    /// @see getSharedSetting()
+    static inline const QString kSharedSettingsNamespace =
+            QStringLiteral("mixxx.db.model.shared");
+
     TrackModel(const QSqlDatabase& db,
             const char* settingsNamespace)
             : m_db(db),
@@ -214,6 +219,18 @@ class TrackModel {
         SettingsDAO settings(m_db);
         QString key = m_settingsNamespace + "." + name;
         return settings.setValue(key, value);
+    }
+
+    /// Settings that are shared by all track models, as opposed to
+    /// getModelSetting() which stores a value per kind of view.
+    virtual QString getSharedSetting(const QString& name) {
+        SettingsDAO settings(m_db);
+        return settings.getValue(kSharedSettingsNamespace + "." + name);
+    }
+
+    virtual bool setSharedSetting(const QString& name, const QVariant& value) {
+        SettingsDAO settings(m_db);
+        return settings.setValue(kSharedSettingsNamespace + "." + name, value);
     }
 
     virtual int defaultSortColumn() const {

@@ -231,6 +231,20 @@ bool ProxyTrackModel::setModelSetting(const QString& name, const QVariant& value
     return m_pTrackModel->setModelSetting(name, value);
 }
 
+QString ProxyTrackModel::getSharedSetting(const QString& name) {
+    if (m_pTrackModel == nullptr) {
+        return QString();
+    }
+    return m_pTrackModel->getSharedSetting(name);
+}
+
+bool ProxyTrackModel::setSharedSetting(const QString& name, const QVariant& value) {
+    if (m_pTrackModel == nullptr) {
+        return false;
+    }
+    return m_pTrackModel->setSharedSetting(name, value);
+}
+
 void ProxyTrackModel::sort(int column, Qt::SortOrder order) {
     if (m_pTrackModel && m_pTrackModel->isColumnSortable(column)) {
         QSortFilterProxyModel::sort(column, order);

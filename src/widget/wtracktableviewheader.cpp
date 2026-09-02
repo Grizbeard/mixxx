@@ -9,7 +9,9 @@
 #include <QStyleOptionHeader>
 #include <QTextOption>
 #include <QWidgetAction>
+#include <utility>
 
+#include "library/library_prefs.h"
 #include "library/trackmodel.h"
 #include "moc_wtracktableviewheader.cpp"
 #include "util/math.h"
@@ -18,6 +20,12 @@
 #include "widget/wmenucheckbox.h"
 
 #define WTTVH_MINIMUM_SECTION_SIZE 20
+
+namespace {
+
+const QString kHeaderStateSetting = QStringLiteral("header_state_pb");
+
+} // anonymous namespace
 
 HeaderViewState::HeaderViewState(const WTrackTableViewHeader& headers) {
     QAbstractItemModel* model = headers.model();
@@ -175,9 +183,66 @@ void HeaderViewState::restoreState(WTrackTableViewHeader* pHeaders) {
     }
 }
 
+void HeaderViewState::clearSortIndicator() {
+    m_view_state.clear_sort_indicator_shown();
+    m_view_state.clear_sort_indicator_section();
+    m_view_state.clear_sort_order();
+}
+
+void HeaderViewState::adoptSortIndicator(const HeaderViewState& other) {
+    if (!other.m_view_state.sort_indicator_shown()) {
+        clearSortIndicator();
+        return;
+    }
+    m_view_state.set_sort_indicator_shown(true);
+    m_view_state.set_sort_indicator_section(
+            other.m_view_state.sort_indicator_section());
+    m_view_state.set_sort_order(other.m_view_state.sort_order());
+}
+
+void HeaderViewState::mergeMissingColumns(const HeaderViewState& other) {
+    const auto& otherColumns = other.m_view_state.header_state();
+    for (int i = 0; i < otherColumns.size(); ++i) {
+        const QString columnName =
+                QString::fromStdString(otherColumns[i].column_name());
+        if (columnName.isEmpty() || indexOfColumn(columnName) != -1) {
+            continue;
+        }
+        // Insert the column behind the closest of its predecessors in other
+        // that we do have a record for, so that a group of columns which only
+        // exist in other views keeps its position and internal order.
+        int pos = 0;
+        for (int p = i - 1; p >= 0; --p) {
+            const int predecessor = indexOfColumn(
+                    QString::fromStdString(otherColumns[p].column_name()));
+            if (predecessor != -1) {
+                pos = predecessor + 1;
+                break;
+            }
+        }
+        // The repeated field can only be appended to, so add the record at the
+        // end and swap it into place.
+        *m_view_state.add_header_state() = otherColumns[i];
+        for (int j = m_view_state.header_state_size() - 1; j > pos; --j) {
+            m_view_state.mutable_header_state()->SwapElements(j, j - 1);
+        }
+    }
+}
+
+int HeaderViewState::indexOfColumn(const QString& name) const {
+    for (int i = 0; i < m_view_state.header_state_size(); ++i) {
+        if (QString::fromStdString(m_view_state.header_state(i).column_name()) == name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 WTrackTableViewHeader::WTrackTableViewHeader(Qt::Orientation orientation,
+        UserSettingsPointer pConfig,
         QWidget* pParent)
         : QHeaderView(orientation, pParent),
+          m_pConfig(std::move(pConfig)),
           m_menu(tr("Show or hide columns."), this),
           m_preferredHeight(-1),
           m_hoveredSection(-1),
@@ -308,8 +373,24 @@ void WTrackTableViewHeader::saveHeaderState() {
     }
     // Convert the QByteArray to a Base64 string and save it.
     HeaderViewState view_state(*this);
-    pTrackModel->setModelSetting("header_state_pb", view_state.saveState());
+    // Always store the state of this view, so that switching the shared column
+    // layout off again restores the layout each view had before.
+    pTrackModel->setModelSetting(kHeaderStateSetting, view_state.saveState());
     //qDebug() << "Saving old header state:" << result << headerState;
+
+    if (!sharedColumnLayoutEnabled()) {
+        return;
+    }
+    // Only the column layout is shared, sorting remains a per-view setting.
+    view_state.clearSortIndicator();
+    // Views don't all have the same columns, so keep the records of the columns
+    // this view doesn't have. Otherwise switching to a view with fewer columns
+    // and back would make the missing ones pop up as unknown columns.
+    const QString sharedStateString = pTrackModel->getSharedSetting(kHeaderStateSetting);
+    if (!sharedStateString.isEmpty()) {
+        view_state.mergeMissingColumns(HeaderViewState(sharedStateString));
+    }
+    pTrackModel->setSharedSetting(kHeaderStateSetting, view_state.saveState());
 }
 
 void WTrackTableViewHeader::restoreHeaderState() {
@@ -319,7 +400,20 @@ void WTrackTableViewHeader::restoreHeaderState() {
         return;
     }
 
-    const QString headerStateString = pTrackModel->getModelSetting("header_state_pb");
+    const QString modelStateString = pTrackModel->getModelSetting(kHeaderStateSetting);
+    // If all views share one column layout we use that, except right after the
+    // preference has been switched on, when there is none yet: then this view's
+    // own layout is used and will seed the shared layout when it is saved.
+    QString headerStateString = modelStateString;
+    bool shared = false;
+    if (sharedColumnLayoutEnabled()) {
+        const QString sharedStateString = pTrackModel->getSharedSetting(kHeaderStateSetting);
+        if (!sharedStateString.isEmpty()) {
+            headerStateString = sharedStateString;
+            shared = true;
+        }
+    }
+
     if (headerStateString.isEmpty()) {
         loadDefaultHeaderState();
     } else {
@@ -330,6 +424,16 @@ void WTrackTableViewHeader::restoreHeaderState() {
         if (!view_state.healthy()) {
             loadDefaultHeaderState();
         } else {
+            if (shared) {
+                const HeaderViewState modelState(modelStateString);
+                // The shared layout may not know all columns of this view, for
+                // example the track number of playlists. Put those back where
+                // this view had them instead of appending them as unknown.
+                view_state.mergeMissingColumns(modelState);
+                // The shared layout has no sort indicator, take the one this
+                // view was sorted by.
+                view_state.adoptSortIndicator(modelState);
+            }
             view_state.restoreState(this);
         }
     }
@@ -353,8 +457,19 @@ bool WTrackTableViewHeader::hasPersistedHeaderState() {
     if (!pTrackModel) {
         return false;
     }
-    const QString headerStateString = pTrackModel->getModelSetting("header_state_pb");
+    if (sharedColumnLayoutEnabled() &&
+            !pTrackModel->getSharedSetting(kHeaderStateSetting).isNull()) {
+        return true;
+    }
+    const QString headerStateString = pTrackModel->getModelSetting(kHeaderStateSetting);
     return !headerStateString.isNull();
+}
+
+bool WTrackTableViewHeader::sharedColumnLayoutEnabled() const {
+    return m_pConfig &&
+            m_pConfig->getValue(
+                    mixxx::library::prefs::kSharedColumnLayoutConfigKey,
+                    mixxx::library::prefs::kSharedColumnLayoutDefault);
 }
 
 void WTrackTableViewHeader::clearActions() {

@@ -43,6 +43,8 @@ class ProxyTrackModel : public QSortFilterProxyModel, public TrackModel {
     QAbstractItemDelegate* delegateForColumn(const int i, QObject* pParent) final;
     QString getModelSetting(const QString& name) final;
     bool setModelSetting(const QString& name, const QVariant& value) final;
+    QString getSharedSetting(const QString& name) final;
+    bool setSharedSetting(const QString& name, const QVariant& value) final;
     TrackModel::SortColumnId sortColumnIdFromColumnIndex(int index) const override;
     int columnIndexFromSortColumnId(TrackModel::SortColumnId sortColumn) const override;
     bool updateTrackGenre(

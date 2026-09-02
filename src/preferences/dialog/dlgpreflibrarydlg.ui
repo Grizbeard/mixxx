@@ -173,6 +173,17 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_track_table_view">
 
+      <item row="0" column="0" colspan="4">
+       <widget class="QCheckBox" name="checkBox_shared_column_layout">
+        <property name="toolTip">
+         <string>Column order, width and visibility are shared by the library, all playlists, all crates and every other track table.&lt;br/&gt;&lt;br/&gt;Columns which only exist in some views, like the track number in playlists, keep their place in the shared layout.&lt;br/&gt;Sorting is not shared, every view keeps the column it is sorted by.&lt;br/&gt;&lt;br/&gt;When switched off again, every view returns to the layout it had before.</string>
+        </property>
+        <property name="text">
+         <string>Use the same columns in all track tables</string>
+        </property>
+       </widget>
+      </item>
+
       <item row="1" column="0" colspan="4">
        <widget class="QCheckBox" name="checkBox_edit_metadata_selected_clicked">
         <property name="text">

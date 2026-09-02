@@ -36,6 +36,12 @@ extern const ConfigKey kApplyPlayedTrackColorConfigKey;
 
 extern const ConfigKey kEditMetadataSelectedClickConfigKey;
 
+/// Whether every library view shares one column layout (order, width and
+/// visibility) instead of each kind of view keeping its own.
+extern const ConfigKey kSharedColumnLayoutConfigKey;
+
+const bool kSharedColumnLayoutDefault = false;
+
 extern const ConfigKey kHistoryMinTracksToKeepConfigKey;
 
 const int kHistoryMinTracksToKeepDefault = 1;

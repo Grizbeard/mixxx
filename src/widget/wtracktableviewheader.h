@@ -4,6 +4,7 @@
 #include <QMap>
 #include <QMenu>
 
+#include "preferences/usersettings.h"
 #include "proto/headers.pb.h"
 
 class TrackModel;
@@ -36,6 +37,16 @@ public:
     // record for are made visible so they can be discovered.
     void restoreState(WTrackTableViewHeader* pHeaders);
 
+    // Drops the sort indicator. Used for the layout that is shared by all
+    // views, where sorting remains a per-view setting.
+    void clearSortIndicator();
+    // Takes over the sort indicator of other, or drops it if other has none.
+    void adoptSortIndicator(const HeaderViewState& other);
+    // Appends every column of other that this state has no record for, right
+    // behind the column it followed in other. Used to keep the columns of
+    // views which have columns the saved view doesn't have.
+    void mergeMissingColumns(const HeaderViewState& other);
+
     // returns false if no headers are listed to be shown.
     bool healthy() const {
         if (m_view_state.header_state_size() == 0) {
@@ -50,6 +61,9 @@ public:
     }
 
 private:
+    // Returns the index of the record of column name, or -1.
+    int indexOfColumn(const QString& name) const;
+
     mixxx::library::HeaderViewState m_view_state;
 };
 
@@ -57,7 +71,9 @@ private:
 class WTrackTableViewHeader : public QHeaderView {
     Q_OBJECT
   public:
-    explicit WTrackTableViewHeader(Qt::Orientation orientation, QWidget* pParent = nullptr);
+    explicit WTrackTableViewHeader(Qt::Orientation orientation,
+            UserSettingsPointer pConfig,
+            QWidget* pParent = nullptr);
 
     void contextMenuEvent(QContextMenuEvent* event) override;
     void setModel(QAbstractItemModel* model) override;
@@ -98,8 +114,13 @@ class WTrackTableViewHeader : public QHeaderView {
     int hiddenCount();
     void clearActions();
     TrackModel* getTrackModel();
+    // Whether all views share one column layout instead of each kind of view
+    // storing its own.
+    bool sharedColumnLayoutEnabled() const;
 
     void setHeightForFont();
+
+    const UserSettingsPointer m_pConfig;
 
     QMenu m_menu;
     QMap<int, QCheckBox*> m_columnCheckBoxes;

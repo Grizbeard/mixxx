@@ -234,7 +234,7 @@ void WTrackTableView::loadTrackModel(QAbstractItemModel* pNewModel, bool restore
     // header. Also, for some reason the WTrackTableView has to be hidden or
     // else problems occur. Since we parent the WtrackTableViewHeader's to the
     // WTrackTableView, they are automatically deleted.
-    auto* pHeader = new WTrackTableViewHeader(Qt::Horizontal, this);
+    auto* pHeader = new WTrackTableViewHeader(Qt::Horizontal, m_pConfig, this);
 
     // WTF(rryan) The following saves on unnecessary work on the part of
     // WTrackTableHeaderView. setHorizontalHeader() calls setModel() on the
