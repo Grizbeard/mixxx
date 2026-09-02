@@ -550,7 +550,11 @@ void CrateFeature::slotAutoDjTrackSourceChanged() {
 QModelIndex CrateFeature::rebuildChildModel(CrateId selectedCrateId) {
     qDebug() << "CrateFeature::rebuildChildModel()" << selectedCrateId;
 
+    // Every tree item below is about to be destroyed, so no stored index may
+    // outlive this call. Anything that needs an index afterwards has to look
+    // it up again by crate id.
     m_lastRightClickedIndex = QModelIndex();
+    m_lastClickedIndex = QModelIndex();
 
     TreeItem* pRootItem = m_pSidebarModel->getRootItem();
     VERIFY_OR_DEBUG_ASSERT(pRootItem != nullptr) {
@@ -883,11 +887,21 @@ void CrateFeature::storePrevSiblingCrateId(CrateId crateId) {
 
 void CrateFeature::slotCrateTableChanged(CrateId crateId) {
     Q_UNUSED(crateId);
-    if (isChildIndexSelectedInSidebar(m_lastClickedIndex)) {
-        // If the previously selected crate was loaded to the tracks table and
-        // selected in the sidebar try to activate that or a sibling
+    // Work out the index from the crate that is loaded in the track table
+    // instead of reusing a stored one. rebuildChildModel() destroys every
+    // tree item, so a stored index outlives the item it points at, and
+    // translating it dereferences freed memory. A single crate change gets
+    // away with it; creating several crates in a row without returning to
+    // the event loop does not.
+    const CrateId displayedCrateId = m_crateTableModel.selectedCrate();
+    const QModelIndex displayedIndex = displayedCrateId.isValid()
+            ? indexFromCrateId(displayedCrateId)
+            : QModelIndex();
+    if (displayedIndex.isValid() && isChildIndexSelectedInSidebar(displayedIndex)) {
+        // The crate loaded in the track table is also the sidebar selection,
+        // so restore it after the rebuild, or a sibling if it has gone.
         rebuildChildModel();
-        if (!activateCrate(m_crateTableModel.selectedCrate())) {
+        if (!activateCrate(displayedCrateId)) {
             // probably last clicked crate was deleted, try to
             // select the stored sibling
             if (m_prevSiblingCrate.isValid()) {
