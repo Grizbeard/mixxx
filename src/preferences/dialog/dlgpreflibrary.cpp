@@ -267,6 +267,8 @@ void DlgPrefLibrary::slotResetToDefaults() {
     comboBox_search_bpm_fuzzy_range->setCurrentIndex(
             comboBox_search_bpm_fuzzy_range->findData(kDefaultFuzzyRateRangePercent));
 
+    checkBox_show_subcrate_tracks->setChecked(kShowSubcrateTracksDefault);
+
     checkBox_show_rhythmbox->setChecked(true);
     checkBox_show_banshee->setChecked(true);
     checkBox_show_itunes->setChecked(true);
@@ -390,6 +392,11 @@ void DlgPrefLibrary::slotUpdate() {
                     mixxx::library::prefs::kApplyPlayedTrackColorConfigKey,
                     BaseTrackTableModel::kApplyPlayedTrackColorDefault);
     checkbox_played_track_color->setChecked(applyPlayedTrackColor);
+
+    checkBox_show_subcrate_tracks->setChecked(
+            m_pConfig->getValue(
+                    kShowSubcrateTracksConfigKey,
+                    kShowSubcrateTracksDefault));
 }
 
 void DlgPrefLibrary::slotCancel() {
@@ -608,6 +615,10 @@ void DlgPrefLibrary::slotApply() {
     m_pConfig->set(
             mixxx::library::prefs::kApplyPlayedTrackColorConfigKey,
             ConfigValue(checkbox_played_track_color->isChecked()));
+
+    m_pConfig->set(
+            kShowSubcrateTracksConfigKey,
+            ConfigValue(checkBox_show_subcrate_tracks->isChecked()));
 
     // TODO(rryan): Don't save here.
     m_pConfig->save();

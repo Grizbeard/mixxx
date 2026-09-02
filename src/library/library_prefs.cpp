@@ -43,6 +43,11 @@ const ConfigKey mixxx::library::prefs::kEditMetadataSelectedClickConfigKey =
                 mixxx::library::prefs::kConfigGroup,
                 QStringLiteral("EditMetadataSelectedClick")};
 
+const ConfigKey mixxx::library::prefs::kShowSubcrateTracksConfigKey =
+        ConfigKey{
+                mixxx::library::prefs::kConfigGroup,
+                QStringLiteral("ShowSubcrateTracks")};
+
 const ConfigKey mixxx::library::prefs::kHistoryMinTracksToKeepConfigKey =
         ConfigKey{
                 mixxx::library::prefs::kConfigGroup,
