@@ -76,7 +76,13 @@ void CrateTableModel::selectCrate(CrateId crateId, bool includeSubcrateTracks) {
                                     : CrateStorage::formatSubselectQueryForCrateTrackIds(
                                               crateId),
                             LIBRARYTABLE_MIXXXDELETED);
-    FwdSqlQuery(m_database, queryString).execPrepared();
+    // Report a failure rather than letting setTable() proceed against a view
+    // that does not exist, which would just show an empty track table.
+    VERIFY_OR_DEBUG_ASSERT(
+            FwdSqlQuery(m_database, queryString).execPrepared()) {
+        qWarning() << "Failed to create track view for crate" << crateId;
+        return;
+    }
 
     columns[0] = LIBRARYTABLE_ID;
     columns[1] = LIBRARYTABLE_PREVIEW;
