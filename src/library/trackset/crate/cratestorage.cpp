@@ -72,6 +72,13 @@ class CrateQueryBinder final {
     void bindAutoDjSource(const QString& placeholder, const Crate& crate) const {
         m_query.bindValue(placeholder, QVariant(crate.isAutoDjSource()));
     }
+    void bindParentId(const QString& placeholder, const Crate& crate) const {
+        // A top-level crate is stored as NULL rather than as the invalid id
+        // that CrateId::toVariant() would produce.
+        m_query.bindValue(placeholder,
+                crate.hasParent() ? crate.getParentId().toVariant()
+                                  : QVariant(QMetaType(QMetaType::Int)));
+    }
 
   protected:
     FwdSqlQuery& m_query;
@@ -103,7 +110,8 @@ CrateQueryFields::CrateQueryFields(const FwdSqlQuery& query)
         : m_iId(query.fieldIndex(CRATETABLE_ID)),
           m_iName(query.fieldIndex(CRATETABLE_NAME)),
           m_iLocked(query.fieldIndex(CRATETABLE_LOCKED)),
-          m_iAutoDjSource(query.fieldIndex(CRATETABLE_AUTODJ_SOURCE)) {
+          m_iAutoDjSource(query.fieldIndex(CRATETABLE_AUTODJ_SOURCE)),
+          m_iParentId(query.fieldIndex(CRATETABLE_PARENT_ID)) {
 }
 
 void CrateQueryFields::populateFromQuery(
@@ -113,6 +121,7 @@ void CrateQueryFields::populateFromQuery(
     pCrate->setName(getName(query));
     pCrate->setLocked(isLocked(query));
     pCrate->setAutoDjSource(isAutoDjSource(query));
+    pCrate->setParentId(getParentId(query));
 }
 
 CrateTrackQueryFields::CrateTrackQueryFields(const FwdSqlQuery& query)
@@ -186,6 +195,43 @@ void CrateStorage::repairDatabase(const QSqlDatabase& database) {
                     << "Fixed boolean values in table" << CRATE_TABLE
                     << "column" << CRATETABLE_AUTODJ_SOURCE
                     << "for" << query.numRowsAffected() << "crates";
+        }
+    }
+
+    {
+        // Detach crates whose parent no longer exists, and crates that point
+        // at themselves, so that they reappear at the top level instead of
+        // vanishing from the tree.
+        FwdSqlQuery query(database,
+                QStringLiteral(
+                        "UPDATE %1 SET %2=NULL "
+                        "WHERE %2 IS NOT NULL AND (%2=%3 OR %2 NOT IN "
+                        "(SELECT %3 FROM %1))")
+                        .arg(CRATE_TABLE, CRATETABLE_PARENT_ID, CRATETABLE_ID));
+        if (query.execPrepared() && (query.numRowsAffected() > 0)) {
+            kLogger.warning()
+                    << "Detached" << query.numRowsAffected()
+                    << "crates with a missing or self-referencing parent crate";
+        }
+    }
+    {
+        // Break any remaining parent cycle, which no longer reaches the top
+        // level and would otherwise hide every crate in the cycle. Crates
+        // reachable from the top level are collected first; whatever is left
+        // over sits in a cycle.
+        FwdSqlQuery query(database,
+                QStringLiteral(
+                        "UPDATE %1 SET %2=NULL WHERE %3 NOT IN ("
+                        "WITH RECURSIVE crate_roots(%3) AS ("
+                        "SELECT %3 FROM %1 WHERE %2 IS NULL UNION "
+                        "SELECT %1.%3 FROM %1 JOIN crate_roots "
+                        "ON %1.%2=crate_roots.%3"
+                        ") SELECT %3 FROM crate_roots)")
+                        .arg(CRATE_TABLE, CRATETABLE_PARENT_ID, CRATETABLE_ID));
+        if (query.execPrepared() && (query.numRowsAffected() > 0)) {
+            kLogger.warning()
+                    << "Broke a parent crate cycle by detaching"
+                    << query.numRowsAffected() << "crates";
         }
     }
 
@@ -418,6 +464,133 @@ QString CrateStorage::formatSubselectQueryForCrateTrackIds(CrateId crateId) {
                     crateId.toString());
 }
 
+QString CrateStorage::formatSubselectQueryForCrateTreeTrackIds(CrateId crateId) {
+    // Walk the crate tree downwards from crateId with a recursive common table
+    // expression, then collect the tracks of every crate it reached. DISTINCT
+    // keeps a track that sits in several of those crates from being listed
+    // more than once.
+    return QStringLiteral(
+            "SELECT DISTINCT %1 FROM %2 WHERE %3 IN ("
+            "WITH RECURSIVE crate_tree(%4) AS ("
+            "SELECT %5 UNION ALL "
+            "SELECT %6.%4 FROM %6 JOIN crate_tree ON %6.%7=crate_tree.%4"
+            ") SELECT %4 FROM crate_tree)")
+            .arg(CRATETRACKSTABLE_TRACKID,
+                    CRATE_TRACKS_TABLE,
+                    CRATETRACKSTABLE_CRATEID,
+                    CRATETABLE_ID,
+                    crateId.toString(),
+                    CRATE_TABLE,
+                    CRATETABLE_PARENT_ID);
+}
+
+CrateSelectResult CrateStorage::selectChildCrates(CrateId parentId) const {
+    // A top-level crate is stored with a NULL parent_id, which no comparison
+    // operator would match, so the two cases need different queries.
+    const QString whereClause = parentId.isValid()
+            ? QStringLiteral("%1=%2").arg(CRATETABLE_PARENT_ID, parentId.toString())
+            : QStringLiteral("%1 IS NULL").arg(CRATETABLE_PARENT_ID);
+    FwdSqlQuery query(m_database,
+            mixxx::DbConnection::collateLexicographically(
+                    QStringLiteral("SELECT * FROM %1 WHERE %2 ORDER BY %3")
+                            .arg(CRATE_TABLE, whereClause, CRATETABLE_NAME)));
+    if (query.execPrepared()) {
+        return CrateSelectResult(std::move(query));
+    }
+    return CrateSelectResult();
+}
+
+QList<CrateId> CrateStorage::collectDescendantCrateIds(CrateId crateId) const {
+    QList<CrateId> descendantIds;
+    VERIFY_OR_DEBUG_ASSERT(crateId.isValid()) {
+        return descendantIds;
+    }
+    FwdSqlQuery query(m_database,
+            QStringLiteral(
+                    "WITH RECURSIVE crate_tree(%1) AS ("
+                    "SELECT %2 UNION ALL "
+                    "SELECT %3.%1 FROM %3 JOIN crate_tree ON %3.%4=crate_tree.%1"
+                    ") SELECT %1 FROM crate_tree WHERE %1<>%2")
+                    .arg(CRATETABLE_ID,
+                            crateId.toString(),
+                            CRATE_TABLE,
+                            CRATETABLE_PARENT_ID));
+    if (!query.execPrepared()) {
+        return descendantIds;
+    }
+    while (query.next()) {
+        descendantIds.append(CrateId(query.fieldValue(0)));
+    }
+    return descendantIds;
+}
+
+bool CrateStorage::isAncestorOf(CrateId ancestorId, CrateId crateId) const {
+    if (!ancestorId.isValid() || !crateId.isValid() || ancestorId == crateId) {
+        return false;
+    }
+    // Walk upwards from crateId rather than collecting all descendants of
+    // ancestorId, since the chain of ancestors is at most as deep as the tree.
+    FwdSqlQuery query(m_database,
+            QStringLiteral(
+                    "WITH RECURSIVE crate_ancestors(%1) AS ("
+                    "SELECT %2 UNION ALL "
+                    "SELECT %3.%4 FROM %3 JOIN crate_ancestors "
+                    "ON %3.%1=crate_ancestors.%1 WHERE %3.%4 IS NOT NULL"
+                    ") SELECT COUNT(*) FROM crate_ancestors WHERE %1=%5")
+                    .arg(CRATETABLE_ID,
+                            crateId.toString(),
+                            CRATE_TABLE,
+                            CRATETABLE_PARENT_ID,
+                            ancestorId.toString()));
+    if (query.execPrepared() && query.next()) {
+        return query.fieldValue(0).toInt() > 0;
+    }
+    return false;
+}
+
+bool CrateStorage::hasChildCrates(CrateId crateId) const {
+    if (!crateId.isValid()) {
+        return false;
+    }
+    FwdSqlQuery query(m_database,
+            QStringLiteral("SELECT COUNT(*) FROM %1 WHERE %2=:parentId")
+                    .arg(CRATE_TABLE, CRATETABLE_PARENT_ID));
+    query.bindValue(":parentId", crateId);
+    if (query.execPrepared() && query.next()) {
+        return query.fieldValue(0).toInt() > 0;
+    }
+    return false;
+}
+
+bool CrateStorage::isValidParentFor(CrateId crateId, CrateId parentId) const {
+    if (!parentId.isValid()) {
+        // Moving to the top level is always allowed.
+        return true;
+    }
+    if (parentId == crateId) {
+        return false;
+    }
+    if (!readCrateById(parentId)) {
+        return false;
+    }
+    // Nesting a crate inside one of its own descendants would detach that
+    // whole subtree into a cycle.
+    return !isAncestorOf(crateId, parentId);
+}
+
+bool CrateStorage::onMovingCrate(CrateId crateId, CrateId newParentId) {
+    Crate crate;
+    VERIFY_OR_DEBUG_ASSERT(readCrateById(crateId, &crate)) {
+        kLogger.warning() << "Cannot move non-existent crate" << crateId;
+        return false;
+    }
+    if (crate.getParentId() == newParentId) {
+        return true;
+    }
+    crate.setParentId(newParentId);
+    return onUpdatingCrate(crate);
+}
+
 QString CrateStorage::formatQueryForTrackIdsByCrateNameLike(
         const QString& crateNameLike) const {
     FieldEscaper escaper(m_database);
@@ -568,15 +741,24 @@ bool CrateStorage::onInsertingCrate(
                 << "Cannot insert crate with a valid id:" << crate.getId();
         return false;
     }
+    if (crate.hasParent()) {
+        VERIFY_OR_DEBUG_ASSERT(readCrateById(crate.getParentId())) {
+            kLogger.warning()
+                    << "Cannot insert crate into non-existent parent crate"
+                    << crate.getParentId();
+            return false;
+        }
+    }
     FwdSqlQuery query(m_database,
             QStringLiteral(
-                    "INSERT INTO %1 (%2,%3,%4) "
-                    "VALUES (:name,:locked,:autoDjSource)")
+                    "INSERT INTO %1 (%2,%3,%4,%5) "
+                    "VALUES (:name,:locked,:autoDjSource,:parentId)")
                     .arg(
                             CRATE_TABLE,
                             CRATETABLE_NAME,
                             CRATETABLE_LOCKED,
-                            CRATETABLE_AUTODJ_SOURCE));
+                            CRATETABLE_AUTODJ_SOURCE,
+                            CRATETABLE_PARENT_ID));
     VERIFY_OR_DEBUG_ASSERT(query.isPrepared()) {
         return false;
     }
@@ -584,6 +766,7 @@ bool CrateStorage::onInsertingCrate(
     queryBinder.bindName(":name", crate);
     queryBinder.bindLocked(":locked", crate);
     queryBinder.bindAutoDjSource(":autoDjSource", crate);
+    queryBinder.bindParentId(":parentId", crate);
     VERIFY_OR_DEBUG_ASSERT(query.execPrepared()) {
         return false;
     }
@@ -606,16 +789,23 @@ bool CrateStorage::onUpdatingCrate(
                 << "Cannot update crate without a valid id";
         return false;
     }
+    if (!isValidParentFor(crate.getId(), crate.getParentId())) {
+        kLogger.warning()
+                << "Cannot nest crate" << crate.getId()
+                << "inside crate" << crate.getParentId();
+        return false;
+    }
     FwdSqlQuery query(m_database,
             QString(
                     "UPDATE %1 "
-                    "SET %2=:name,%3=:locked,%4=:autoDjSource "
-                    "WHERE %5=:id")
+                    "SET %2=:name,%3=:locked,%4=:autoDjSource,%5=:parentId "
+                    "WHERE %6=:id")
                     .arg(
                             CRATE_TABLE,
                             CRATETABLE_NAME,
                             CRATETABLE_LOCKED,
                             CRATETABLE_AUTODJ_SOURCE,
+                            CRATETABLE_PARENT_ID,
                             CRATETABLE_ID));
     VERIFY_OR_DEBUG_ASSERT(query.isPrepared()) {
         return false;
@@ -625,6 +815,7 @@ bool CrateStorage::onUpdatingCrate(
     queryBinder.bindName(":name", crate);
     queryBinder.bindLocked(":locked", crate);
     queryBinder.bindAutoDjSource(":autoDjSource", crate);
+    queryBinder.bindParentId(":parentId", crate);
     VERIFY_OR_DEBUG_ASSERT(query.execPrepared()) {
         return false;
     }
@@ -647,6 +838,31 @@ bool CrateStorage::onDeletingCrate(
         kLogger.warning()
                 << "Cannot delete crate without a valid id";
         return false;
+    }
+    {
+        // Deleting a crate must not take the crates nested inside it with it,
+        // so lift them up to where the deleted crate used to sit. Their tracks
+        // are a separate concern from this crate's own track list.
+        Crate crate;
+        if (readCrateById(crateId, &crate)) {
+            FwdSqlQuery query(m_database,
+                    QStringLiteral("UPDATE %1 SET %2=:newParentId WHERE %2=:id")
+                            .arg(CRATE_TABLE, CRATETABLE_PARENT_ID));
+            VERIFY_OR_DEBUG_ASSERT(query.isPrepared()) {
+                return false;
+            }
+            CrateQueryBinder queryBinder(query);
+            queryBinder.bindParentId(":newParentId", crate);
+            query.bindValue(":id", crateId);
+            VERIFY_OR_DEBUG_ASSERT(query.execPrepared()) {
+                return false;
+            }
+            if (query.numRowsAffected() > 0 && kLogger.debugEnabled()) {
+                kLogger.debug()
+                        << "Reparented" << query.numRowsAffected()
+                        << "crates nested inside deleted crate" << crateId;
+            }
+        }
     }
     {
         FwdSqlQuery query(m_database,

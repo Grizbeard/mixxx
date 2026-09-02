@@ -31,6 +31,16 @@ class CrateQueryFields {
     bool isAutoDjSource(const FwdSqlQuery& query) const {
         return query.fieldValueBoolean(m_iAutoDjSource);
     }
+    CrateId getParentId(const FwdSqlQuery& query) const {
+        const QVariant parentId = query.fieldValue(m_iParentId);
+        if (parentId.isNull()) {
+            // A NULL parent_id denotes a crate at the top level. This has to
+            // be checked before constructing a CrateId, because DbId logs a
+            // critical error for any value it considers invalid.
+            return CrateId();
+        }
+        return CrateId(parentId);
+    }
 
     void populateFromQuery(
             const FwdSqlQuery& query,
@@ -41,6 +51,7 @@ class CrateQueryFields {
     DbFieldIndex m_iName;
     DbFieldIndex m_iLocked;
     DbFieldIndex m_iAutoDjSource;
+    DbFieldIndex m_iParentId;
 };
 
 class CrateSelectResult : public FwdSqlQuerySelectResult {
@@ -251,6 +262,13 @@ class CrateStorage : public virtual /*implements*/ SqlStorage {
     bool onDeletingCrate(
             CrateId crateId);
 
+    /// Nest crateId inside newParentId, or move it to the top level by passing
+    /// an invalid newParentId. Fails if the move would create a cycle, i.e. if
+    /// newParentId is crateId itself or one of its descendants.
+    bool onMovingCrate(
+            CrateId crateId,
+            CrateId newParentId);
+
     bool onAddingCrateTracks(
             CrateId crateId,
             const QList<TrackId>& trackIds);
@@ -294,11 +312,35 @@ class CrateStorage : public virtual /*implements*/ SqlStorage {
     // before starting to code.
     CrateSelectResult selectAutoDjCrates(bool autoDjSource = true) const;
 
+    /////////////////////////////////////////////////////////////////////////
+    // Crate tree operations (read-only, const)
+    /////////////////////////////////////////////////////////////////////////
+
+    /// The crates nested directly inside parentId, or the top-level crates if
+    /// parentId is invalid. Ordered by name like selectCrates().
+    CrateSelectResult selectChildCrates(CrateId parentId) const;
+
+    /// Every crate nested below crateId at any depth, excluding crateId
+    /// itself. The order is unspecified.
+    QList<CrateId> collectDescendantCrateIds(CrateId crateId) const;
+
+    /// Whether crateId is nested below ancestorId at any depth. A crate is not
+    /// considered an ancestor of itself.
+    bool isAncestorOf(CrateId ancestorId, CrateId crateId) const;
+
+    /// Whether any crate is nested directly inside crateId.
+    bool hasChildCrates(CrateId crateId) const;
+
     // Crate content, i.e. the crate's tracks referenced by id
     uint countCrateTracks(CrateId crateId) const;
 
     // Format a subselect query for the tracks contained in crate.
     static QString formatSubselectQueryForCrateTrackIds(
+            CrateId crateId); // no db access
+
+    /// Format a subselect query for the tracks contained in a crate or in any
+    /// crate nested below it, listing each track once.
+    static QString formatSubselectQueryForCrateTreeTrackIds(
             CrateId crateId); // no db access
 
     QString formatQueryForTrackIdsByCrateNameLike(
@@ -339,6 +381,11 @@ class CrateStorage : public virtual /*implements*/ SqlStorage {
 
   private:
     void createViews();
+
+    /// Whether parentId is an acceptable parent for crateId: either invalid
+    /// (top level), or an existing crate that is neither crateId itself nor
+    /// nested below it.
+    bool isValidParentFor(CrateId crateId, CrateId parentId) const;
 
     QSqlDatabase m_database;
 };

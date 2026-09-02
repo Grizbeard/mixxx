@@ -80,6 +80,10 @@ class TrackCollection : public QObject,
 
     bool insertCrate(const Crate& crate, CrateId* pCrateId = nullptr);
     bool updateCrate(const Crate& crate);
+    /// Nest a crate inside another crate, or move it to the top level by
+    /// passing an invalid newParentId. Returns false without modifying
+    /// anything if the move would create a cycle.
+    bool moveCrate(CrateId crateId, CrateId newParentId);
     bool deleteCrate(CrateId crateId);
     bool addCrateTracks(CrateId crateId, const QList<TrackId>& trackIds);
     bool removeCrateTracks(CrateId crateId, const QList<TrackId>& trackIds);
