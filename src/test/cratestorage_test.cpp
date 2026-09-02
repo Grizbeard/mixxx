@@ -351,6 +351,50 @@ TEST_F(CrateStorageTest, crateTreeSubselectWorksInsideATemporaryView) {
     EXPECT_EQ(0, selectFromView.fieldValue(0).toInt());
 }
 
+TEST_F(CrateStorageTest, treeQueriesTerminateOnACycle) {
+    // The write path refuses to create a cycle, but a database that already
+    // contains one must not be able to hang the recursive queries. With
+    // UNION ALL instead of UNION these walks never finish, so this test
+    // hangs rather than fails if that regresses.
+    const CrateId firstId = createCrate("First");
+    const CrateId secondId = createCrate("Second", firstId);
+    const CrateId thirdId = createCrate("Third", secondId);
+    addCrateTracks(secondId, {1});
+    addCrateTracks(thirdId, {2});
+
+    // Close the loop directly, since onMovingCrate() would refuse it.
+    ASSERT_TRUE(FwdSqlQuery(dbConnection(),
+            QStringLiteral("UPDATE crates SET parent_id=%1 WHERE id=%2")
+                    .arg(thirdId.toString(), firstId.toString()))
+                    .execPrepared());
+
+    // Walking down, walking up, and the track subselect all have to return.
+    const QList<CrateId> descendants =
+            m_crateStorage.collectDescendantCrateIds(firstId);
+    EXPECT_EQ(2, descendants.size());
+    EXPECT_TRUE(m_crateStorage.isAncestorOf(firstId, thirdId));
+    EXPECT_EQ(QList<int>({1, 2}),
+            runTrackIdSubselect(
+                    CrateStorage::formatSubselectQueryForCrateTreeTrackIds(firstId)));
+
+    // A crate update also has to return rather than hang. It is refused,
+    // which is correct rather than unfortunate: every crate in a cycle is its
+    // own ancestor, so the crate's existing parent counts as one of its
+    // descendants and re-writing that parent would keep the cycle alive.
+    Crate crate;
+    ASSERT_TRUE(m_crateStorage.readCrateById(secondId, &crate));
+    crate.setName("Renamed");
+    EXPECT_FALSE(m_crateStorage.onUpdatingCrate(crate));
+
+    // Repairing the database is the way back out, after which the crate can
+    // be renamed normally again.
+    m_crateStorage.repairDatabase(dbConnection());
+    ASSERT_TRUE(m_crateStorage.readCrateById(secondId, &crate));
+    crate.setName("Renamed");
+    EXPECT_TRUE(m_crateStorage.onUpdatingCrate(crate));
+    EXPECT_TRUE(m_crateStorage.readCrateByName("Renamed"));
+}
+
 TEST_F(CrateStorageTest, repairDatabaseDetachesMissingParent) {
     const CrateId parentId = createCrate("Parent");
     const CrateId childId = createCrate("Child", parentId);
