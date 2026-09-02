@@ -7,6 +7,8 @@
 
 #include "library/browse/browsetablemodel.h"
 #include "library/browse/browsethread.h"
+#include "library/columncache.h"
+#include "library/dao/trackschema.h"
 #include "library/tabledelegates/previewbuttondelegate.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -23,6 +25,89 @@ namespace {
 /// Helper to insert values into a QList with specific indices.
 ///
 /// *For legacy code only - Do not use for new code!*
+/// Untranslated name that identifies a column in the persisted header state.
+/// Columns which show the same thing as a column of the library use the same
+/// name as the library, so that a column layout shared by all views applies to
+/// both of them.
+QString columnName(int column) {
+    switch (column) {
+    case COLUMN_PREVIEW:
+        return LIBRARYTABLE_PREVIEW;
+    case COLUMN_FILENAME:
+        return TRACKLOCATIONSTABLE_FILENAME;
+    case COLUMN_ARTIST:
+        return LIBRARYTABLE_ARTIST;
+    case COLUMN_TITLE:
+        return LIBRARYTABLE_TITLE;
+    case COLUMN_ALBUM:
+        return LIBRARYTABLE_ALBUM;
+    case COLUMN_TRACK_NUMBER:
+        return LIBRARYTABLE_TRACKNUMBER;
+    case COLUMN_YEAR:
+        return LIBRARYTABLE_YEAR;
+    case COLUMN_GENRE:
+        return LIBRARYTABLE_GENRE;
+    case COLUMN_COMPOSER:
+        return LIBRARYTABLE_COMPOSER;
+    case COLUMN_COMMENT:
+        return LIBRARYTABLE_COMMENT;
+    case COLUMN_DURATION:
+        return LIBRARYTABLE_DURATION;
+    case COLUMN_BPM:
+        return LIBRARYTABLE_BPM;
+    case COLUMN_KEY:
+        return LIBRARYTABLE_KEY;
+    case COLUMN_TYPE:
+        return LIBRARYTABLE_FILETYPE;
+    case COLUMN_BITRATE:
+        return LIBRARYTABLE_BITRATE;
+    case COLUMN_NATIVELOCATION:
+        return TRACKLOCATIONSTABLE_LOCATION;
+    case COLUMN_ALBUMARTIST:
+        return LIBRARYTABLE_ALBUMARTIST;
+    case COLUMN_GROUPING:
+        return LIBRARYTABLE_GROUPING;
+    case COLUMN_REPLAYGAIN:
+        return LIBRARYTABLE_REPLAYGAIN;
+    // The library has no columns for these.
+    case COLUMN_FILE_MODIFIED_TIME:
+        return QStringLiteral("file_modified");
+    case COLUMN_FILE_CREATION_TIME:
+        return QStringLiteral("file_created");
+    default:
+        return QString();
+    }
+}
+
+/// Same widths the library uses for the columns it also has.
+int defaultColumnWidth(int column) {
+    const int width = ColumnCache::defaultColumnWidth();
+    switch (column) {
+    case COLUMN_PREVIEW:
+        return width / 2;
+    case COLUMN_BPM:
+    case COLUMN_REPLAYGAIN:
+        return width * 2;
+    case COLUMN_ARTIST:
+    case COLUMN_TITLE:
+    case COLUMN_ALBUM:
+    case COLUMN_ALBUMARTIST:
+    case COLUMN_GENRE:
+    case COLUMN_COMPOSER:
+    case COLUMN_GROUPING:
+    case COLUMN_FILENAME:
+        return width * 4;
+    case COLUMN_COMMENT:
+    case COLUMN_NATIVELOCATION:
+        return width * 6;
+    case COLUMN_FILE_MODIFIED_TIME:
+    case COLUMN_FILE_CREATION_TIME:
+        return width * 3;
+    default:
+        return width;
+    }
+}
+
 template<typename T>
 void listAppendOrReplaceAt(QList<T>* pList, int index, const T& value) {
     VERIFY_OR_DEBUG_ASSERT(index <= pList->size()) {
@@ -295,6 +380,21 @@ void BrowseTableModel::search(const QString&) {
 
 const QString BrowseTableModel::currentSearch() const {
     return QString("");
+}
+
+QVariant BrowseTableModel::headerData(
+        int section, Qt::Orientation orientation, int role) const {
+    if (orientation == Qt::Horizontal) {
+        // QStandardItemModel only knows the displayed labels, but the track
+        // view needs a stable name and a default width per column.
+        if (role == TrackModel::kHeaderNameRole) {
+            return columnName(section);
+        }
+        if (role == TrackModel::kHeaderWidthRole) {
+            return defaultColumnWidth(section);
+        }
+    }
+    return QStandardItemModel::headerData(section, orientation, role);
 }
 
 bool BrowseTableModel::isColumnInternal(int) {

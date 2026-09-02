@@ -80,6 +80,9 @@ class BrowseTableModel final : public QStandardItemModel, public virtual TrackMo
     void removeTracks(const QModelIndexList& indices) override;
     QMimeData* mimeData(const QModelIndexList &indexes) const override;
     const QString currentSearch() const override;
+    QVariant headerData(int section,
+            Qt::Orientation orientation,
+            int role = Qt::DisplayRole) const override;
     bool isColumnInternal(int) override;
     void moveTrack(const QModelIndex&, const QModelIndex&) override;
     void copyTracks(const QModelIndexList& indices) const override;
