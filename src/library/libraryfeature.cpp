@@ -1,5 +1,7 @@
 #include "library/libraryfeature.h"
 
+#include <QDir>
+#include <QFile>
 #include <QStandardPaths>
 
 #include "library/library.h"
@@ -16,6 +18,41 @@ namespace {
 
 const mixxx::Logger kLogger("LibraryFeature");
 const QString kIconPath = QStringLiteral(":/images/library/ic_library_%1.svg");
+const QString kSkinIconPath =
+        QStringLiteral("%1/skins/%2/library/ic_library_%3.svg");
+
+/// Path to a skin-provided replacement for a sidebar icon, or an empty string.
+///
+/// The built-in icons are compiled into the binary, so a skin whose palette
+/// does not contain their colours has no way to bring the sidebar into line
+/// with the rest of itself. A skin may ship
+/// `<skin>/library/ic_library_<name>.svg` to override one.
+///
+/// This is purely additive: a skin that provides nothing keeps the built-in
+/// icon, so existing skins are unaffected. Icons are resolved per skin rather
+/// than per colour scheme, because features are constructed before any skin is
+/// parsed and a scheme's asset directory is a skin-internal detail.
+QString skinIconPath(const UserSettingsPointer& pConfig, const QString& iconName) {
+    const QString skinName =
+            pConfig->getValueString(ConfigKey("[Config]", "ResizableSkin"));
+    if (skinName.isEmpty()) {
+        return QString();
+    }
+    // Same search order as SkinLoader: a user skin shadows a system one.
+    const QStringList bases = {
+            pConfig->getSettingsPath(), pConfig->getResourcePath()};
+    for (const QString& base : bases) {
+        if (base.isEmpty()) {
+            continue;
+        }
+        const QString candidate = kSkinIconPath.arg(
+                QDir::cleanPath(base), skinName, iconName);
+        if (QFile::exists(candidate)) {
+            return candidate;
+        }
+    }
+    return QString();
+}
 
 } // anonymous namespace
 
@@ -28,7 +65,9 @@ LibraryFeature::LibraryFeature(
           m_pConfig(pConfig),
           m_iconName(iconName) {
     if (!m_iconName.isEmpty()) {
-        m_icon = QIcon(kIconPath.arg(m_iconName));
+        const QString overridePath = skinIconPath(m_pConfig, m_iconName);
+        m_icon = QIcon(overridePath.isEmpty() ? kIconPath.arg(m_iconName)
+                                              : overridePath);
     }
 }
 

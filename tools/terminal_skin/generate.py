@@ -37,6 +37,27 @@ SKIN = REPO / "res" / "skins" / "Terminal"
 REF = REPO / "res" / "skins" / "LateNight" / "palemoon"
 # A few assets (the waveform marks) exist only in the other scheme.
 REF_CLASSIC = REPO / "res" / "skins" / "LateNight" / "classic"
+# Library sidebar icons live in Mixxx's own resources, not in any skin.
+REF_LIBRARY = REPO / "res" / "images" / "library"
+# The names LibraryFeature can be constructed with; see
+# src/library/libraryfeature.cpp, which looks for a skin override first.
+LIBRARY_ICONS = (
+    "autodj",
+    "banshee",
+    "computer",
+    "crates",
+    "hidden",
+    "history",
+    "itunes",
+    "playlist",
+    "prepare",
+    "recordings",
+    "rekordbox",
+    "rhythmbox",
+    "serato",
+    "tracks",
+    "traktor",
+)
 SVG_NS = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG_NS)
 # Monospace stack: Cascadia/Consolas on Windows, DejaVu on Linux, Menlo on mac.
@@ -629,9 +650,18 @@ SLIDER_HANDLE_RE = re.compile(r"^knob_")
 
 def build_assets(palette: Palette, report: bool = False) -> dict:
     out = SKIN / palette.dir
-    stats = {"glyph": 0, "frame": 0, "knob": 0, "slider": 0, "style": 0}
+    stats = {
+        "glyph": 0,
+        "frame": 0,
+        "knob": 0,
+        "slider": 0,
+        "style": 0,
+        "library": 0,
+    }
     if not report and out.exists():
         shutil.rmtree(out)
+    if not report:
+        shutil.rmtree(SKIN / "library", ignore_errors=True)
     # ---- buttons -------------------------------------------------------- #
     for src in sorted((REF / "buttons").glob("*.svg")):
         dst = out / "buttons" / src.name
@@ -680,6 +710,23 @@ def build_assets(palette: Palette, report: bool = False) -> dict:
             write(dst, gen_slider_groove(width, height, view_box, palette))
     # ---- style ---------------------------------------------------------- #
     stats["style"] = build_style_assets(palette, out, report)
+
+    # ---- library sidebar icons ------------------------------------------- #
+    # These are Qt resources compiled into the binary, so they cannot be
+    # restyled from a stylesheet. Ship flattened copies; LibraryFeature picks
+    # them up from <skin>/library/ and falls back to its own when absent.
+    # They sit outside the scheme directory because the override is resolved
+    # per skin, not per scheme.
+    for name in LIBRARY_ICONS:
+        src = REF_LIBRARY / f"ic_library_{name}.svg"
+        if not src.is_file():
+            continue
+        stats["library"] += 1
+        if not report:
+            write(
+                SKIN / "library" / src.name,
+                flatten_or_keep(src, palette["fg_dim"]),
+            )
     return stats
 
 
