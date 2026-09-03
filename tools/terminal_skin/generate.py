@@ -320,8 +320,12 @@ def transparent(width, height, view_box=None) -> str:
 
 
 def write(path: Path, text: str) -> None:
+    # Exactly one trailing newline. Content that already ends in one would
+    # otherwise gain a blank final line, which the repo's end-of-file hook
+    # strips on commit -- leaving every generated file permanently "modified"
+    # against a fresh run.
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text + "\n", encoding="utf-8")
+    path.write_text(text.rstrip("\n") + "\n", encoding="utf-8")
 
 
 # --------------------------------------------------------------------------- #
