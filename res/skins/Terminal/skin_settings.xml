@@ -403,7 +403,7 @@ Description:
                         <SetVariable name="Text">Effect Units</SetVariable>
                         <SetVariable name="Setting">[Skin],show_effectrack</SetVariable>
                         <SetVariable name="TooltipId">show_effects</SetVariable>
-                        <SetVariable name="Width">130me</SetVariable>
+                        <SetVariable name="Width">150me</SetVariable>
                       </Template>
 
                       <WidgetGroup>

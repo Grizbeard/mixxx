@@ -99,7 +99,7 @@ Description:
                       <NumberStates>1</NumberStates>
                       <State>
                         <Number>0</Number>
-                        <Text> load </Text>
+                        <Text>load</Text>
                         <Alignment>left</Alignment>
                       </State>
                       <Connection>
@@ -121,7 +121,7 @@ Description:
                       <NumberStates>1</NumberStates>
                       <State>
                         <Number>0</Number>
-                        <Text> save </Text>
+                        <Text>save</Text>
                         <Alignment>left</Alignment>
                       </State>
                       <Connection>

@@ -34,6 +34,9 @@ WEffectChainPresetSelector QAbstractScrollArea,
 #LibraryFeatureControls QPushButton,
 #LibraryFeatureControls QLabel,
 #LibraryFeatureControls QRadioButton,
+WTrackTableView,
+WLibrarySidebar,
+WLibraryTextBrowser,
 WTrackTableViewHeader,
 WTrackTableViewHeader::section {
   /* On Linux all weight variants of Open Sans are identified
@@ -62,8 +65,7 @@ WPushButton#SkinSettingsToggle,
 WPushButton#EQKillButton,
 WLabel#LatencyLabel,
 WLabel#SamplerTitleMini,
-/* SKin settings & Library */
-WPushButton#SkinSettingsNumToggle[value="1"],
+/* Library */
 QLabel#labelRecFilename {
   font-family: "Cascadia Mono", "Consolas", "DejaVu Sans Mono", "Menlo", monospace;
   font-weight: bold;
@@ -253,7 +255,7 @@ WEffectChainPresetSelector QAbstractScrollArea,
 #SkinSettingsNumToggle,
 #SkinSettingsMixerToggle,
 #SkinSettingsText {
-  font-size: 13px;
+  font-size: 11px;
 }
 
 #PlayPositionTextSmall,
@@ -284,7 +286,7 @@ WRecordingDuration {
 #SkinSettingsLabelButton,
 #CategoryLabel,
 #SkinSettingsNumToggleHeader  {
-  font-size: 17px;
+  font-size: 14px;
 }
 
 #ArtistText,

@@ -266,7 +266,7 @@ WSearchLineEdit {
 
 
 #FxParametersFocusBg {
-  border: 1px solid #1d5c63;
+  border: 1px solid #93d64a;
   background-color: rgba(0, 0, 0, 50);
 }
 
@@ -389,7 +389,7 @@ WTrackProperty[selected="true"],
     image: url(skins:Terminal/btop/buttons/btn__bpm_select_edit.svg) no-repeat left top;
   }
   #BpmTapButton:pressed {
-    border: 1px solid #1d5c63;
+    border: 1px solid #93d64a;
   }
 
 /* Disabled for now since the hover effect is stuck as soon as the
@@ -777,7 +777,7 @@ WBpmEditor {
 WBpmEditor QDoubleSpinBox,
 WBpmEditor QDoubleSpinBox:focus {
   border-image: none;
-  border: 1px solid #1d5c63;
+  border: 1px solid #93d64a;
   border-radius: 0px;
   margin: 0px;
   /* top/bottom padding is required to make room for the buttons! */
@@ -1849,7 +1849,7 @@ WBeatSpinBox::down-button:pressed,
 #spinBoxTransition::down-button:pressed,
 #spinBoxRecentDays::up-button:pressed,
 #spinBoxRecentDays::down-button:pressed {
-  background-color: #1d5c63;
+  background-color: #93d64a;
   }
   /* Dim blue for assign buttons Fx34 */
   #FxAssignButton3[displayValue="1"],
@@ -2970,7 +2970,7 @@ WLibrarySidebar {
    > See src/library/coverartdelegate.cpp: "option.palette.highlightedText().color();" */
   selection-color: #ddf0d1;
   /* background of Color delegate in selected row */
-  selection-background-color: #1d5c63;
+  selection-background-color: #323d2b;
 }
 WLibrarySidebar {
   outline: none;
@@ -2986,7 +2986,7 @@ WTrackTableView::item:selected,
    color: #fff;*/
   /* This is not required for painting the background,
      but it is for applying the focus outline. */
-  background-color: #1d5c63;
+  background-color: #323d2b;
   }
   /* Highlight currentIndex which can be moved with Ctrl + arrow keys */
   WTrackTableView::item:!selected:focus {
@@ -3010,7 +3010,7 @@ WLibrarySidebar[dragHover="true"]::item:hover {
 WTrackTableView:focus,
 WLibrarySidebar:focus,
 WLibraryTextBrowser:focus {
-  border: 1px solid #1d5c63;
+  border: 1px solid #93d64a;
 }
 
 WLibrarySidebar {
@@ -3047,7 +3047,7 @@ WTrackPropertyEditor {
   color: #b7c7ad;
   selection-color: #000000;
   selection-background-color: #b7c7ad;
-  border: 1px solid #1d5c63;
+  border: 1px solid #93d64a;
   border-radius: 0px;
   }
 
@@ -3249,7 +3249,7 @@ WSearchLineEdit {
   WSearchLineEdit:focus,
   WSearchLineEdit[qmlBridgeFocused="true"] {
     padding: 1px;
-    border: 2px solid #1d5c63;
+    border: 2px solid #93d64a;
     border-radius: 0px;
   }
   WSearchLineEdit:disabled {
@@ -3347,7 +3347,7 @@ WLibrarySidebar::branch:closed:has-children:has-siblings:!selected {
   WLibrarySidebar::branch:closed:has-children:has-siblings:selected {
     border-image: none;
     image: url(skins:Terminal/btop/style/library_branch_closed_selected.svg);
-    background-color: #1d5c63;
+    background-color: #323d2b;
   }
 /* open */
 WLibrarySidebar::branch:open:has-children:!has-siblings,
@@ -3360,7 +3360,7 @@ WLibrarySidebar::branch:open:has-children:has-siblings {
   WLibrarySidebar::branch:open:has-children:has-siblings:selected {
     border-image: none;
     image: url(skins:Terminal/btop/style/library_branch_open_selected.svg);
-    background-color: #1d5c63;
+    background-color: #323d2b;
     }
   /* space left of selected child item */
   WLibrarySidebar::branch:closed:!has-children:!has-siblings:selected,
@@ -3471,7 +3471,7 @@ WSearchLineEdit::item:selected,
 #SkinSettingsNumToggleHeader[hover="true"],
 #SkinSettingsMixerToggle[hover="true"],
 #SkinSettingsLabelButton[hover="true"] {
-  background-color: #1d5c63;
+  background-color: #323d2b;
   border-radius: 0px;
   color: #ddf0d1;
   /* remove OS focus indicator */
@@ -3481,7 +3481,7 @@ WSearchLineEdit::item:selected,
   WEffectChainPresetSelector QAbstractItemView,
   WSearchLineEdit QAbstractItemView {
     selection-color: #ddf0d1;
-    selection-background-color: #1d5c63;
+    selection-background-color: #323d2b;
     border-radius: 0px;
     border: 0px;
     outline: none;

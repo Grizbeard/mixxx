@@ -16,13 +16,12 @@ Variables:
     <RightClickIsPushButton>false</RightClickIsPushButton>
     <State>
       <Number>0</Number>
-      <Text> &#9744; <Variable name="Text"/></Text>
+      <Text> [ ] <Variable name="Text"/></Text>
       <Alignment>left</Alignment>
     </State>
     <State>
       <Number>1</Number>
-      <!-- <Text> &#9745; <Variable name="Text"/></Text> -->
-      <Text>&#8202;&#8202;&#8202;&#10004;&#8202;&#8202;&#8202;<Variable name="Text"/></Text>
+      <Text> [x] <Variable name="Text"/></Text>
       <Alignment>left</Alignment>
     </State>
     <Connection>
