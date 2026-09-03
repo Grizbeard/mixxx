@@ -23,7 +23,6 @@ Usage:
 
 from __future__ import annotations
 import argparse
-import colorsys
 import json
 import re
 import shutil
@@ -124,48 +123,7 @@ class Palette:
     def tokens(self) -> dict:
         merged = dict(self.colors)
         merged.update(self.roles)
-        # An "off" button keeps its hue but goes dark and desaturated, so a
-        # control still tells you what it does when it is not engaged. This
-        # is derived rather than authored: every palette gets it for free,
-        # and on/off can never drift apart.
-        for name in OFF_TOKENS:
-            if name in merged:
-                merged[name + "_off"] = derive_off(merged[name])
         return merged
-
-
-# Hues that appear as a button fill and therefore need an "off" variant.
-OFF_TOKENS = (
-    "accent",
-    "play",
-    "cue",
-    "loop",
-    "sync",
-    "fx",
-    "rec",
-    "key",
-    "vinyl",
-    "fg",
-)
-# How far an off button drops: keep the hue, halve the saturation, and take
-# it down to roughly a third of the brightness.
-OFF_SATURATION = 0.5
-OFF_VALUE = 0.32
-
-
-def derive_off(color: str) -> str:
-    """Dark, desaturated version of a colour, same hue."""
-    raw = color.lstrip("#")
-    if len(raw) == 3:
-        raw = "".join(ch * 2 for ch in raw)
-    r, g, b = (int(raw[i : i + 2], 16) / 255 for i in (0, 2, 4))
-    hue, sat, val = colorsys.rgb_to_hsv(r, g, b)
-    sat *= OFF_SATURATION
-    val = max(0.09, val * OFF_VALUE)
-    r, g, b = colorsys.hsv_to_rgb(hue, sat, val)
-    return "#{:02x}{:02x}{:02x}".format(
-        round(r * 255), round(g * 255), round(b * 255)
-    )
 
 
 def load_palettes(only: str | None) -> list[Palette]:
@@ -205,6 +163,7 @@ def is_dark(value: str | None) -> bool:
 
 def resolve_source(path: Path) -> Path:
     """Follow a git symlink that a Windows checkout materialised as text.
+
     Two of LateNight's glyphs are mode-120000 entries; without core.symlinks
     they land on disk as a one-line file holding the target name.
     """
@@ -250,13 +209,13 @@ def count_drawables(root: ET.Element) -> int:
 
 def flatten_svg(path: Path, color: str, drop_halo: bool = True) -> str:
     """Repaint an SVG as a single-colour silhouette.
+
     Removes the black halo layers, gradient/filter machinery and every opacity,
     then paints what is left in ``color``.  Text is re-emitted in the monospace
     stack so word glyphs match the rest of the skin.
     A handful of glyphs (``btn__reverse_active``) are drawn *entirely* in black
     because LateNight puts them on a bright active background -- the same
     reverse-video trick this skin uses.  Those look like halo layers, so
-    removal empties an icon the caller retries with ``drop_halo=False``.
     removal empties an icon the caller retries with ``drop_halo=False``.
     """
     tree = ET.parse(resolve_source(path))
@@ -379,6 +338,7 @@ def is_frame(name: str) -> bool:
 
 def glyph_color(name: str, palette: Palette) -> str:
     """Pick the palette colour a glyph should be painted in.
+
     Active/latched buttons get a filled accent background from QSS, so their
     glyph has to be dark to stay readable -- the reverse-video trick.
     LateNight already ships the variants we need under `_active` / `_set` /
@@ -419,6 +379,7 @@ def gen_knob_indicator(
     width: str, height: str, view_box: str | None, color: str
 ) -> str:
     """A block needle, pointing up from the knob centre.
+
     The dial and value arc are drawn by KnobComposed from ArcBgColor and
     ArcColor, so the only picture a terminal knob needs is the pointer.
     """
@@ -433,6 +394,7 @@ def gen_slider_groove(
     width: str, height: str, view_box: str | None, palette: Palette
 ) -> str:
     """A 1px track with tick marks.
+
     The level bar itself is drawn by the widget from BarColor.
     """
     w, h = num(width), num(height)
@@ -465,6 +427,7 @@ def gen_slider_handle(
     width: str, height: str, view_box: str | None, palette: Palette
 ) -> str:
     """A solid block, like a terminal cursor sitting on the track.
+
     The accent dash runs across the direction of travel so it reads as a
     position marker: horizontal on a vertical fader, vertical on the
     crossfader.
@@ -615,6 +578,7 @@ def gen_spinny_mask(
     width: str, height: str, view_box: str | None, palette: Palette
 ) -> str:
     """Mask the platter's corners and draw a crisp ring around it.
+
     LateNight builds this from a translucent black rect; a terminal has no
     translucency, so paint the outside opaque and rule the edge in 1px.
     """
@@ -929,6 +893,7 @@ def luminance(color: str) -> float:
 
 def flatten_borders(decls: str) -> str:
     """Give a widget one edge colour instead of four.
+
     LateNight shades the four sides of a box differently to fake a bevel --
     a lit top, a dark bottom. A terminal draws one flat rule, so pick the
     lightest of the sides the rule already set and use it on all of them.
@@ -1058,6 +1023,19 @@ SCHEMES_BEGIN = "  <!-- TERMINAL-SCHEMES-BEGIN"
 SCHEMES_END = "  <!-- TERMINAL-SCHEMES-END -->"
 
 
+def xml_comment_safe(text: str) -> str:
+    """Make text legal inside an XML comment.
+
+    A comment may not contain "--" anywhere, which is easy to hit in prose
+    written for a palette description -- exactly the sort of thing that
+    silently makes the whole skin unparsable and sends Mixxx back to its
+    default skin.
+    """
+    while "--" in text:
+        text = text.replace("--", "-")
+    return text.rstrip("-")
+
+
 def scheme_block(palette: Palette) -> str:
     return render_template(
         HERE / "templates" / "scheme.xml.in",
@@ -1065,13 +1043,14 @@ def scheme_block(palette: Palette) -> str:
         {
             "scheme_name": palette.name,
             "scheme_dir": palette.dir,
-            "scheme_description": palette.description,
+            "scheme_description": xml_comment_safe(palette.description),
         },
     )
 
 
 def build_skin_xml(palettes: list[Palette], report: bool = False) -> None:
     """Rewrite the <Schemes> block so every palette shows up in Preferences.
+
     Mixxx offers one entry per <Scheme> under Interface -> Color scheme, so the
     palette list and the picker stay in step without any hand editing.
     """
@@ -1096,6 +1075,13 @@ def build_skin_xml(palettes: list[Palette], report: bool = False) -> None:
     )
     if not report:
         SKIN_XML.write_text(head + body + tail, encoding="utf-8")
+        # An unparsable skin.xml does not raise anywhere visible: Mixxx logs
+        # a debug line and quietly loads its default skin instead. Catch it
+        # here, where it is obvious.
+        try:
+            ET.parse(SKIN_XML)
+        except ET.ParseError as exc:
+            raise SystemExit(f"{SKIN_XML} is not valid XML: {exc}") from exc
 
 
 def main() -> int:

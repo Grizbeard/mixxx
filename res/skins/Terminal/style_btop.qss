@@ -5,7 +5,7 @@
  * tools/terminal_skin/templates/terminal.qss.in (the terminal design), or
  * tools/terminal_skin/donor_colors.json (donor colour -> token), then rerun.
  *
- * btop-inspired palette: a pure black ground, thin neutral grey rules, and green/magenta/cyan/yellow/red accents.
+ * btop palette: black ground, sage-grey rules and text, and only the four sample hues (magenta, yellow, cyan, green).
  *
  * Widget scoping and icon assignment derive from LateNight's PaleMoon
  * stylesheet (CC-BY-SA 3.0, jus / owilliams / ronso0).
@@ -58,10 +58,10 @@
 #FxSlotsExpanded,
 #MicDuckingContainer, #MicAuxUnit, #MicAuxAddFrame,
 #Sampler, #SamplerMini {
-  border-top: 1px solid #333333;
-  border-left: 1px solid #333333;
-  border-bottom: 1px solid #333333;
-  border-right: 1px solid #333333;
+  border-top: 1px solid #3b4037;
+  border-left: 1px solid #3b4037;
+  border-bottom: 1px solid #3b4037;
+  border-right: 1px solid #3b4037;
   border-radius: 0px;
   border-bottom-left-radius: 2px;
   }
@@ -266,7 +266,7 @@ WSearchLineEdit {
 
 
 #FxParametersFocusBg {
-  border: 1px solid #215f6b;
+  border: 1px solid #1d5c63;
   background-color: rgba(0, 0, 0, 50);
 }
 
@@ -326,16 +326,16 @@ WSearchLineEdit {
   #DeckRateSeparatorCompact,
   #FxMixerSeparatorCollapsed,
   #FxSlotSeparatorH {
-    border-left: 1px solid #333333;
-    border-right: 1px solid #333333;
+    border-left: 1px solid #3b4037;
+    border-right: 1px solid #3b4037;
   }
   #MainMixerSeparator {
     border-left: 1px solid #000000;
     border-right: 1px solid #000000;
   }
   #FxSlotSeparatorH {
-    border-top: 1px solid #333333;
-    border-bottom: 1px solid #333333;
+    border-top: 1px solid #3b4037;
+    border-bottom: 1px solid #3b4037;
   }
 
   #FxFlowIndicatorCollapsed {
@@ -379,7 +379,7 @@ WTrackProperty[selected="true"],
   #BpmTapSelectButton,
   #BpmEditSelectButton,
   #BpmTapButton {
-    border: 1px solid #8c5010;
+    border: 1px solid #63631f;
   }
   #BpmTapSelectButton {
     border-right: 0px;
@@ -389,7 +389,7 @@ WTrackProperty[selected="true"],
     image: url(skins:Terminal/btop/buttons/btn__bpm_select_edit.svg) no-repeat left top;
   }
   #BpmTapButton:pressed {
-    border: 1px solid #215f6b;
+    border: 1px solid #1d5c63;
   }
 
 /* Disabled for now since the hover effect is stuck as soon as the
@@ -688,7 +688,7 @@ WBeatSpinBox,
 WBpmEditor QDoubleSpinBox,
 #spinBoxTransition,
 #spinBoxRecentDays {
-  selection-color: #c6c6d2;
+  selection-color: #b7c7ad;
   selection-background-color: #000000;
   }
   WBeatSpinBox:focus,
@@ -697,7 +697,7 @@ WBpmEditor QDoubleSpinBox,
   #spinBoxRecentDays:focus,
   #LibraryBPMSpinBox:focus  {
     selection-color: #000000;
-    selection-background-color: #c6c6d2;
+    selection-background-color: #b7c7ad;
   }
 WBeatSpinBox {
   margin: 1px 0px 1px 1px;
@@ -726,7 +726,7 @@ WBeatSpinBox:focus,
   border-image: none;
 }
 #spinBoxRecentDays:disabled {
-  color: #5a5a5a;
+  color: #596154;
 }
 
 WBeatSpinBox::up-button,
@@ -777,7 +777,7 @@ WBpmEditor {
 WBpmEditor QDoubleSpinBox,
 WBpmEditor QDoubleSpinBox:focus {
   border-image: none;
-  border: 1px solid #215f6b;
+  border: 1px solid #1d5c63;
   border-radius: 0px;
   margin: 0px;
   /* top/bottom padding is required to make room for the buttons! */
@@ -814,7 +814,7 @@ WBpmEditor QDoubleSpinBox::down-button {
 /************** Mixer ***************************************************/
 
 #CrossfaderContainer[highlight="1"] {
-  border:  1px solid #8c5010;
+  border:  1px solid #63631f;
 }
 
 #MixerDecks {
@@ -1102,9 +1102,9 @@ WEffectSelector:!editable:on {
       border-top-right-radius: 1px;
       }
       #SamplerGainPflVu {
-        border-top: 1px solid #333333;
-        border-right: 1px solid #333333;
-        border-left: 1px solid #333333;
+        border-top: 1px solid #3b4037;
+        border-right: 1px solid #3b4037;
+        border-left: 1px solid #3b4037;
         padding-bottom: 2px;
         }
         #SamplerGain {
@@ -1205,9 +1205,9 @@ WEffectSelector:!editable:on {
 
 #SkinSettings {
   padding: 3px;
-  border-top: 1px solid #5a5a5a;
-  border-bottom: 1px solid #5a5a5a;
-  border-left: 1px solid #5a5a5a;
+  border-top: 1px solid #596154;
+  border-bottom: 1px solid #596154;
+  border-left: 1px solid #596154;
   border-top-left-radius: 2px;
   border-bottom-left-radius: 2px;
 }
@@ -1342,12 +1342,12 @@ WCueMenuPopup,
 WCueMenuPopup QLabel,
 #CueLabelEdit,
 WCoverArtMenu {
-  color: #c6c6d2;
+  color: #b7c7ad;
 }
 /* Override the 'missing' color in Tracks > Missing,
    it's not useful there */
 #DlgMissing WTrackTableView {
-  qproperty-trackMissingColor: #c6c6d2;
+  qproperty-trackMissingColor: #b7c7ad;
 }
 
   /* dim ivory / light brown */
@@ -1359,10 +1359,10 @@ WCoverArtMenu {
   #SkinSettingsNumToggleHeader[displayValue="1"],
   #SkinSettingsMixerToggle,
   #SkinSettingsText {
-    color: #6b6b7c;
+    color: #929e8a;
   }
   #SkinSettingsNumToggleHeader[displayValue="0"] {
-    color: #6b6b7c;
+    color: #929e8a;
   }
 WEffectSelector:!editable,
 WEffectSelector:!editable:on,
@@ -1370,7 +1370,7 @@ WEffectChainPresetSelector:!editable,
 WEffectChainPresetSelector:!editable:on,
 #fadeModeCombobox:!editable,
 #fadeModeCombobox:!editable:on {
-  color: #c6c6d2;
+  color: #b7c7ad;
   }
   WEffectSelector:!editable,
   WEffectSelector:!editable:on,
@@ -1382,14 +1382,14 @@ WEffectChainPresetSelector:!editable:on,
   /* dim² ivory */
   #SamplerBpm, #SamplerBpmMini,
   WTrackTableViewHeader {
-    color: #6b6b7c;
+    color: #929e8a;
   }
 
   WBeatSpinBox,
   WBpmEditor QDoubleSpinBox,
   #spinBoxTransition,
   #spinBoxRecentDays {
-    color: #c6c6d2;
+    color: #b7c7ad;
   }
 
 /* pale blue */
@@ -1417,41 +1417,41 @@ WEffectChainPresetSelector:!editable:on,
   #DeckMini4 #ArtistTextSmall,
   #DeckMini4 #BpmTextSmall,
   #DeckMini4 #KeyTextSmall {
-  color: #45c8de;
+  color: #42c9d6;
   }
   #Deck3 WStarRating, #DeckCompact3 WStarRating,
   #Deck4 WStarRating, #DeckCompact4 WStarRating {
-    color: #45c8de;
+    color: #42c9d6;
   }
 
 /* Grey for FxUnit labels */
 #FxUnitLabel,
 #MicAuxLabelUnconfigured {
-  color: #6b6b7c;
+  color: #929e8a;
   }
 
 /* When the Fx unit is currently focused = accessible from the controller
   indicate that with a bright colored bar and colorize the unit label */
 #FxUnit1 #FxUnitLabel[highlight="1"],
 #FxUnit2 #FxUnitLabel[highlight="1"] {
-  color: #3f7a26;
+  color: #446322;
   }
   #FxUnit1 #FxUnitControllerInputIndicator[highlight="1"],
   #FxUnit2 #FxUnitControllerInputIndicator[highlight="1"] {
-    background-color: #3f7a26;
+    background-color: #446322;
   }
 #FxUnit3 #FxUnitLabel[highlight="1"],
 #FxUnit4 #FxUnitLabel[highlight="1"] {
-  color: #45c8de;
+  color: #42c9d6;
   }
   #FxUnit3 #FxUnitControllerInputIndicator[highlight="1"],
   #FxUnit4 #FxUnitControllerInputIndicator[highlight="1"] {
-    background-color: #45c8de;
+    background-color: #42c9d6;
   }
 
 #MainMenu,
 #MainMenu::item {
-  color: #6b6b7c;
+  color: #929e8a;
 }
 
 /* Grey. default for all deck labels */
@@ -1472,7 +1472,7 @@ WEffectChainPresetSelector QAbstractScrollArea,
 #BroadcastButton[displayValue="0"],
 #SkinSettingsToggle[displayValue="0"],
 #LibraryFeatureControls QLabel {
-  color: #6b6b7c;
+  color: #929e8a;
 }
 
 /* Darker grey for knob labels & inactive decks/units */
@@ -1484,17 +1484,17 @@ WPushButton#VinylStatus[displayValue="0"],
 #VinylModeButton,
 #PassthroughButton[displayValue="0"],
 #FxAssignButtons WPushButton[displayValue="0"] {
-  color: #6b6b7c;
+  color: #929e8a;
   }
 
 /* Even darker grey for knob labels in main/headphone mixer */
 #MixerMainHeadphone #KnobLabel,
 #MixerMainHeadphone #FxAssignButtons WPushButton[displayValue="0"] {
-  color: #5a5a5a;
+  color: #596154;
 }
 
 #LatencyLabel {
-  color: #5a5a5a;
+  color: #596154;
 }
 
 WPushButton#VinylStatus[displayValue="1"], /* enabled (green bg) */
@@ -1521,14 +1521,14 @@ QPushButton#pushButtonRecording:checked {
 }
 
 #LibraryFeatureControls QPushButton:!enabled {
-  color: #5a5a5a;
+  color: #596154;
 }
 
 #SkinSettingsButton,
 #SkinSettingsNumToggle,
 #SkinSettingsText,
 #SkinSettingsMixerToggle {
-  color: #c6c6d2;
+  color: #b7c7ad;
   }
   #SkinSettingsNumToggle[value="1"],
   #SkinSettingsNumToggleHeader[displayValue="1"] {
@@ -1791,12 +1791,12 @@ WPushButton#StemMuteButton,
 #BroadcastButton[displayValue="4"], /* warning */
 QPushButton#pushButtonAutoDJ:checked,
 QPushButton#pushButtonAnalyze:checked {
-  background-color: #8c5010;
+  background-color: #63631f;
   }
   /* Orange border for Play buttons when previewing from
     Cue or Hotcue */
   WPushButton#PreviewIndicator[value="1"] {
-    border: 3px solid #8c5010;
+    border: 3px solid #63631f;
     /* work around round borders being painted outside the actual border area */
     border-radius: 0px;
   }
@@ -1815,14 +1815,14 @@ WPushButton#LoopAnchor[pressed="true"],
 #CueSavedLoopButton:checked,
 #CueSavedJumpButton[pressed="true"],
 #CueSavedJumpButton:checked*/ {
-  background-color: #8c5010;
+  background-color: #63631f;
   }
 
 /* Red */
 #EQKillButtonBox WPushButton[displayValue="1"],
 QPushButton#pushButtonRecording:checked,
 #RecFeedback[displayValue="2"] {
-  background-color: #8c2020;
+  background-color: #6b1c46;
 }
 
 /* Green for Fx toggles, QuickEffect + Fx12 */
@@ -1830,13 +1830,13 @@ QPushButton#pushButtonRecording:checked,
 #FxUnit2 #FxToggleButton[displayValue="1"],
 WPushButton#VinylStatus[displayValue="1"], /* enabled, OK */
 #BroadcastButton[displayValue="2"] {
-  background-color: #3f7a26;
+  background-color: #446322;
   }
   /* Dim green for assign buttons Fx12 */
   WPushButton#QuickEffectButton[displayValue="1"],
   #FxAssignButton1[displayValue="1"],
   #FxAssignButton2[displayValue="1"] {
-    background-color: #3f7a26;
+    background-color: #446322;
   }
 /* Blue for Fx buttons 3/4 */
 #FxUnit3 #FxToggleButton[displayValue="1"],
@@ -1849,82 +1849,82 @@ WBeatSpinBox::down-button:pressed,
 #spinBoxTransition::down-button:pressed,
 #spinBoxRecentDays::up-button:pressed,
 #spinBoxRecentDays::down-button:pressed {
-  background-color: #215f6b;
+  background-color: #1d5c63;
   }
   /* Dim blue for assign buttons Fx34 */
   #FxAssignButton3[displayValue="1"],
   #FxAssignButton4[displayValue="1"] {
-    background-color: #215f6b;
+    background-color: #1d5c63;
   }
 
 WPushButton#FxSuperLinkButton[value="0"],
 WPushButton#FxSuperLinkInvertButton[displayValue="0"] {
-  background-color: #333333;
+  background-color: #3b4037;
   }
   #FxSuperLinkInvertButton[displayValue="1"] {
-    background-color: #8c2020;
+    background-color: #6b1c46;
     }
 
 /* Green for Fx1 / Fx2 */
 #FxUnit1 #FxSuperLinkButton[value="1"],
 #FxUnit2 #FxSuperLinkButton[value="1"] {
-  background-color: #3f7a26;
+  background-color: #446322;
   }
 #FxUnit1 #FxSuperLinkButton[value="2"],
 #FxUnit2 #FxSuperLinkButton[value="2"] {
 /* a simple way to achieve a partitioning in thirds  */
-  background-color: #3f7a26;
+  background-color: #446322;
   }
 #FxUnit1 #FxSuperLinkButton[value="3"],
 #FxUnit2 #FxSuperLinkButton[value="3"] {
-  background-color: #333333;
+  background-color: #3b4037;
   }
 #FxUnit1 #FxSuperLinkButton[value="4"],
 #FxUnit2 #FxSuperLinkButton[value="4"] {
-  background-color: #3f7a26;
+  background-color: #446322;
   }
 
 /* Blue for Fx3 / Fx4 */
 #FxUnit3 #FxSuperLinkButton[value="1"],
 #FxUnit4 #FxSuperLinkButton[value="1"] {
-  background-color: #215f6b;
+  background-color: #1d5c63;
   }
 #FxUnit3 #FxSuperLinkButton[value="2"],
 #FxUnit4 #FxSuperLinkButton[value="2"] {  /*
   a simple way to achieve a partitioning in thirds  */
-  background-color: #215f6b;
+  background-color: #1d5c63;
   }
 #FxUnit3 #FxSuperLinkButton[value="3"],
 #FxUnit4 #FxSuperLinkButton[value="3"] {
-  background-color: #333333;
+  background-color: #3b4037;
   }
 #FxUnit3 #FxSuperLinkButton[value="4"],
 #FxUnit4 #FxSuperLinkButton[value="4"] {
-  background-color: #215f6b;
+  background-color: #1d5c63;
   }
 
 /* Yellow */
 #RecFeedback[displayValue="1"],     /* initialize recording */
 #BroadcastButton[displayValue="1"], /* connecting */
 WPushButton#VinylStatus[displayValue="2"] {  /* blinks when the needle reaches the end of the record */
-  background-color: #e8d44d;
+  background-color: #d8d84a;
 }
 
 #SpecialCueButton[value="1"] {
-  background-color: #215f6b;
+  background-color: #1d5c63;
 }
 
 /* pink for error / failure / warning */
 #BroadcastButton[displayValue="3"],
 #RecFeedback[displayValue="3"],
 WPushButton#VinylStatus[displayValue="3"] { /* needle skip detected */
-  background-color: #ff4fa3;
+  background-color: #ea3c96;
 }
 
 /* Grey for GUI toggles */
 #GuiToggleButton[displayValue="1"],
 #SkinSettingsToggle[displayValue="1"] {
-  background-color: #6b6b7c;
+  background-color: #929e8a;
 }
 
 /* Grey */
@@ -1933,12 +1933,12 @@ WPushButton#VinylStatus[displayValue="3"] { /* needle skip detected */
 #PflButton[value="1"],
 #FxParameterButton[displayValue="1"],
 QPushButton#pushButtonRepeatPlaylist:checked {
-  background-color: #6b6b7c;
+  background-color: #929e8a;
 }
 
 /* Darker grey */
 #SplitCue[value="1"] {
-  background-color: #5a5a5a;
+  background-color: #596154;
 }
 
 /* Special flat/invisible buttons */
@@ -2664,7 +2664,7 @@ WPushButton#PlayDeck[value="0"] {
   }
 
 #NoStemLabel {
-  color: #5a5a5a;
+  color: #596154;
 }
 
 #BeatgridControlsToggle[displayValue="0"] {
@@ -2875,25 +2875,25 @@ WCueMenuPopup #CueSavedJumpButton[direction="backward"] {
 }
 
 #CueDeleteButton:hover {
-  background-color: #8c2020;
+  background-color: #6b1c46;
 }
 
 #CueDeleteButton[pressed="true"], #CueDeleteButton:pressed, #CueDeleteButton:clicked {
-  background-color: #ff5555 !important;
+  background-color: #ea3c96 !important;
   outline: none;
 }
 
 #CueSavedLoopButton:pressed, #CueSavedLoopButton:checked {
-  background-color: #8c5010;
+  background-color: #63631f;
   outline: none;
   icon: url(skins:Terminal/btop/buttons/btn__loop_active.svg);
 }
 #CueSavedJumpButton:pressed, #CueSavedJumpButton:checked {
-  background-color: #8c5010;
+  background-color: #63631f;
   outline: none;
 }
 #CueSavedJumpButton[direction="impossible"] {
-  background-color: #6b6b7c !important;
+  background-color: #929e8a !important;
   outline: none;
 }
 #CueSavedJumpButton[direction="forward"]:pressed, #CueSavedJumpButton[direction="forward"]:checked {
@@ -2903,7 +2903,7 @@ WCueMenuPopup #CueSavedJumpButton[direction="backward"] {
   icon: url(skins:Terminal/btop/buttons/btn__beatjump_left_active.svg);
 }
 #CueStandardButton:pressed, #CueStandardButton:checked {
-  background-color: #8c5010;
+  background-color: #63631f;
   outline: none;
   icon: url(skins:Terminal/btop/buttons/btn__beats_hotcues_later_active.svg);
 }
@@ -2913,7 +2913,7 @@ WCueMenuPopup #CueLabelEdit {
   border-radius: 0px;
   background-color: #000000;
   selection-color: #000000;
-  selection-background-color: #c6c6d2;
+  selection-background-color: #b7c7ad;
   padding: 2px;
 }
 
@@ -2968,9 +2968,9 @@ WLibrarySidebar {
   * shapes in star rating delegate
   * focus border of Cover Art and Color delegates
    > See src/library/coverartdelegate.cpp: "option.palette.highlightedText().color();" */
-  selection-color: #f2f2f8;
+  selection-color: #ddf0d1;
   /* background of Color delegate in selected row */
-  selection-background-color: #215f6b;
+  selection-background-color: #1d5c63;
 }
 WLibrarySidebar {
   outline: none;
@@ -2986,15 +2986,15 @@ WTrackTableView::item:selected,
    color: #fff;*/
   /* This is not required for painting the background,
      but it is for applying the focus outline. */
-  background-color: #215f6b;
+  background-color: #1d5c63;
   }
   /* Highlight currentIndex which can be moved with Ctrl + arrow keys */
   WTrackTableView::item:!selected:focus {
     /* For outline to be applied, background-color must be set, too ...
        Use a value between #0f0f0f and #0a0a0a (alternate-background-color) */
     background-color: #000000;
-    outline: 1px solid #f2f2f8;
-    color: #f2f2f8;
+    outline: 1px solid #ddf0d1;
+    color: #ddf0d1;
   }
 
 WLibrarySidebar::item:selected:focus {
@@ -3010,7 +3010,7 @@ WLibrarySidebar[dragHover="true"]::item:hover {
 WTrackTableView:focus,
 WLibrarySidebar:focus,
 WLibraryTextBrowser:focus {
-  border: 1px solid #215f6b;
+  border: 1px solid #1d5c63;
 }
 
 WLibrarySidebar {
@@ -3022,20 +3022,20 @@ WLibrarySidebar {
 WTrackTableView,
 /* This is for the BPM and play count cells */
 WTrackTableView QCheckBox:focus {
-  outline: 1px solid #f2f2f8;
+  outline: 1px solid #ddf0d1;
 }
 WTrackTableView {
   /* This uses a custom qproperty to set the focus border
      for Color and Cover Art cells, 1px solid, sharp corners.
      See src/library/tableitemdelegate.cpp */
-  qproperty-focusBorderColor: #f2f2f8;
+  qproperty-focusBorderColor: #ddf0d1;
   /* This is the color used to paint the text of played tracks.
      BaseTrackTableModel::data() uses this to override Qt::ForegroundRole (QBrush). */
-  qproperty-trackPlayedColor: #5a5a5a;
+  qproperty-trackPlayedColor: #596154;
   /* This is the color used to paint the text of missing tracks. */
-  qproperty-trackMissingColor: #ff4fa3; /* pink */
+  qproperty-trackMissingColor: #ea3c96; /* pink */
   /* Color for the track drop indicator line, ie. target position in playlist */
-  qproperty-dropIndicatorColor: #8c5010; /* orange like fader highlight */
+  qproperty-dropIndicatorColor: #63631f; /* orange like fader highlight */
 }
 
 /* Table cell in edit mode */
@@ -3044,10 +3044,10 @@ WLibrary QPlainTextEdit,
 #LibraryBPMSpinBox,
 /* Track label inline editor in decks and samplers */
 WTrackPropertyEditor {
-  color: #c6c6d2;
+  color: #b7c7ad;
   selection-color: #000000;
-  selection-background-color: #c6c6d2;
-  border: 1px solid #215f6b;
+  selection-background-color: #b7c7ad;
+  border: 1px solid #1d5c63;
   border-radius: 0px;
   }
 
@@ -3143,11 +3143,11 @@ WEffectSelector QAbstractScrollArea QScrollBar,
 WEffectChainPresetSelector QAbstractScrollArea QScrollBar,
 WEffectChainPresetButton QMenu QAbstractScrollArea QScrollBar,
 WSearchLineEdit QAbstractScrollArea QScrollBar {
-  border: 0px solid #5a5a5a;
+  border: 0px solid #596154;
   background: #000000;
   border-radius: 0px;
   padding: 1px;
-  color: #c6c6d2;
+  color: #b7c7ad;
   }
   #LibraryContainer QScrollBar:horizontal,
   WEffectSelector QAbstractScrollArea QScrollBar:horizontal,
@@ -3169,7 +3169,7 @@ WSearchLineEdit QAbstractScrollArea QScrollBar {
     width: 15px;
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
-    color: #c6c6d2;
+    color: #b7c7ad;
     background-color: #000000;
   }
   #LibraryContainer QScrollBar:vertical {
@@ -3183,7 +3183,7 @@ WSearchLineEdit QAbstractScrollArea QScrollBar {
   WEffectChainPresetSelector QAbstractScrollArea QScrollBar::handle:horizontal,
   WEffectChainPresetButton QMenu QAbstractScrollArea QScrollBar::handle:horizontal,
   WSearchLineEdit QAbstractScrollArea QScrollBar::handle:horizontal {
-    background-color: #333333;
+    background-color: #3b4037;
     min-width: 25px;
   }
   #LibraryContainer QScrollBar::handle:vertical,
@@ -3191,7 +3191,7 @@ WSearchLineEdit QAbstractScrollArea QScrollBar {
   WEffectChainPresetSelector QAbstractScrollArea QScrollBar::handle:vertical,
   WEffectChainPresetButton QMenu QAbstractScrollArea QScrollBar::handle:vertical,
   WSearchLineEdit QAbstractScrollArea QScrollBar::handle:vertical {
-    background-color: #333333;
+    background-color: #3b4037;
     min-height: 25px;
   }
 
@@ -3244,12 +3244,12 @@ WSearchLineEdit QAbstractScrollArea QScrollBar::corner {
 WSearchLineEdit {
   padding: 2px;
   selection-color: #000000;
-  selection-background-color: #c6c6d2;
+  selection-background-color: #b7c7ad;
   }
   WSearchLineEdit:focus,
   WSearchLineEdit[qmlBridgeFocused="true"] {
     padding: 1px;
-    border: 2px solid #215f6b;
+    border: 2px solid #1d5c63;
     border-radius: 0px;
   }
   WSearchLineEdit:disabled {
@@ -3347,7 +3347,7 @@ WLibrarySidebar::branch:closed:has-children:has-siblings:!selected {
   WLibrarySidebar::branch:closed:has-children:has-siblings:selected {
     border-image: none;
     image: url(skins:Terminal/btop/style/library_branch_closed_selected.svg);
-    background-color: #215f6b;
+    background-color: #1d5c63;
   }
 /* open */
 WLibrarySidebar::branch:open:has-children:!has-siblings,
@@ -3360,7 +3360,7 @@ WLibrarySidebar::branch:open:has-children:has-siblings {
   WLibrarySidebar::branch:open:has-children:has-siblings:selected {
     border-image: none;
     image: url(skins:Terminal/btop/style/library_branch_open_selected.svg);
-    background-color: #215f6b;
+    background-color: #1d5c63;
     }
   /* space left of selected child item */
   WLibrarySidebar::branch:closed:!has-children:!has-siblings:selected,
@@ -3392,7 +3392,7 @@ WEffectChainPresetButton QMenu,
 WEffectChainPresetSelector QAbstractScrollArea,
 WSearchLineEdit QAbstractScrollArea,
 #fadeModeCombobox QAbstractScrollArea {
-  border: 1px solid #333333;
+  border: 1px solid #3b4037;
   border-radius: 0px;
 }
 
@@ -3471,17 +3471,17 @@ WSearchLineEdit::item:selected,
 #SkinSettingsNumToggleHeader[hover="true"],
 #SkinSettingsMixerToggle[hover="true"],
 #SkinSettingsLabelButton[hover="true"] {
-  background-color: #215f6b;
+  background-color: #1d5c63;
   border-radius: 0px;
-  color: #f2f2f8;
+  color: #ddf0d1;
   /* remove OS focus indicator */
   outline: none;
   }
   WEffectSelector QAbstractItemView,
   WEffectChainPresetSelector QAbstractItemView,
   WSearchLineEdit QAbstractItemView {
-    selection-color: #f2f2f8;
-    selection-background-color: #215f6b;
+    selection-color: #ddf0d1;
+    selection-background-color: #1d5c63;
     border-radius: 0px;
     border: 0px;
     outline: none;
@@ -3491,15 +3491,15 @@ WSearchLineEdit::item:selected,
   WEffectChainPresetSelector::item:checked,
   WSearchLineEdit::item:checked,
   #fadeModeCombobox::item:checked {
-    color: #f2f2f8;
+    color: #ddf0d1;
   }
   /* hover over checked item */
   WEffectSelector::item:checked:selected,
   WEffectChainPresetSelector::item:checked:selected,
   WSearchLineEdit::item:checked:selected,
   #fadeModeCombobox::item:checked:selected {
-    background-color: #333333;
-    color: #f2f2f8;
+    background-color: #3b4037;
+    color: #ddf0d1;
   }
   /* remove OS focus indicator from some buttons */
   WCueMenuPopup QPushButton:focus {
@@ -3515,7 +3515,7 @@ WTrackMenu QMenu::item:disabled,
 WTrackMenu QMenu QCheckBox:disabled,
 QLineEdit QMenu::item:disabled,
 QPlainTextEdit QMenu::item:disabled {
-  color: #5a5a5a;
+  color: #596154;
 }
 
   #MainMenu QMenu::separator,
@@ -3528,12 +3528,12 @@ QPlainTextEdit QMenu::item:disabled {
   QPlainTextEdit QMenu::separator,
   WEffectChainPresetButton QMenu::separator,
   #SkinSettingsSeparator {
-    border-top: 1px solid #333333;
-    border-bottom: 1px solid #333333;
+    border-top: 1px solid #3b4037;
+    border-bottom: 1px solid #3b4037;
   }
   /* use the same color for the vertical separator in Search related menu */
   WSearchRelatedCheckBox {
-    qproperty-separatorColor: #333333;
+    qproperty-separatorColor: #3b4037;
   }
 
   #MainMenu QMenu::right-arrow,
@@ -3651,13 +3651,13 @@ WSearchLineEdit::indicator:unchecked:selected {
 #SkinSettings,
 #LatencyMeterBox {
   background-color: #000000;
-  border: 1px solid #333333;
+  border: 1px solid #3b4037;
 }
 
 #ToolBar {
   background-color: #000000;
   border: none;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #3b4037;
 }
 
 /* The three top-level regions get a real box each, the way btop frames every
@@ -3669,7 +3669,7 @@ WSearchLineEdit::indicator:unchecked:selected {
 #PreviewDeck,
 #MicAuxRack,
 #AuxRack, #MicRack {
-  border: 1px solid #333333;
+  border: 1px solid #3b4037;
 }
 
 /* The title/time row reads as a status line: recessed, bright values. */
@@ -3693,7 +3693,7 @@ WSearchLineEdit::indicator:unchecked:selected {
 #MainMixerSeparator,
 #FxMixerSeparatorCollapsed,
 #SkinSettingsSeparator {
-  background-color: #333333;
+  background-color: #3b4037;
 }
 
 /* Rack fillers are empty space, not rules -- they span whole rows. */
@@ -3716,135 +3716,79 @@ WSearchLineEdit::indicator:unchecked:selected {
 #Mixxx WPushButton#GuiToggleButton,
 #Mixxx WPushButton#SkinSettingsToggle {
   border: none;
-  color: #c6c6d2;
+  color: #b7c7ad;
   text-transform: none;
 }
 
 #Mixxx WPushButton[displayValue="0"],
 #Mixxx WEffectPushButton[displayValue="0"] {
-  background-color: #1c1c1c;
-  color: #c6c6d2;
+  background-color: #181a16;
+  color: #b7c7ad;
 }
 
 WPushButton:hover,
 WEffectPushButton:hover {
-  background-color: #2e2e2e;
-  color: #f2f2f8;
+  background-color: #272a25;
+  color: #ddf0d1;
 }
 
 #Mixxx WPushButton[displayValue="1"],
 #Mixxx WEffectPushButton[displayValue="1"] {
-  background-color: #7be04b;
+  background-color: #93d64a;
   border: none;
   color: #000000;
 }
 
 WPushButton[displayValue="1"]:hover,
 WEffectPushButton[displayValue="1"]:hover {
-  background-color: #f2f2f8;
+  background-color: #ddf0d1;
   color: #000000;
-}
-
-WPushButton:disabled,
-WPushButton[displayValue="0"]:disabled {
-  background-color: #000000;
-  border: none;
-  color: #4a4a4a;
-}
-
-/* Semantic families: same hue in both states, so the control is identifiable
-   at a glance whether or not it is engaged. */
-#Mixxx WPushButton#PlayDeck[displayValue="0"],
-#Mixxx #PlayCueMini WPushButton[displayValue="0"],
-#Mixxx WPushButton#PlayPreview[displayValue="0"],
-#Mixxx WPushButton#PlayIndicator[displayValue="0"] {
-  background-color: #384830;
-  color: #c6c6d2;
 }
 
 #Mixxx WPushButton#PlayDeck[displayValue="1"],
 #Mixxx #PlayCueMini WPushButton[displayValue="1"],
 #Mixxx WPushButton#PlayPreview[displayValue="1"],
 #Mixxx WPushButton#PlayIndicator[displayValue="1"] {
-  background-color: #7be04b;
+  background-color: #93d64a;
   color: #000000;
-}
-
-#Mixxx WPushButton#CueDeck[displayValue="0"],
-#Mixxx #HotcueButton[displayValue="0"] {
-  background-color: #524233;
-  color: #c6c6d2;
 }
 
 #Mixxx WPushButton#CueDeck[displayValue="1"],
 #Mixxx #HotcueButton[displayValue="1"] {
-  background-color: #ff9e3d;
+  background-color: #ea3c96;
   color: #000000;
-}
-
-#Mixxx WPushButton#LoopActivate[displayValue="0"],
-#Mixxx #LoopControls WPushButton[displayValue="0"],
-#Mixxx #BeatjumpControls WPushButton[displayValue="0"] {
-  background-color: #4a4731;
-  color: #c6c6d2;
 }
 
 #Mixxx WPushButton#LoopActivate[displayValue="1"],
 #Mixxx #LoopControls WPushButton[displayValue="1"],
 #Mixxx #BeatjumpControls WPushButton[displayValue="1"] {
-  background-color: #e8d44d;
+  background-color: #d8d84a;
   color: #000000;
-}
-
-#Mixxx WPushButton#SyncDeck[value="0"],
-#Mixxx WPushButton#SyncLeader[value="0"],
-#Mixxx WPushButton#SyncSampler[displayValue="0"] {
-  background-color: #2f4447;
-  color: #c6c6d2;
 }
 
 #Mixxx WPushButton#SyncDeck[value="1"],
 #Mixxx WPushButton#SyncLeader[value="1"],
 #Mixxx WPushButton#SyncSampler[displayValue="1"] {
-  background-color: #45c8de;
+  background-color: #42c9d6;
   color: #000000;
-}
-
-#Mixxx #FxAssignButtons WPushButton[displayValue="0"],
-#Mixxx WPushButton#FxToggleButton[displayValue="0"],
-#Mixxx WPushButton#QuickEffectButton[displayValue="0"] {
-  background-color: #523543;
-  color: #c6c6d2;
 }
 
 #Mixxx #FxAssignButtons WPushButton[displayValue="1"],
 #Mixxx WPushButton#FxToggleButton[displayValue="1"],
 #Mixxx WPushButton#QuickEffectButton[displayValue="1"] {
-  background-color: #ff4fa3;
+  background-color: #ea3c96;
   color: #000000;
-}
-
-#Mixxx WPushButton#BroadcastButton[displayValue="0"],
-#Mixxx WPushButton#RecordingButton[displayValue="0"],
-#Mixxx #VinylControls WPushButton[displayValue="0"] {
-  background-color: #523636;
-  color: #c6c6d2;
 }
 
 #Mixxx WPushButton#BroadcastButton[displayValue="1"],
 #Mixxx WPushButton#RecordingButton[displayValue="1"],
 #Mixxx #VinylControls WPushButton[displayValue="1"] {
-  background-color: #ff5555;
+  background-color: #ea3c96;
   color: #000000;
 }
 
-#Mixxx #KeyControls WPushButton[displayValue="0"] {
-  background-color: #2f4447;
-  color: #c6c6d2;
-}
-
 #Mixxx #KeyControls WPushButton[displayValue="1"] {
-  background-color: #45c8de;
+  background-color: #42c9d6;
   color: #000000;
 }
 
@@ -3852,14 +3796,34 @@ WPushButton[displayValue="0"]:disabled {
    the deck colours; preserve that here rather than flattening all four. */
 #Mixxx #FxAssignButton1[displayValue="1"],
 #Mixxx #FxAssignButton2[displayValue="1"] {
-  background-color: #ff4fa3;
+  background-color: #ea3c96;
   color: #000000;
 }
 
 #Mixxx #FxAssignButton3[displayValue="1"],
 #Mixxx #FxAssignButton4[displayValue="1"] {
-  background-color: #45c8de;
+  background-color: #42c9d6;
   color: #000000;
+}
+
+/* Panel-visibility toggles -- the toolbar tabs along the top and the skin
+   settings panel -- are navigation, not performance controls. They sit
+   shoulder to shoulder with margin: 0, so a full-accent fill merges them into
+   one bright band across the top of the window. Give them the muted selection
+   colour and let the deck controls own the loud hues. */
+#Mixxx #ToolBar WPushButton[displayValue="1"],
+#Mixxx WPushButton#GuiToggleButton[displayValue="1"],
+#Mixxx WPushButton#SkinSettingsToggle[displayValue="1"],
+#Mixxx #SkinSettings WPushButton[displayValue="1"],
+#Mixxx #SkinSettings WPushButton[value="1"],
+#Mixxx WPushButton#SkinSettingsButton[value="1"],
+#Mixxx WPushButton#SkinSettingsNumToggle[value="1"],
+#Mixxx WPushButton#SkinSettingsNumToggleHeader[value="1"],
+#Mixxx WPushButton#SkinSettingsMixerToggle[value="1"],
+#Mixxx WPushButton#SkinSettingsLabelButton[value="1"],
+#Mixxx #DeckSizeSettings WPushButton[value="1"] {
+  background-color: #323d2b;
+  color: #ddf0d1;
 }
 
 /* Some of LateNight's "buttons" are invisible click targets stacked on top of
@@ -3888,33 +3852,33 @@ WLabel#LatencyLabel,
 #CategoryLabel,
 #LibraryFeatureControls QLabel,
 #LibraryFeatureControls QRadioButton {
-  color: #6b6b7c;
+  color: #929e8a;
   background: transparent;
   text-transform: lowercase;
 }
 
 #CategoryLabel,
 #SkinSettingsCategory {
-  color: #7be04b;
+  color: #93d64a;
   text-transform: lowercase;
 }
 
 WNumber, WNumberPos, WNumberDb, WNumberRate,
 WTime, WRecordingDuration, WKey,
 #PlayPositionText, #PlayPositionTextSmall {
-  color: #f2f2f8;
+  color: #ddf0d1;
   background: transparent;
 }
 
 WTrackProperty,
 #TitleText, #ArtistText,
 #TitleTextSmall, #ArtistTextSmall {
-  color: #c6c6d2;
+  color: #b7c7ad;
   background: transparent;
 }
 
 WLabel#RecFeedback, WLabel#RecDuration {
-  color: #ff5555;
+  color: #ea3c96;
 }
 
 /* ------------------------------------------------------------ spin boxes -- */
@@ -3925,27 +3889,27 @@ QSpinBox,
 #spinBoxRecentDays, #spinBoxTransition,
 #LibraryBPMSpinBox {
   background-color: #000000;
-  border: 1px solid #333333;
-  color: #f2f2f8;
-  selection-background-color: #7be04b;
-  selection-color: #000000;
+  border: 1px solid #3b4037;
+  color: #ddf0d1;
+  selection-background-color: #323d2b;
+  selection-color: #ddf0d1;
 }
 
 WBeatSpinBox:focus,
 QSpinBox:focus {
-  border-color: #7be04b;
+  border-color: #93d64a;
 }
 
 WBeatSpinBox::up-button, WBeatSpinBox::down-button,
 QSpinBox::up-button, QSpinBox::down-button {
   background-color: #000000;
   border: none;
-  border-left: 1px solid #333333;
+  border-left: 1px solid #3b4037;
 }
 
 WBeatSpinBox::up-button:hover, WBeatSpinBox::down-button:hover,
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
-  background-color: #333333;
+  background-color: #3b4037;
 }
 
 /* --------------------------------------------------------------- library -- */
@@ -3954,92 +3918,92 @@ WLibraryTableView,
 WTrackTableView {
   background-color: #000000;
   alternate-background-color: #000000;
-  color: #c6c6d2;
-  border: 1px solid #333333;
-  gridline-color: #333333;
-  selection-background-color: #7be04b;
-  selection-color: #000000;
+  color: #b7c7ad;
+  border: 1px solid #3b4037;
+  gridline-color: #3b4037;
+  selection-background-color: #323d2b;
+  selection-color: #ddf0d1;
   outline: none;
 }
 
 WTrackTableView::item:selected,
 WLibraryTableView::item:selected {
-  background-color: #7be04b;
-  color: #000000;
+  background-color: #323d2b;
+  color: #ddf0d1;
 }
 
 WTrackTableView::item:hover,
 WLibraryTableView::item:hover {
   background-color: #000000;
-  color: #f2f2f8;
+  color: #ddf0d1;
 }
 
 /* Column headers: dim lowercase labels under a single rule. */
 WTrackTableViewHeader,
 WTrackTableViewHeader::section {
   background-color: #000000;
-  color: #6b6b7c;
+  color: #929e8a;
   border: none;
-  border-right: 1px solid #333333;
-  border-bottom: 1px solid #333333;
+  border-right: 1px solid #3b4037;
+  border-bottom: 1px solid #3b4037;
   text-transform: lowercase;
   padding-left: 3px;
 }
 
 WTrackTableViewHeader::section:hover {
-  color: #f2f2f8;
+  color: #ddf0d1;
   background-color: #000000;
 }
 
 WLibrarySidebar {
   background-color: #000000;
-  color: #c6c6d2;
-  border: 1px solid #333333;
+  color: #b7c7ad;
+  border: 1px solid #3b4037;
   outline: none;
   show-decoration-selected: 0;
 }
 
 WLibrarySidebar::item:selected,
 WLibrarySidebar::branch:selected {
-  background-color: #7be04b;
-  color: #000000;
+  background-color: #323d2b;
+  color: #ddf0d1;
 }
 
 WLibrarySidebar::item:hover {
   background-color: #000000;
-  color: #f2f2f8;
+  color: #ddf0d1;
 }
 
 /* The search field as a prompt line: no box, just a rule underneath. */
 WSearchLineEdit {
   background-color: #000000;
-  color: #f2f2f8;
+  color: #ddf0d1;
   border: none;
-  border-bottom: 1px solid #333333;
-  selection-background-color: #7be04b;
-  selection-color: #000000;
+  border-bottom: 1px solid #3b4037;
+  selection-background-color: #323d2b;
+  selection-color: #ddf0d1;
 }
 
 WSearchLineEdit:focus {
-  border-bottom-color: #7be04b;
+  border-bottom-color: #93d64a;
 }
 
 #LibraryFeatureControls QPushButton {
   background-color: #000000;
-  border: 1px solid #333333;
-  color: #c6c6d2;
+  border: 1px solid #3b4037;
+  color: #b7c7ad;
   text-transform: lowercase;
 }
 
 #LibraryFeatureControls QPushButton:hover {
-  border-color: #5a5a5a;
-  color: #f2f2f8;
+  border-color: #596154;
+  color: #ddf0d1;
 }
 
 #LibraryFeatureControls QPushButton:checked,
 QPushButton#pushButtonRepeatPlaylist:checked {
-  background-color: #7be04b;
-  border-color: #7be04b;
+  background-color: #93d64a;
+  border-color: #93d64a;
   color: #000000;
 }
 
@@ -4054,14 +4018,14 @@ QScrollBar:vertical { width: 8px; }
 QScrollBar:horizontal { height: 8px; }
 
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
-  background-color: #5a5a5a;
+  background-color: #596154;
   border: none;
   min-height: 16px;
   min-width: 16px;
 }
 
 QScrollBar::handle:hover {
-  background-color: #6b6b7c;
+  background-color: #929e8a;
 }
 
 QScrollBar::add-line, QScrollBar::sub-line,
@@ -4078,17 +4042,17 @@ WEffectChainPresetSelector,
 #fadeModeCombobox,
 QComboBox {
   background-color: #000000;
-  border: 1px solid #333333;
-  color: #c6c6d2;
-  selection-background-color: #7be04b;
-  selection-color: #000000;
+  border: 1px solid #3b4037;
+  color: #b7c7ad;
+  selection-background-color: #323d2b;
+  selection-color: #ddf0d1;
 }
 
 WEffectSelector:hover,
 WEffectChainPresetSelector:hover,
 QComboBox:hover {
-  border-color: #5a5a5a;
-  color: #f2f2f8;
+  border-color: #596154;
+  color: #ddf0d1;
 }
 
 WEffectSelector QAbstractScrollArea,
@@ -4096,10 +4060,10 @@ WEffectChainPresetSelector QAbstractScrollArea,
 #fadeModeCombobox QAbstractScrollArea,
 QComboBox QAbstractItemView {
   background-color: #000000;
-  border: 1px solid #5a5a5a;
-  color: #c6c6d2;
-  selection-background-color: #7be04b;
-  selection-color: #000000;
+  border: 1px solid #596154;
+  color: #b7c7ad;
+  selection-background-color: #323d2b;
+  selection-color: #ddf0d1;
 }
 
 /* ------------------------------------------------------------- menu bar -- */
@@ -4109,69 +4073,69 @@ QComboBox QAbstractItemView {
 #MainMenu,
 QMenuBar {
   background-color: #000000;
-  color: #6b6b7c;
+  color: #929e8a;
   border: none;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #3b4037;
 }
 
 #MainMenu::item,
 QMenuBar::item {
   background: transparent;
-  color: #6b6b7c;
+  color: #929e8a;
   padding: 3px 8px;
 }
 
 #MainMenu::item:selected, #MainMenu::item:pressed,
 QMenuBar::item:selected, QMenuBar::item:pressed {
-  background-color: #7be04b;
-  color: #000000;
+  background-color: #323d2b;
+  color: #ddf0d1;
 }
 
 #MainMenu QMenu {
   background-color: #000000;
-  border: 1px solid #5a5a5a;
-  color: #c6c6d2;
+  border: 1px solid #596154;
+  color: #b7c7ad;
 }
 
 #MainMenu QMenu::item:selected {
-  background-color: #7be04b;
-  color: #000000;
+  background-color: #323d2b;
+  color: #ddf0d1;
 }
 
 #MainMenu QMenu::item:disabled {
-  color: #4a4a4a;
+  color: #6c7566;
 }
 
 /* ----------------------------------------------------- menus and popups -- */
 QMenu, WCueMenuPopup, WTrackMenu {
   background-color: #000000;
-  border: 1px solid #5a5a5a;
-  color: #c6c6d2;
+  border: 1px solid #596154;
+  color: #b7c7ad;
 }
 
 QMenu::item:selected, QMenu::item:hover {
-  background-color: #7be04b;
-  color: #000000;
+  background-color: #323d2b;
+  color: #ddf0d1;
 }
 
 QMenu::separator {
-  background-color: #333333;
+  background-color: #3b4037;
   height: 1px;
   margin: 2px 0px;
 }
 
 QToolTip {
   background-color: #000000;
-  border: 1px solid #7be04b;
-  color: #c6c6d2;
+  border: 1px solid #93d64a;
+  color: #b7c7ad;
   padding: 3px;
 }
 
-WCueMenuPopup QLabel { color: #6b6b7c; }
+WCueMenuPopup QLabel { color: #929e8a; }
 WCueMenuPopup QLineEdit {
   background-color: #000000;
-  border: 1px solid #333333;
-  color: #f2f2f8;
+  border: 1px solid #3b4037;
+  color: #ddf0d1;
 }
 
 /* ------------------------------------------------------------- splitters -- */
@@ -4183,7 +4147,7 @@ QSplitter::handle,
 }
 
 QSplitter::handle:hover {
-  background-color: #5a5a5a;
+  background-color: #596154;
 }
 
 /* ------------------------------------------------- scheme-pathed icons -- */
@@ -4200,11 +4164,11 @@ WSearchRelatedTracksMenu #SearchSelectedAction::indicator:disabled {
 /* Progress / status strips read as solid blocks. */
 QProgressBar {
   background-color: #000000;
-  border: 1px solid #333333;
-  color: #c6c6d2;
+  border: 1px solid #3b4037;
+  color: #b7c7ad;
   text-align: center;
 }
 
 QProgressBar::chunk {
-  background-color: #7be04b;
+  background-color: #93d64a;
 }

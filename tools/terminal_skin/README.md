@@ -118,19 +118,37 @@ _localbuild\skinshot.ps1 -Out shot.png -Skin LateNight -Scheme PaleMoon   # A/B
 
 ## Notes
 
-**Colour is derived, not just substituted.** Two things are computed rather
-than authored, so they cannot drift and every palette gets them for free:
+**The palette is four hues and one grey.** The scheme is limited to the colours
+in btop's own panels: magenta, yellow, cyan, green, on black. There is no red,
+orange or blue -- `donor_colors.json` sends LateNight's warm colours to the
+nearest hue that does exist. Every neutral is one sage grey, a single hue and
+saturation stepped only by brightness, so "grey" is one decision rather than
+eight.
 
-- *Off states.* A button keeps its hue when it is not engaged, dropped to half
-  saturation and a third of the brightness (`derive_off`). So the cue button is
-  dark orange when idle and full orange when set, and a control still says what
-  it does when it is off. Palettes list only the "on" hue.
-- *One edge colour per widget.* LateNight shades the four sides of a box
-  differently to fake a bevel -- lit top, dark bottom. `flatten_borders` finds
-  any rule that set more than one edge colour and gives every side the lightest
-  of them, so a box reads as one flat rule. Which sides exist is left alone,
-  because a border consumes space in Qt's box model and the layout is sized
-  around it.
+**Buttons carry hue only when engaged.** Off is the same sage grey for every
+button, whatever it does; on is the control's hue with the glyph flipped to the
+background. Per-family off-tints were tried and removed -- with forty-odd
+buttons visible at once, forty dim hues read as noise rather than information.
+
+**Selection is muted, engagement is not.** A highlight that follows the cursor
+(library rows, the sidebar, menus) uses a dark muted green behind normal text.
+The toolbar tabs and the skin-settings toggles get the same treatment: they sit
+shoulder to shoulder with `margin: 0`, so a full-accent fill merged them into
+one bright band across the top of the window. Full accent is reserved for deck
+controls, where "this is engaged" is worth shouting.
+
+**One edge colour per widget.** LateNight shades the four sides of a box
+differently to fake a bevel -- lit top, dark bottom. `flatten_borders` finds any
+rule that set more than one edge colour and gives every side the lightest of
+them, so a box reads as one flat rule. Which sides exist is left alone, because
+a border consumes space in Qt's box model and the layout is sized around it.
+
+**Two band triples, kept in step.** Mixxx has two independent sets of
+frequency-band colours: the Filtered and HSV renderers read `Signal*Color`, the
+RGB renderer and the deck overview read `SignalRGB*Color`. The scheme sets both
+to the same magenta/yellow/cyan, so the waveform and the overview match
+whichever waveform type the user has selected. Leaving one unset is how they
+end up disagreeing.
 
 **Specificity, not order.** The design layer is appended last, but QSS resolves
 specificity before order, so an inherited rule like
@@ -145,6 +163,13 @@ targets stacked over a display widget -- the record button over its dot and
 label, the `Blank` placeholders, the preview indicator over the play button. A
 blanket button fill paints over whatever they sit on, so the design layer
 re-asserts `background-color: transparent` for those by name.
+
+**A malformed skin.xml fails silently.** Mixxx logs one debug line and loads its
+default skin instead, which looks like the skin "not being listed" rather than
+an error. Two guards: palette descriptions are run through `xml_comment_safe`
+(a `--` anywhere inside an XML comment makes the document invalid, and prose
+hits that easily), and the generator parses the skin.xml it just wrote and dies
+if it is not well-formed.
 
 **The RGB overview** used to ignore skin colours: `drawWaveformPartRGB` computed
 `red`/`green`/`blue` from the configured low/mid/high colours and then

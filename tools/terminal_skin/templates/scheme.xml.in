@@ -47,17 +47,17 @@
       <SetVariable name="SignalColor_12">{{deck12}}</SetVariable>
       <SetVariable name="SignalColor_34">{{deck34}}</SetVariable>
 
-      <!-- RGB waveform band split. Three accent hues fight each other here,
-           so ramp one hue by brightness instead: bass dim, treble bright. -->
-      <SetVariable name="SignalHighColor">{{fg_hi}}</SetVariable>
-      <SetVariable name="SignalMidColor">{{accent}}</SetVariable>
-      <SetVariable name="SignalLowColor">{{accent_dim}}</SetVariable>
-      <!-- The RGB waveform type splits the signal into three channels. Same
-           idea: one hue, three brightnesses, so it reads as a phosphor trace
-           rather than a rainbow. -->
-      <SetVariable name="SignalRGBHighColor">{{fg_hi}}</SetVariable>
-      <SetVariable name="SignalRGBMidColor">{{accent}}</SetVariable>
-      <SetVariable name="SignalRGBLowColor">{{accent_dim}}</SetVariable>
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">{{band_low}}</SetVariable>
+      <SetVariable name="SignalMidColor">{{band_mid}}</SetVariable>
+      <SetVariable name="SignalHighColor">{{band_high}}</SetVariable>
+      <SetVariable name="SignalRGBLowColor">{{band_low}}</SetVariable>
+      <SetVariable name="SignalRGBMidColor">{{band_mid}}</SetVariable>
+      <SetVariable name="SignalRGBHighColor">{{band_high}}</SetVariable>
 
       <!-- Waveform/overview marker labels are reverse video: the chip takes
            the marker colour and the text takes the background. -->

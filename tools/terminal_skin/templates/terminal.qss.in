@@ -135,23 +135,6 @@ WEffectPushButton[displayValue="1"]:hover {
   color: {{bg}};
 }
 
-WPushButton:disabled,
-WPushButton[displayValue="0"]:disabled {
-  background-color: {{bg}};
-  border: none;
-  color: {{fg_faint}};
-}
-
-/* Semantic families: same hue in both states, so the control is identifiable
-   at a glance whether or not it is engaged. */
-#Mixxx WPushButton#PlayDeck[displayValue="0"],
-#Mixxx #PlayCueMini WPushButton[displayValue="0"],
-#Mixxx WPushButton#PlayPreview[displayValue="0"],
-#Mixxx WPushButton#PlayIndicator[displayValue="0"] {
-  background-color: {{play_off}};
-  color: {{fg}};
-}
-
 #Mixxx WPushButton#PlayDeck[displayValue="1"],
 #Mixxx #PlayCueMini WPushButton[displayValue="1"],
 #Mixxx WPushButton#PlayPreview[displayValue="1"],
@@ -160,23 +143,10 @@ WPushButton[displayValue="0"]:disabled {
   color: {{bg}};
 }
 
-#Mixxx WPushButton#CueDeck[displayValue="0"],
-#Mixxx #HotcueButton[displayValue="0"] {
-  background-color: {{cue_off}};
-  color: {{fg}};
-}
-
 #Mixxx WPushButton#CueDeck[displayValue="1"],
 #Mixxx #HotcueButton[displayValue="1"] {
   background-color: {{cue}};
   color: {{bg}};
-}
-
-#Mixxx WPushButton#LoopActivate[displayValue="0"],
-#Mixxx #LoopControls WPushButton[displayValue="0"],
-#Mixxx #BeatjumpControls WPushButton[displayValue="0"] {
-  background-color: {{loop_off}};
-  color: {{fg}};
 }
 
 #Mixxx WPushButton#LoopActivate[displayValue="1"],
@@ -186,25 +156,11 @@ WPushButton[displayValue="0"]:disabled {
   color: {{bg}};
 }
 
-#Mixxx WPushButton#SyncDeck[value="0"],
-#Mixxx WPushButton#SyncLeader[value="0"],
-#Mixxx WPushButton#SyncSampler[displayValue="0"] {
-  background-color: {{sync_off}};
-  color: {{fg}};
-}
-
 #Mixxx WPushButton#SyncDeck[value="1"],
 #Mixxx WPushButton#SyncLeader[value="1"],
 #Mixxx WPushButton#SyncSampler[displayValue="1"] {
   background-color: {{sync}};
   color: {{bg}};
-}
-
-#Mixxx #FxAssignButtons WPushButton[displayValue="0"],
-#Mixxx WPushButton#FxToggleButton[displayValue="0"],
-#Mixxx WPushButton#QuickEffectButton[displayValue="0"] {
-  background-color: {{fx_off}};
-  color: {{fg}};
 }
 
 #Mixxx #FxAssignButtons WPushButton[displayValue="1"],
@@ -214,23 +170,11 @@ WPushButton[displayValue="0"]:disabled {
   color: {{bg}};
 }
 
-#Mixxx WPushButton#BroadcastButton[displayValue="0"],
-#Mixxx WPushButton#RecordingButton[displayValue="0"],
-#Mixxx #VinylControls WPushButton[displayValue="0"] {
-  background-color: {{rec_off}};
-  color: {{fg}};
-}
-
 #Mixxx WPushButton#BroadcastButton[displayValue="1"],
 #Mixxx WPushButton#RecordingButton[displayValue="1"],
 #Mixxx #VinylControls WPushButton[displayValue="1"] {
   background-color: {{rec}};
   color: {{bg}};
-}
-
-#Mixxx #KeyControls WPushButton[displayValue="0"] {
-  background-color: {{key_off}};
-  color: {{fg}};
 }
 
 #Mixxx #KeyControls WPushButton[displayValue="1"] {
@@ -250,6 +194,26 @@ WPushButton[displayValue="0"]:disabled {
 #Mixxx #FxAssignButton4[displayValue="1"] {
   background-color: {{sync}};
   color: {{bg}};
+}
+
+/* Panel-visibility toggles -- the toolbar tabs along the top and the skin
+   settings panel -- are navigation, not performance controls. They sit
+   shoulder to shoulder with margin: 0, so a full-accent fill merges them into
+   one bright band across the top of the window. Give them the muted selection
+   colour and let the deck controls own the loud hues. */
+#Mixxx #ToolBar WPushButton[displayValue="1"],
+#Mixxx WPushButton#GuiToggleButton[displayValue="1"],
+#Mixxx WPushButton#SkinSettingsToggle[displayValue="1"],
+#Mixxx #SkinSettings WPushButton[displayValue="1"],
+#Mixxx #SkinSettings WPushButton[value="1"],
+#Mixxx WPushButton#SkinSettingsButton[value="1"],
+#Mixxx WPushButton#SkinSettingsNumToggle[value="1"],
+#Mixxx WPushButton#SkinSettingsNumToggleHeader[value="1"],
+#Mixxx WPushButton#SkinSettingsMixerToggle[value="1"],
+#Mixxx WPushButton#SkinSettingsLabelButton[value="1"],
+#Mixxx #DeckSizeSettings WPushButton[value="1"] {
+  background-color: {{select}};
+  color: {{select_text}};
 }
 
 /* Some of LateNight's "buttons" are invisible click targets stacked on top of
@@ -317,8 +281,8 @@ QSpinBox,
   background-color: {{sunken}};
   border: 1px solid {{border}};
   color: {{fg_hi}};
-  selection-background-color: {{accent}};
-  selection-color: {{bg}};
+  selection-background-color: {{select}};
+  selection-color: {{select_text}};
 }
 
 WBeatSpinBox:focus,
@@ -347,15 +311,15 @@ WTrackTableView {
   color: {{fg}};
   border: 1px solid {{border}};
   gridline-color: {{border}};
-  selection-background-color: {{accent}};
-  selection-color: {{bg}};
+  selection-background-color: {{select}};
+  selection-color: {{select_text}};
   outline: none;
 }
 
 WTrackTableView::item:selected,
 WLibraryTableView::item:selected {
-  background-color: {{accent}};
-  color: {{bg}};
+  background-color: {{select}};
+  color: {{select_text}};
 }
 
 WTrackTableView::item:hover,
@@ -391,8 +355,8 @@ WLibrarySidebar {
 
 WLibrarySidebar::item:selected,
 WLibrarySidebar::branch:selected {
-  background-color: {{accent}};
-  color: {{bg}};
+  background-color: {{select}};
+  color: {{select_text}};
 }
 
 WLibrarySidebar::item:hover {
@@ -406,8 +370,8 @@ WSearchLineEdit {
   color: {{fg_hi}};
   border: none;
   border-bottom: 1px solid {{border}};
-  selection-background-color: {{accent}};
-  selection-color: {{bg}};
+  selection-background-color: {{select}};
+  selection-color: {{select_text}};
 }
 
 WSearchLineEdit:focus {
@@ -470,8 +434,8 @@ QComboBox {
   background-color: {{raised}};
   border: 1px solid {{border}};
   color: {{fg}};
-  selection-background-color: {{accent}};
-  selection-color: {{bg}};
+  selection-background-color: {{select}};
+  selection-color: {{select_text}};
 }
 
 WEffectSelector:hover,
@@ -488,8 +452,8 @@ QComboBox QAbstractItemView {
   background-color: {{panel}};
   border: 1px solid {{border_lit}};
   color: {{fg}};
-  selection-background-color: {{accent}};
-  selection-color: {{bg}};
+  selection-background-color: {{select}};
+  selection-color: {{select_text}};
 }
 
 /* ------------------------------------------------------------- menu bar -- */
@@ -513,8 +477,8 @@ QMenuBar::item {
 
 #MainMenu::item:selected, #MainMenu::item:pressed,
 QMenuBar::item:selected, QMenuBar::item:pressed {
-  background-color: {{accent}};
-  color: {{bg}};
+  background-color: {{select}};
+  color: {{select_text}};
 }
 
 #MainMenu QMenu {
@@ -524,8 +488,8 @@ QMenuBar::item:selected, QMenuBar::item:pressed {
 }
 
 #MainMenu QMenu::item:selected {
-  background-color: {{accent}};
-  color: {{bg}};
+  background-color: {{select}};
+  color: {{select_text}};
 }
 
 #MainMenu QMenu::item:disabled {
@@ -540,8 +504,8 @@ QMenu, WCueMenuPopup, WTrackMenu {
 }
 
 QMenu::item:selected, QMenu::item:hover {
-  background-color: {{accent}};
-  color: {{bg}};
+  background-color: {{select}};
+  color: {{select_text}};
 }
 
 QMenu::separator {

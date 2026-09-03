@@ -22,13 +22,11 @@
     "cyan_dim": "#2f8f45",
     "yellow": "#b6ffc4",
     "yellow_dim": "#2f8f45",
-    "red": "#b6ffc4",
-    "red_dim": "#2f8f45",
-    "orange": "#8affa0",
-    "orange_dim": "#2f8f45",
     "played_overlay": "#dd081008",
     "block": "#0a140a",
-    "block_hi": "#123012"
+    "block_hi": "#123012",
+    "select_bg": "#123a18",
+    "select_fg": "#b6ffc4"
   },
   "roles": {
     "accent": "green",
@@ -41,12 +39,17 @@
     "rec": "fg_hi",
     "key": "cyan",
     "vinyl": "green",
-    "eq": "fg_dim",
+    "eq": "fg",
     "gain": "fg",
     "deck12": "green",
     "deck34": "cyan",
     "vu_low": "green_dim",
     "vu_mid": "green",
-    "vu_high": "fg_hi"
+    "vu_high": "fg_hi",
+    "band_low": "green_dim",
+    "band_mid": "green",
+    "band_high": "fg_hi",
+    "select": "select_bg",
+    "select_text": "select_fg"
   }
 }
