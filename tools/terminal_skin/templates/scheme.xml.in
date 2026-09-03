@@ -1,0 +1,132 @@
+    <Scheme>
+      <Name>{{scheme_name}}</Name>
+      <!-- {{scheme_description}} -->
+
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: {{bg}};
+        }
+        QLabel {
+          image: url(skins:Terminal/{{scheme_dir}}/style/mixxx_logo.svg);
+          padding: 0;
+          margin: 0px 2px 0px 2px;
+          border: none;
+          min-width: 160px;
+          max-width: 160px;
+          min-height: 40px;
+          max-height: 40px;
+        }
+        QProgressBar {
+          background: url(skins:Terminal/{{scheme_dir}}/style/progressbar_bg.svg);
+          border: none;
+          min-width: 164px;
+          max-width: 164px;
+          min-height: 5px;
+          max-height: 5px;
+        }
+        QProgressBar::chunk {
+          background: url(skins:Terminal/{{scheme_dir}}/style/progressbar.svg);
+        }
+      </LaunchImageStyle>
+
+      <Style src="skins:Terminal/style_{{scheme_dir}}.qss"/>
+
+      <!-- Asset subset. One directory per scheme, generated from the palette. -->
+      <SetVariable name="BtnScheme">{{scheme_dir}}</SetVariable>
+      <SetVariable name="KnobScheme">{{scheme_dir}}</SetVariable>
+      <SetVariable name="SliderScheme">{{scheme_dir}}</SetVariable>
+      <SetVariable name="StyleScheme">{{scheme_dir}}</SetVariable>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. -->
+      <SetVariable name="BgColorOverview_12">{{sunken}}</SetVariable>
+      <SetVariable name="BgColorOverview_34">{{sunken}}</SetVariable>
+      <SetVariable name="BgColorOverview_SamPre">{{sunken}}</SetVariable>
+      <SetVariable name="BgColorWaveform_12">{{sunken}}</SetVariable>
+      <SetVariable name="BgColorWaveform_34">{{sunken}}</SetVariable>
+      <SetVariable name="SignalColor_12">{{deck12}}</SetVariable>
+      <SetVariable name="SignalColor_34">{{deck34}}</SetVariable>
+
+      <!-- RGB waveform band split. Three accent hues fight each other here,
+           so ramp one hue by brightness instead: bass dim, treble bright. -->
+      <SetVariable name="SignalHighColor">{{fg_hi}}</SetVariable>
+      <SetVariable name="SignalMidColor">{{accent}}</SetVariable>
+      <SetVariable name="SignalLowColor">{{accent_dim}}</SetVariable>
+      <!-- The RGB waveform type splits the signal into three channels. Same
+           idea: one hue, three brightnesses, so it reads as a phosphor trace
+           rather than a rainbow. -->
+      <SetVariable name="SignalRGBHighColor">{{fg_hi}}</SetVariable>
+      <SetVariable name="SignalRGBMidColor">{{accent}}</SetVariable>
+      <SetVariable name="SignalRGBLowColor">{{accent_dim}}</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">{{bg}}</SetVariable>
+      <SetVariable name="MarkDefaultColor">{{fg_dim}}</SetVariable>
+      <SetVariable name="MarkDisabledColor">{{fg_faint}}</SetVariable>
+      <SetVariable name="DurationTextColor">{{fg_hi}}</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+      <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
+      <SetVariable name="DndRectMarginHotcueBtn">1</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">{{border}}</SetVariable>
+      <SetVariable name="BeatColor">{{border_lit}}</SetVariable>
+      <SetVariable name="PlayPosColor">{{fg_hi}}</SetVariable>
+      <SetVariable name="CueColor">{{cue}}</SetVariable>
+      <SetVariable name="LoopColor">{{loop}}</SetVariable>
+      <SetVariable name="IntroOutroColor">{{cyan_dim}}</SetVariable>
+      <SetVariable name="PlayedOverlayColor">{{played_overlay}}</SetVariable>
+      <SetVariable name="EndOfTrackColor">{{rec}}</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">{{loop}}</SetVariable>
+      <SetVariable name="PassthroughLabelColor">{{fx}}</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">12</SetVariable>
+      <SetVariable name="OverviewFontSizeDeckMini">10</SetVariable>
+      <SetVariable name="OverviewFontSizeSampler">9</SetVariable>
+      <SetVariable name="OverviewFontSizePreview">8</SetVariable>
+
+      <!-- Button frames are blank SVGs; the borders come from the stylesheet. -->
+      <SetVariable name="TopRegion_BtnType">embedded</SetVariable>
+      <SetVariable name="SubRegion_BtnType">embedded</SetVariable>
+
+      <!-- Knobs. The bezel SVG is blank too: what you see is the value arc
+           over a dim background arc, plus a block needle. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <SetVariable name="ArcRadiusBig">14.5</SetVariable>
+      <SetVariable name="ArcRadiusCompact">12.5</SetVariable>
+      <SetVariable name="ArcRadiusSmall">12.0</SetVariable>
+      <SetVariable name="ArcThicknessBig">3</SetVariable>
+      <SetVariable name="ArcBgThickness">3</SetVariable>
+      <SetVariable name="ArcBgColor">{{border_lit}}</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorEq">{{fg}}</SetVariable>
+      <SetVariable name="ArcColorGain">{{gain}}</SetVariable>
+      <SetVariable name="ArcColorFx12Quick">{{accent}}</SetVariable>
+      <SetVariable name="ArcColorFx34">{{sync}}</SetVariable>
+      <SetVariable name="ArcColorFxParameter">{{fg}}</SetVariable>
+      <SetVariable name="ArcColorGainLow">{{gain}}</SetVariable>
+      <SetVariable name="ArcColorMstBal">{{rec}}</SetVariable>
+      <SetVariable name="ArcColorFxMix">{{fx}}</SetVariable>
+      <!-- Needle image suffixes; each resolves to a palette colour. -->
+      <SetVariable name="KnobColorEq">grey</SetVariable>
+      <SetVariable name="KnobColorQuickEffect">green</SetVariable>
+      <SetVariable name="KnobColorFx12">green</SetVariable>
+      <SetVariable name="KnobColorFx34">blue</SetVariable>
+      <SetVariable name="KnobColorFxParameter">grey</SetVariable>
+      <SetVariable name="EqKillDotSize">9f,9f</SetVariable>
+
+      <!-- Fader level bars, drawn by the widget rather than by an image. -->
+      <SetVariable name="BarBgColor">{{sunken}}</SetVariable>
+      <SetVariable name="BarColorVolume">{{accent}}</SetVariable>
+      <SetVariable name="BarColorCrossfader">{{accent}}</SetVariable>
+      <SetVariable name="BarColorPitch">{{fg_dim}}</SetVariable>
+      <SetVariable name="BarWidth">2</SetVariable>
+      <SetVariable name="BarMarginVolume">8,8</SetVariable>
+      <SetVariable name="BarMarginPitch">7,8</SetVariable>
+      <SetVariable name="BarMarginPitchSampler">5,5</SetVariable>
+      <SetVariable name="BarMarginCrossfader">7,7</SetVariable>
+    </Scheme><!-- {{scheme_name}} -->

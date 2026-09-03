@@ -1,0 +1,600 @@
+/* Terminal skin -- the design layer.
+ *
+ * Appended after the repainted donor rules, so on equal specificity this wins.
+ * Double-brace placeholders resolve from the active palette; every colour here
+ * has to be a token, never a literal, or the skin stops being recolourable.
+ *
+ * Two rules of thumb:
+ *   1. A terminal draws chrome with 1px rules and solid blocks -- no gradient,
+ *      no rounded corner, no bevel.
+ *   2. "On" means reverse video: the accent fills the cell and the glyph turns
+ *      the colour of the background.
+ *
+ * Layout note: LateNight sizes most widgets in fixed pixels, and in Qt a border
+ * eats into the content box.  Borders here go on widgets that already reserved
+ * the space -- buttons whose frame SVG we blanked, and containers with a margin
+ * -- rather than on fixed-size containers, which would reflow the skin.
+ */
+
+/* ---------------------------------------------------------------- ground -- */
+#Mixxx,
+#SkinContainer,
+#DecksMixerContainer {
+  background-color: {{bg}};
+}
+
+/* Square everything. Lowest specificity, so anything below can opt out. */
+* {
+  border-radius: 0px;
+}
+
+/* ------------------------------------------------------------- box rules -- */
+/* Panels a terminal would draw as a box. These all carry a margin already. */
+#WaveformsContainer,
+#WaveformBox1, #WaveformBox2, #WaveformBox3, #WaveformBox4,
+#OverviewBox, #OverviewBoxMini,
+#FxUnitContainer,
+#MicAuxUnit,
+#SamplerContainer,
+#SearchLineBox,
+#SidebarBox,
+#SkinSettings,
+#LatencyMeterBox {
+  background-color: {{panel}};
+  border: 1px solid {{border}};
+}
+
+#ToolBar {
+  background-color: {{bg}};
+  border: none;
+  border-bottom: 1px solid {{border}};
+}
+
+/* The three top-level regions get a real box each, the way btop frames every
+   panel. These are all 'me' (expanding) containers, so a border costs no fixed
+   pixels. */
+#DeckRows12345, #DeckRows234, #DeckRows2345,
+#MixerContainer,
+#LibraryContainer,
+#PreviewDeck,
+#MicAuxRack,
+#AuxRack, #MicRack {
+  border: 1px solid {{border}};
+}
+
+/* The title/time row reads as a status line: recessed, bright values. */
+#DeckRow_2_3_ArtistTitleTime,
+#DeckRow_2_3_ArtistTitleTime_compact,
+#SamplerTitleBox, #SamplerTitleBoxMini,
+#PreviewDeckTextBox {
+  background-color: {{sunken}};
+}
+
+/* Deck and mixer regions read as stacked rows, like btop's panel stack. */
+#DeckRow_1_KeyVinylFx,
+#DeckRow_2_3_ArtistTitleTime,
+#DeckRow_5_LoopCuesTransport,
+#DeckRow_5_Compact,
+#SamplerRow, #SamplerRows23 {
+  background-color: {{panel}};
+}
+
+/* Thin separators take the rule colour. */
+#MainMixerSeparator,
+#FxMixerSeparatorCollapsed,
+#SkinSettingsSeparator {
+  background-color: {{border}};
+}
+
+/* Rack fillers are empty space, not rules -- they span whole rows. */
+#MicAuxRackFiller,
+#FxRackFillerL, #FxRackFillerR {
+  background-color: {{bg}};
+}
+
+/* --------------------------------------------------------------- buttons -- */
+/* A button is a solid block, like one of btop's meter cells: no border, no
+   bevel, no gradient. The frame SVGs are blank and LateNight already reserves
+   a 1px margin around each button, so the black ground shows through as the
+   gap between blocks and does all the separating.
+
+   Off and on share a hue. Off is the derived dark, desaturated version of it,
+   so a control still says what it does when it is not engaged; on is the hue
+   at full strength with the glyph flipped to the background colour. */
+#Mixxx WPushButton,
+#Mixxx WEffectPushButton,
+#Mixxx WPushButton#GuiToggleButton,
+#Mixxx WPushButton#SkinSettingsToggle {
+  border: none;
+  color: {{fg}};
+  text-transform: none;
+}
+
+#Mixxx WPushButton[displayValue="0"],
+#Mixxx WEffectPushButton[displayValue="0"] {
+  background-color: {{block}};
+  color: {{fg}};
+}
+
+WPushButton:hover,
+WEffectPushButton:hover {
+  background-color: {{block_hi}};
+  color: {{fg_hi}};
+}
+
+#Mixxx WPushButton[displayValue="1"],
+#Mixxx WEffectPushButton[displayValue="1"] {
+  background-color: {{accent}};
+  border: none;
+  color: {{bg}};
+}
+
+WPushButton[displayValue="1"]:hover,
+WEffectPushButton[displayValue="1"]:hover {
+  background-color: {{fg_hi}};
+  color: {{bg}};
+}
+
+WPushButton:disabled,
+WPushButton[displayValue="0"]:disabled {
+  background-color: {{bg}};
+  border: none;
+  color: {{fg_faint}};
+}
+
+/* Semantic families: same hue in both states, so the control is identifiable
+   at a glance whether or not it is engaged. */
+#Mixxx WPushButton#PlayDeck[displayValue="0"],
+#Mixxx #PlayCueMini WPushButton[displayValue="0"],
+#Mixxx WPushButton#PlayPreview[displayValue="0"],
+#Mixxx WPushButton#PlayIndicator[displayValue="0"] {
+  background-color: {{play_off}};
+  color: {{fg}};
+}
+
+#Mixxx WPushButton#PlayDeck[displayValue="1"],
+#Mixxx #PlayCueMini WPushButton[displayValue="1"],
+#Mixxx WPushButton#PlayPreview[displayValue="1"],
+#Mixxx WPushButton#PlayIndicator[displayValue="1"] {
+  background-color: {{play}};
+  color: {{bg}};
+}
+
+#Mixxx WPushButton#CueDeck[displayValue="0"],
+#Mixxx #HotcueButton[displayValue="0"] {
+  background-color: {{cue_off}};
+  color: {{fg}};
+}
+
+#Mixxx WPushButton#CueDeck[displayValue="1"],
+#Mixxx #HotcueButton[displayValue="1"] {
+  background-color: {{cue}};
+  color: {{bg}};
+}
+
+#Mixxx WPushButton#LoopActivate[displayValue="0"],
+#Mixxx #LoopControls WPushButton[displayValue="0"],
+#Mixxx #BeatjumpControls WPushButton[displayValue="0"] {
+  background-color: {{loop_off}};
+  color: {{fg}};
+}
+
+#Mixxx WPushButton#LoopActivate[displayValue="1"],
+#Mixxx #LoopControls WPushButton[displayValue="1"],
+#Mixxx #BeatjumpControls WPushButton[displayValue="1"] {
+  background-color: {{loop}};
+  color: {{bg}};
+}
+
+#Mixxx WPushButton#SyncDeck[value="0"],
+#Mixxx WPushButton#SyncLeader[value="0"],
+#Mixxx WPushButton#SyncSampler[displayValue="0"] {
+  background-color: {{sync_off}};
+  color: {{fg}};
+}
+
+#Mixxx WPushButton#SyncDeck[value="1"],
+#Mixxx WPushButton#SyncLeader[value="1"],
+#Mixxx WPushButton#SyncSampler[displayValue="1"] {
+  background-color: {{sync}};
+  color: {{bg}};
+}
+
+#Mixxx #FxAssignButtons WPushButton[displayValue="0"],
+#Mixxx WPushButton#FxToggleButton[displayValue="0"],
+#Mixxx WPushButton#QuickEffectButton[displayValue="0"] {
+  background-color: {{fx_off}};
+  color: {{fg}};
+}
+
+#Mixxx #FxAssignButtons WPushButton[displayValue="1"],
+#Mixxx WPushButton#FxToggleButton[displayValue="1"],
+#Mixxx WPushButton#QuickEffectButton[displayValue="1"] {
+  background-color: {{fx}};
+  color: {{bg}};
+}
+
+#Mixxx WPushButton#BroadcastButton[displayValue="0"],
+#Mixxx WPushButton#RecordingButton[displayValue="0"],
+#Mixxx #VinylControls WPushButton[displayValue="0"] {
+  background-color: {{rec_off}};
+  color: {{fg}};
+}
+
+#Mixxx WPushButton#BroadcastButton[displayValue="1"],
+#Mixxx WPushButton#RecordingButton[displayValue="1"],
+#Mixxx #VinylControls WPushButton[displayValue="1"] {
+  background-color: {{rec}};
+  color: {{bg}};
+}
+
+#Mixxx #KeyControls WPushButton[displayValue="0"] {
+  background-color: {{key_off}};
+  color: {{fg}};
+}
+
+#Mixxx #KeyControls WPushButton[displayValue="1"] {
+  background-color: {{key}};
+  color: {{bg}};
+}
+
+/* Units 1/2 and 3/4 kept distinct hues in LateNight so they read against
+   the deck colours; preserve that here rather than flattening all four. */
+#Mixxx #FxAssignButton1[displayValue="1"],
+#Mixxx #FxAssignButton2[displayValue="1"] {
+  background-color: {{fx}};
+  color: {{bg}};
+}
+
+#Mixxx #FxAssignButton3[displayValue="1"],
+#Mixxx #FxAssignButton4[displayValue="1"] {
+  background-color: {{sync}};
+  color: {{bg}};
+}
+
+/* Some of LateNight's "buttons" are invisible click targets stacked on top of
+   a display widget -- the record button over the dot-and-label pair, the Blank
+   placeholders, the preview indicator over the play button. A blanket fill
+   paints over whatever they sit on, so keep these transparent. */
+#Mixxx WPushButton#RecButton[displayValue="0"],
+#Mixxx WPushButton#RecButton[displayValue="1"],
+#Mixxx WPushButton#RecDot,
+#Mixxx WPushButton#PreviewIndicator[displayValue="0"],
+#Mixxx WPushButton#Blank[value="0"],
+#Mixxx WPushButton#Blank[value="1"],
+#Mixxx WPushButton#Blank[value="2"],
+#Mixxx WPushButton#Blank[value="3"],
+#Mixxx WPushButton#Blank[value="4"] {
+  background-color: transparent;
+}
+
+/* ------------------------------------------------------------ typography -- */
+/* Labels are dim lowercase words; values are bright. btop's whole hierarchy. */
+WLabel#KnobLabel,
+WLabel#FxUnitLabel,
+WLabel#MicAuxLabel, WLabel#MicAuxLabelUnconfigured,
+WLabel#LatencyLabel,
+#SkinSettingsText,
+#CategoryLabel,
+#LibraryFeatureControls QLabel,
+#LibraryFeatureControls QRadioButton {
+  color: {{fg_dim}};
+  background: transparent;
+  text-transform: lowercase;
+}
+
+#CategoryLabel,
+#SkinSettingsCategory {
+  color: {{accent}};
+  text-transform: lowercase;
+}
+
+WNumber, WNumberPos, WNumberDb, WNumberRate,
+WTime, WRecordingDuration, WKey,
+#PlayPositionText, #PlayPositionTextSmall {
+  color: {{fg_hi}};
+  background: transparent;
+}
+
+WTrackProperty,
+#TitleText, #ArtistText,
+#TitleTextSmall, #ArtistTextSmall {
+  color: {{fg}};
+  background: transparent;
+}
+
+WLabel#RecFeedback, WLabel#RecDuration {
+  color: {{rec}};
+}
+
+/* ------------------------------------------------------------ spin boxes -- */
+/* These had a border-image; it is gone, so draw the box. */
+WBeatSpinBox,
+WBpmEditor QDoubleSpinBox,
+QSpinBox,
+#spinBoxRecentDays, #spinBoxTransition,
+#LibraryBPMSpinBox {
+  background-color: {{sunken}};
+  border: 1px solid {{border}};
+  color: {{fg_hi}};
+  selection-background-color: {{accent}};
+  selection-color: {{bg}};
+}
+
+WBeatSpinBox:focus,
+QSpinBox:focus {
+  border-color: {{accent}};
+}
+
+WBeatSpinBox::up-button, WBeatSpinBox::down-button,
+QSpinBox::up-button, QSpinBox::down-button {
+  background-color: {{raised}};
+  border: none;
+  border-left: 1px solid {{border}};
+}
+
+WBeatSpinBox::up-button:hover, WBeatSpinBox::down-button:hover,
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+  background-color: {{border}};
+}
+
+/* --------------------------------------------------------------- library -- */
+WLibrary,
+WLibraryTableView,
+WTrackTableView {
+  background-color: {{sunken}};
+  alternate-background-color: {{panel}};
+  color: {{fg}};
+  border: 1px solid {{border}};
+  gridline-color: {{border}};
+  selection-background-color: {{accent}};
+  selection-color: {{bg}};
+  outline: none;
+}
+
+WTrackTableView::item:selected,
+WLibraryTableView::item:selected {
+  background-color: {{accent}};
+  color: {{bg}};
+}
+
+WTrackTableView::item:hover,
+WLibraryTableView::item:hover {
+  background-color: {{raised}};
+  color: {{fg_hi}};
+}
+
+/* Column headers: dim lowercase labels under a single rule. */
+WTrackTableViewHeader,
+WTrackTableViewHeader::section {
+  background-color: {{bg}};
+  color: {{fg_dim}};
+  border: none;
+  border-right: 1px solid {{border}};
+  border-bottom: 1px solid {{border}};
+  text-transform: lowercase;
+  padding-left: 3px;
+}
+
+WTrackTableViewHeader::section:hover {
+  color: {{fg_hi}};
+  background-color: {{raised}};
+}
+
+WLibrarySidebar {
+  background-color: {{sunken}};
+  color: {{fg}};
+  border: 1px solid {{border}};
+  outline: none;
+  show-decoration-selected: 0;
+}
+
+WLibrarySidebar::item:selected,
+WLibrarySidebar::branch:selected {
+  background-color: {{accent}};
+  color: {{bg}};
+}
+
+WLibrarySidebar::item:hover {
+  background-color: {{raised}};
+  color: {{fg_hi}};
+}
+
+/* The search field as a prompt line: no box, just a rule underneath. */
+WSearchLineEdit {
+  background-color: {{sunken}};
+  color: {{fg_hi}};
+  border: none;
+  border-bottom: 1px solid {{border}};
+  selection-background-color: {{accent}};
+  selection-color: {{bg}};
+}
+
+WSearchLineEdit:focus {
+  border-bottom-color: {{accent}};
+}
+
+#LibraryFeatureControls QPushButton {
+  background-color: {{raised}};
+  border: 1px solid {{border}};
+  color: {{fg}};
+  text-transform: lowercase;
+}
+
+#LibraryFeatureControls QPushButton:hover {
+  border-color: {{border_lit}};
+  color: {{fg_hi}};
+}
+
+#LibraryFeatureControls QPushButton:checked,
+QPushButton#pushButtonRepeatPlaylist:checked {
+  background-color: {{accent}};
+  border-color: {{accent}};
+  color: {{bg}};
+}
+
+/* ------------------------------------------------------------ scrollbars -- */
+QScrollBar:vertical, QScrollBar:horizontal {
+  background-color: {{sunken}};
+  border: none;
+  margin: 0px;
+}
+
+QScrollBar:vertical { width: 8px; }
+QScrollBar:horizontal { height: 8px; }
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+  background-color: {{border_lit}};
+  border: none;
+  min-height: 16px;
+  min-width: 16px;
+}
+
+QScrollBar::handle:hover {
+  background-color: {{fg_dim}};
+}
+
+QScrollBar::add-line, QScrollBar::sub-line,
+QScrollBar::add-page, QScrollBar::sub-page {
+  background: transparent;
+  border: none;
+  height: 0px;
+  width: 0px;
+}
+
+/* ----------------------------------------------------------- combo boxes -- */
+WEffectSelector,
+WEffectChainPresetSelector,
+#fadeModeCombobox,
+QComboBox {
+  background-color: {{raised}};
+  border: 1px solid {{border}};
+  color: {{fg}};
+  selection-background-color: {{accent}};
+  selection-color: {{bg}};
+}
+
+WEffectSelector:hover,
+WEffectChainPresetSelector:hover,
+QComboBox:hover {
+  border-color: {{border_lit}};
+  color: {{fg_hi}};
+}
+
+WEffectSelector QAbstractScrollArea,
+WEffectChainPresetSelector QAbstractScrollArea,
+#fadeModeCombobox QAbstractScrollArea,
+QComboBox QAbstractItemView {
+  background-color: {{panel}};
+  border: 1px solid {{border_lit}};
+  color: {{fg}};
+  selection-background-color: {{accent}};
+  selection-color: {{bg}};
+}
+
+/* ------------------------------------------------------------- menu bar -- */
+/* Mixxx loads the platform's default menu styles before this file, which
+   deliberately leaves the menu bar looking native. A terminal has no native
+   chrome, so take it over: flat, square, reverse-video highlight. */
+#MainMenu,
+QMenuBar {
+  background-color: {{bg}};
+  color: {{fg_dim}};
+  border: none;
+  border-bottom: 1px solid {{border}};
+}
+
+#MainMenu::item,
+QMenuBar::item {
+  background: transparent;
+  color: {{fg_dim}};
+  padding: 3px 8px;
+}
+
+#MainMenu::item:selected, #MainMenu::item:pressed,
+QMenuBar::item:selected, QMenuBar::item:pressed {
+  background-color: {{accent}};
+  color: {{bg}};
+}
+
+#MainMenu QMenu {
+  background-color: {{panel}};
+  border: 1px solid {{border_lit}};
+  color: {{fg}};
+}
+
+#MainMenu QMenu::item:selected {
+  background-color: {{accent}};
+  color: {{bg}};
+}
+
+#MainMenu QMenu::item:disabled {
+  color: {{fg_faint}};
+}
+
+/* ----------------------------------------------------- menus and popups -- */
+QMenu, WCueMenuPopup, WTrackMenu {
+  background-color: {{panel}};
+  border: 1px solid {{border_lit}};
+  color: {{fg}};
+}
+
+QMenu::item:selected, QMenu::item:hover {
+  background-color: {{accent}};
+  color: {{bg}};
+}
+
+QMenu::separator {
+  background-color: {{border}};
+  height: 1px;
+  margin: 2px 0px;
+}
+
+QToolTip {
+  background-color: {{sunken}};
+  border: 1px solid {{accent}};
+  color: {{fg}};
+  padding: 3px;
+}
+
+WCueMenuPopup QLabel { color: {{fg_dim}}; }
+WCueMenuPopup QLineEdit {
+  background-color: {{sunken}};
+  border: 1px solid {{border}};
+  color: {{fg_hi}};
+}
+
+/* ------------------------------------------------------------- splitters -- */
+QSplitter::handle,
+#LibrarySplitter::handle,
+#SidebarCoverSplitter::handle,
+#WaveformSplitter::handle {
+  background-color: {{bg}};
+}
+
+QSplitter::handle:hover {
+  background-color: {{border_lit}};
+}
+
+/* ------------------------------------------------- scheme-pathed icons -- */
+/* style.qss cannot name an asset directory, so icons belong here. */
+WSearchRelatedTracksMenu #SearchSelectedAction::indicator {
+  image: url(skins:Terminal/{{scheme_dir}}/buttons/btn__search.svg);
+}
+
+WSearchRelatedTracksMenu #SearchSelectedAction::indicator:disabled {
+  image: url(skins:Terminal/{{scheme_dir}}/buttons/btn__search_disabled.svg);
+}
+
+/* --------------------------------------------------------------- overlays -- */
+/* Progress / status strips read as solid blocks. */
+QProgressBar {
+  background-color: {{sunken}};
+  border: 1px solid {{border}};
+  color: {{fg}};
+  text-align: center;
+}
+
+QProgressBar::chunk {
+  background-color: {{accent}};
+}
