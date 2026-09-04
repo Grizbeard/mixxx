@@ -3826,6 +3826,18 @@ WEffectPushButton[displayValue="1"]:hover {
   color: #ddf0d1;
 }
 
+/* A mode selector, not an on/off switch. Dry/wet and dry+wet are two equally
+   valid routings; neither one is "engaged", so filling a state with the accent
+   claims an on state for a control that has no off, and the bright block then
+   drowns out the only thing that actually distinguishes the modes. LateNight
+   leaves the block alone in both states and lets the glyph -- the shape of the
+   crossfade curve -- carry it. Do the same. */
+#Mixxx WPushButton#MixModeButton[displayValue="0"],
+#Mixxx WPushButton#MixModeButton[displayValue="1"] {
+  background-color: #181a16;
+  color: #b7c7ad;
+}
+
 /* Some of LateNight's "buttons" are invisible click targets stacked on top of
    a display widget -- the record button over the dot-and-label pair, the Blank
    placeholders, the preview indicator over the play button. A blanket fill
