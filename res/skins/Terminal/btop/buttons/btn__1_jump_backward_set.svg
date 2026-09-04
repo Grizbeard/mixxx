@@ -2,5 +2,7 @@
   <ns1:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns2:pageopacity="0" ns2:pageshadow="2" ns2:window-width="2552" ns2:window-height="1395" id="namedview7" showgrid="false" ns2:zoom="10.871075" ns2:cx="16.741675" ns2:cy="17.753534" ns2:window-x="26" ns2:window-y="23" ns2:window-maximized="0" ns2:current-layer="g1717" ns2:document-rotation="0" ns2:pagecheckerboard="0" ns2:showpageshadow="2" ns2:deskcolor="#d1d1d1" />
   <text xml:space="preserve" style="font-weight:normal;font-size:40px;font-family:'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace;fill:#000000" x="5.8255696" y="17.235025" id="text836-5" font-family="'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace" fill="#000000"><tspan id="tspan834-8" x="5.8255696" y="17.235025" style="font-weight:bold;font-size:14.66666698px;font-family:'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace;fill:#000000" font-family="'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace" fill="#000000">1</tspan></text>
   <g id="g1717">
-    </g>
+    <path d="m 2.9787356,7.8051264 h 1.924406 l 0.01286,-3.05652 H 16.362782 l -3.67e-4,7.4901196 h 1.924393 l 3.67e-4,-7.7615996 c 3.5e-5,-0.707602 -0.784641,-1.23828 -1.63064,-1.23828 H 4.6221836 c -0.845996,0 -1.627913,0.530683 -1.630641,1.23828 z" style="fill:none;stroke:#000000;stroke-width:0.5445;stroke-linecap:round;stroke-linejoin:round" id="path2" />
+    <path d="M 4.0272836,11.5371 1.6040346,7.8477806 h 4.846498 z" id="path4" style="fill:none;stroke:#000000;stroke-width:0.630972" ns1:nodetypes="cccc" />
+  </g>
 </svg>

@@ -2,5 +2,7 @@
   <ns1:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns2:pageopacity="0" ns2:pageshadow="2" ns2:window-width="2552" ns2:window-height="1339" id="namedview7" showgrid="false" ns2:zoom="10.871075" ns2:cx="16.741675" ns2:cy="17.753534" ns2:window-x="26" ns2:window-y="23" ns2:window-maximized="0" ns2:current-layer="svg6" ns2:document-rotation="0" ns2:pagecheckerboard="0" ns2:snap-global="false" ns2:showpageshadow="2" ns2:deskcolor="#d1d1d1" />
   <text xml:space="preserve" style="font-weight:normal;font-size:40px;font-family:'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace;fill:#000000" x="5.8255696" y="17.235025" id="text836-5" font-family="'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace" fill="#000000"><tspan id="tspan834-8" x="5.8255696" y="17.235025" style="font-weight:bold;font-size:14.6667px;font-family:'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace;fill:#000000" font-family="'Cascadia Mono','Consolas','DejaVu Sans Mono','Menlo',monospace" fill="#000000">3</tspan></text>
   <g id="g1717" transform="matrix(-1,0,0,1,20.578786,0)">
-    </g>
+    <path d="m 17.60005,7.8051264 h -1.924406 l -0.01286,-3.05652 H 4.2160034 l 3.67e-4,7.4901196 H 2.2919775 L 2.2916104,4.4771264 c -3.44e-5,-0.707602 0.7846411,-1.23828 1.6306406,-1.23828 h 12.034351 c 0.845996,0 1.627913,0.530683 1.630641,1.23828 z" style="fill:none;stroke:#000000;stroke-width:0.5445;stroke-linecap:round;stroke-linejoin:round" id="path2" />
+    <path d="M 16.551502,11.5371 18.974751,7.8477806 H 14.128253 Z" id="path4" style="fill:none;stroke:#000000;stroke-width:0.630972" ns1:nodetypes="cccc" />
+  </g>
 </svg>

@@ -179,7 +179,30 @@ def dump_style(style: dict) -> str:
 
 
 def is_dark(value: str | None) -> bool:
-    return value is not None and value.strip().lower() in DARK_INK
+    """True for LateNight's near-black outline ink.
+
+    The halo layers are not drawn in a single colour but in a scatter of
+    almost-blacks (#060202, #0d0505, #1a1a1a, ...), so match on brightness
+    rather than by listing them.  A named colour that is not in DARK_INK falls
+    through as not dark, which is what we want: an outline is always a hex.
+    """
+    if value is None:
+        return False
+    value = value.strip().lower()
+    if value in DARK_INK:
+        return True
+    if not value.startswith("#"):
+        return False
+    digits = value[1:]
+    if len(digits) == 3:
+        digits = "".join(c * 2 for c in digits)
+    if len(digits) != 6:
+        return False
+    try:
+        channels = [int(digits[i : i + 2], 16) for i in (0, 2, 4)]
+    except ValueError:
+        return False
+    return max(channels) <= 0x20
 
 
 def resolve_source(path: Path) -> Path:
@@ -228,16 +251,45 @@ def count_drawables(root: ET.Element) -> int:
     return sum(1 for el in root.iter() if local(el.tag) in DRAWABLE)
 
 
-def flatten_svg(path: Path, color: str, drop_halo: bool = True) -> str:
+def paints_in_colour(root: ET.Element) -> bool:
+    """True if the glyph draws anything in something other than near-black.
+
+    Hidden subtrees do not count.  Several LateNight glyphs park an unused
+    alternative drawing behind ``display:none``, and flatten_svg removes those
+    before it looks at a single colour -- counting them would decide a glyph
+    paints in colour when everything it actually draws is black.
+    """
+
+    def visible(el: ET.Element) -> bool:
+        style = parse_style(el.get("style", ""))
+        return el.get("display") != "none" and style.get("display") != "none"
+
+    def walk(el: ET.Element) -> bool:
+        style = parse_style(el.get("style", ""))
+        for attr in ("fill", "stroke", "stop-color"):
+            value = el.get(attr, style.get(attr))
+            if value is None or value == "none":
+                continue
+            if not is_dark(value):
+                return True
+        return any(walk(child) for child in el if visible(child))
+
+    return visible(root) and walk(root)
+
+
+def flatten_svg(path: Path, color: str, strip_dark: bool = True) -> str:
     """Repaint an SVG as a single-colour silhouette.
 
     Removes the black halo layers, gradient/filter machinery and every opacity,
     then paints what is left in ``color``.  Text is re-emitted in the monospace
     stack so word glyphs match the rest of the skin.
-    A handful of glyphs (``btn__reverse_active``) are drawn *entirely* in black
-    because LateNight puts them on a bright active background -- the same
-    reverse-video trick this skin uses.  Those look like halo layers, so
-    removal empties an icon the caller retries with ``drop_halo=False``.
+
+    ``strip_dark`` says what near-black ink means in this file.  Normally it is
+    decoration -- LateNight outlines every glyph in it -- so a layer drawn only
+    in near-black goes, and a near-black stroke sharing an element with a real
+    fill is dropped.  In a glyph drawn *entirely* in near-black it is instead
+    the drawing itself, and the caller passes False so it is repainted rather
+    than removed.
     """
     tree = ET.parse(resolve_source(path))
     root = tree.getroot()
@@ -259,7 +311,7 @@ def flatten_svg(path: Path, color: str, drop_halo: bool = True) -> str:
             stroke = child.get("stroke", style.get("stroke"))
             # A pure halo layer: dark stroke, nothing real to fill.
             if (
-                drop_halo
+                strip_dark
                 and is_dark(stroke)
                 and (fill is None or fill == "none" or is_dark(fill))
             ):
@@ -280,7 +332,7 @@ def flatten_svg(path: Path, color: str, drop_halo: bool = True) -> str:
                 value = holder.get(attr)
                 if value is None:
                     continue
-                if attr == "stroke" and is_dark(value):
+                if strip_dark and attr == "stroke" and is_dark(value):
                     # Halo riding on the same element as the real fill.
                     holder.pop("stroke", None)
                     holder.pop("stroke-width", None)
@@ -318,14 +370,49 @@ def flatten_svg(path: Path, color: str, drop_halo: bool = True) -> str:
 
 
 def flatten_or_keep(path: Path, color: str) -> str:
-    """flatten_svg, retrying without halo removal if it emptied the icon."""
-    text = flatten_svg(path, color)
-    if count_drawables(ET.fromstring(text)) > 0:
-        return text
+    """flatten_svg, keeping the halo layers where they are the whole drawing.
+
+    A handful of glyphs (``btn__undo_active``, ``btn__reverse_active``) are
+    drawn *entirely* in near-black, because LateNight puts them on a bright
+    active background -- the same reverse-video trick this skin uses.  Every
+    stroke in them looks like a halo, so only strip halos from a glyph that
+    also paints something in a real colour.  The emptiness check stays as a
+    backstop for anything that slips through.
+    """
     source = ET.parse(resolve_source(path)).getroot()
-    if count_drawables(source) == 0:
-        return text  # LateNight's intentional transparent dummy
-    return flatten_svg(path, color, drop_halo=False)
+    text = flatten_svg(path, color, strip_dark=paints_in_colour(source))
+    if count_drawables(ET.fromstring(text)) == 0:
+        if count_drawables(source) == 0:
+            return text  # LateNight's intentional transparent dummy
+        text = flatten_svg(path, color, strip_dark=False)
+    check_paints(path, ET.fromstring(text))
+    return text
+
+
+def check_paints(path: Path, root: ET.Element) -> None:
+    """Fail on a glyph that kept its shapes but lost every visible paint.
+
+    Inheritance makes this easy to miss: a group can set ``fill:none`` for its
+    children and carry the only stroke, so dropping that stroke leaves shapes
+    that draw nothing at all.  The file still looks like a drawing in a diff --
+    the loop marker on the waveform overview was blank this way -- so check it
+    here rather than trusting the eye.
+    """
+
+    def walk(el: ET.Element, fill: str, stroke: str) -> bool:
+        style = parse_style(el.get("style", ""))
+        fill = el.get("fill", style.get("fill", fill))
+        stroke = el.get("stroke", style.get("stroke", stroke))
+        if local(el.tag) in DRAWABLE and (fill != "none" or stroke != "none"):
+            return True
+        return any(walk(child, fill, stroke) for child in el)
+
+    # SVG's own defaults, before the flattened root sets its fill.
+    if count_drawables(root) and not walk(root, "black", "none"):
+        raise SystemExit(
+            f"{path.name}: flattened to shapes that paint nothing."
+            " A fill:none was left with no stroke to draw it."
+        )
 
 
 def svg(width, height, body: str = "", view_box: str | None = None) -> str:
