@@ -66,8 +66,21 @@ LibraryFeature::LibraryFeature(
           m_iconName(iconName) {
     if (!m_iconName.isEmpty()) {
         const QString overridePath = skinIconPath(m_pConfig, m_iconName);
-        m_icon = QIcon(overridePath.isEmpty() ? kIconPath.arg(m_iconName)
-                                              : overridePath);
+        if (overridePath.isEmpty()) {
+            m_icon = QIcon(kIconPath.arg(m_iconName));
+        } else {
+            m_icon = QIcon(overridePath);
+            // QIcon generates the pixmap for a selected row by blending the
+            // Normal one 30% towards QPalette::Highlight, which on Windows is
+            // the OS accent colour and so is unrelated to the skin. Naming the
+            // file for the Selected mode as well makes QSvgIconEngine load it
+            // directly instead of generating a tinted variant, so an icon a
+            // skin ships is drawn in the colour it was authored in. Disabled
+            // is deliberately left to be generated, so disabled items still
+            // grey out.
+            m_icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::Off);
+            m_icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::On);
+        }
     }
 }
 
