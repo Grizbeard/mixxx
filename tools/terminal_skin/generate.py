@@ -72,6 +72,15 @@ DARK_INK = {
     "#050505",
     "black",
 }
+# Glyphs whose source colours mean something worth keeping.  Flattening a
+# picture to one colour is right for an icon, where the colour is decoration,
+# but the fx mix mode button draws a diagram: LateNight puts the dry signal in
+# grey and the wet one in red, and which curve is which is half of what the
+# button says.  Map those two onto palette roles instead of collapsing them.
+TWO_TONE = {
+    "btn__fx_mixmode_d+w": {"#918273": "fg_dim", "#da0606": "fx"},
+    "btn__fx_mixmode_d-w": {"#918273": "fg_dim", "#da0606": "fx"},
+}
 DROP_ATTRS = (
     "filter",
     "opacity",
@@ -277,7 +286,12 @@ def paints_in_colour(root: ET.Element) -> bool:
     return visible(root) and walk(root)
 
 
-def flatten_svg(path: Path, color: str, strip_dark: bool = True) -> str:
+def flatten_svg(
+    path: Path,
+    color: str,
+    strip_dark: bool = True,
+    tones: dict | None = None,
+) -> str:
     """Repaint an SVG as a single-colour silhouette.
 
     Removes the black halo layers, gradient/filter machinery and every opacity,
@@ -290,7 +304,12 @@ def flatten_svg(path: Path, color: str, strip_dark: bool = True) -> str:
     fill is dropped.  In a glyph drawn *entirely* in near-black it is instead
     the drawing itself, and the caller passes False so it is repainted rather
     than removed.
+
+    ``tones`` maps a source colour onto a specific palette colour, for the few
+    glyphs that are diagrams rather than icons and whose colours therefore say
+    something.  Anything it does not name still flattens to ``color``.
     """
+    tones = tones or {}
     tree = ET.parse(resolve_source(path))
     root = tree.getroot()
 
@@ -338,7 +357,7 @@ def flatten_svg(path: Path, color: str, strip_dark: bool = True) -> str:
                     holder.pop("stroke-width", None)
                     continue
                 if value != "none":
-                    setter(attr, color)
+                    setter(attr, tones.get(value.strip().lower(), color))
         if local(el.tag) in ("text", "tspan"):
             el.set("font-family", MONO)
             el.set("fill", color)
@@ -369,7 +388,7 @@ def flatten_svg(path: Path, color: str, strip_dark: bool = True) -> str:
     return ET.tostring(root, encoding="unicode")
 
 
-def flatten_or_keep(path: Path, color: str) -> str:
+def flatten_or_keep(path: Path, color: str, tones: dict | None = None) -> str:
     """flatten_svg, keeping the halo layers where they are the whole drawing.
 
     A handful of glyphs (``btn__undo_active``, ``btn__reverse_active``) are
@@ -380,11 +399,13 @@ def flatten_or_keep(path: Path, color: str) -> str:
     backstop for anything that slips through.
     """
     source = ET.parse(resolve_source(path)).getroot()
-    text = flatten_svg(path, color, strip_dark=paints_in_colour(source))
+    text = flatten_svg(
+        path, color, strip_dark=paints_in_colour(source), tones=tones
+    )
     if count_drawables(ET.fromstring(text)) == 0:
         if count_drawables(source) == 0:
             return text  # LateNight's intentional transparent dummy
-        text = flatten_svg(path, color, strip_dark=False)
+        text = flatten_svg(path, color, strip_dark=False, tones=tones)
     check_paints(path, ET.fromstring(text))
     return text
 
@@ -464,6 +485,15 @@ def glyph_color(name: str, palette: Palette) -> str:
     if "_disabled" in stem:
         return palette["fg_faint"]
     return palette["fg"]
+
+
+def glyph_tones(name: str, palette: Palette) -> dict:
+    """Source-colour -> palette-colour map for the few glyphs in TWO_TONE."""
+    stem = name[:-4] if name.endswith(".svg") else name
+    return {
+        source: palette[token]
+        for source, token in TWO_TONE.get(stem, {}).items()
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -763,7 +793,12 @@ def build_assets(palette: Palette, report: bool = False) -> dict:
             stats["glyph"] += 1
             if not report:
                 write(
-                    dst, flatten_or_keep(src, glyph_color(src.name, palette))
+                    dst,
+                    flatten_or_keep(
+                        src,
+                        glyph_color(src.name, palette),
+                        glyph_tones(src.name, palette),
+                    ),
                 )
     # ---- knobs ---------------------------------------------------------- #
     for src in sorted((REF / "knobs").glob("*.svg")):
@@ -917,7 +952,11 @@ def build_style_assets(palette: Palette, out: Path, report: bool) -> int:
         if not report:
             write(
                 dst_dir / src.name,
-                flatten_or_keep(src, glyph_color(src.name, palette)),
+                flatten_or_keep(
+                    src,
+                    glyph_color(src.name, palette),
+                    glyph_tones(src.name, palette),
+                ),
             )
     # Waveform mark icons (intro/outro/loop/jump). LateNight ships these only
     # under classic/, and points at them even from the PaleMoon scheme.
