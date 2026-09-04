@@ -216,16 +216,50 @@ WEffectPushButton[displayValue="1"]:hover {
   color: {{select_text}};
 }
 
-/* A mode selector, not an on/off switch. Dry/wet and dry+wet are two equally
-   valid routings; neither one is "engaged", so filling a state with the accent
-   claims an on state for a control that has no off, and the bright block then
-   drowns out the only thing that actually distinguishes the modes. LateNight
-   leaves the block alone in both states and lets the glyph -- the shape of the
-   crossfade curve -- carry it. Do the same. */
+/* Mode selectors, not on/off switches. Dry/wet against dry+wet, absolute
+   against relative against constant, loop-anchor start against end: every
+   state is an equally valid choice and none of them is "engaged", so filling
+   one with the accent claims an on state for a control that has no off. Worse,
+   the bright block then drowns out the only thing that does distinguish the
+   modes -- the shape of the crossfade curve, the word "abs"/"rel"/"const", the
+   anchor glyph. Leave the block alone in every state, as LateNight does, and
+   let the label carry it.
+
+   Without this each of these renders its states three different ways: the
+   generic latched rule catches state 1, state 2 falls through to whatever
+   LateNight happened to leave behind, and state 0 gets the plain block. */
 #Mixxx WPushButton#MixModeButton[displayValue="0"],
-#Mixxx WPushButton#MixModeButton[displayValue="1"] {
+#Mixxx WPushButton#MixModeButton[displayValue="1"],
+#Mixxx WPushButton#VinylModeButton[displayValue="0"],
+#Mixxx WPushButton#VinylModeButton[displayValue="1"],
+#Mixxx WPushButton#VinylModeButton[displayValue="2"],
+#Mixxx WPushButton#LoopAnchor[displayValue="0"],
+#Mixxx WPushButton#LoopAnchor[displayValue="1"] {
   background-color: {{block}};
   color: {{fg}};
+}
+
+/* These do have an off state, but more than one on state, and the generic
+   latched rule only covers the first of them -- so vinyl cueing lit up green
+   for "one cue" and sage-grey for "hot cue", and ducking lit up green for auto
+   and dark yellow for manual, a colour left over from LateNight that means
+   nothing on a mic control. Which mode is live is already in the label or the
+   glyph ("cue" against "hot", the auto and manual ducking icons), so give
+   every engaged state the one accent and let that do the talking. */
+#Mixxx WPushButton#VinylCueButton[displayValue="1"],
+#Mixxx WPushButton#VinylCueButton[displayValue="2"],
+#Mixxx WPushButton#MicDucking[value="1"],
+#Mixxx WPushButton#MicDucking[value="2"] {
+  background-color: {{accent}};
+  color: {{bg}};
+}
+
+/* Same shape of problem on the sync leader: soft leader was already given the
+   sync hue here, but explicit leader fell through to that same leftover dark
+   yellow. Both are leading; the implicit and explicit glyphs say which. */
+#Mixxx WPushButton#SyncLeader[value="2"] {
+  background-color: {{sync}};
+  color: {{bg}};
 }
 
 /* Some of LateNight's "buttons" are invisible click targets stacked on top of
