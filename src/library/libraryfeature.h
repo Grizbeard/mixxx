@@ -32,6 +32,15 @@ class LibraryFeature : public QObject {
             const QString& iconName);
     ~LibraryFeature() override = default;
 
+    /// Icon for a sidebar row, honouring a skin's replacement for the built-in
+    /// artwork.
+    ///
+    /// Prefer this to building a QIcon from ":/images/library/..." directly: a
+    /// tree item that goes straight to the resource keeps the built-in colours
+    /// while the feature above it follows the skin.
+    static QIcon iconForName(
+            const UserSettingsPointer& pConfig, const QString& iconName);
+
     virtual QVariant title() = 0;
 
     /// Returns the icon name.

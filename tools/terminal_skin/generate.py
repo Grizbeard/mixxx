@@ -48,7 +48,12 @@ LIBRARY_ICONS = (
     "crates",
     "hidden",
     "history",
+    # Set by tree items rather than by a feature: the current history session,
+    # and the padlocks on a locked playlist, crate or session.
+    "history_current",
     "itunes",
+    "locked",
+    "locked_tracklist",
     "playlist",
     "prepare",
     "recordings",

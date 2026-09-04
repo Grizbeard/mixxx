@@ -56,6 +56,25 @@ QString skinIconPath(const UserSettingsPointer& pConfig, const QString& iconName
 
 } // anonymous namespace
 
+QIcon LibraryFeature::iconForName(
+        const UserSettingsPointer& pConfig, const QString& iconName) {
+    const QString overridePath = skinIconPath(pConfig, iconName);
+    if (overridePath.isEmpty()) {
+        return QIcon(kIconPath.arg(iconName));
+    }
+    QIcon icon(overridePath);
+    // QIcon generates the pixmap for a selected row by blending the Normal one
+    // 30% towards QPalette::Highlight, which on Windows is the OS accent
+    // colour and so is unrelated to the skin. Naming the file for the Selected
+    // mode as well makes QSvgIconEngine load it directly instead of generating
+    // a tinted variant, so an icon a skin ships is drawn in the colour it was
+    // authored in. Disabled is deliberately left to be generated, so disabled
+    // items still grey out.
+    icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::Off);
+    icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::On);
+    return icon;
+}
+
 LibraryFeature::LibraryFeature(
         Library* pLibrary,
         UserSettingsPointer pConfig,
@@ -65,22 +84,7 @@ LibraryFeature::LibraryFeature(
           m_pConfig(pConfig),
           m_iconName(iconName) {
     if (!m_iconName.isEmpty()) {
-        const QString overridePath = skinIconPath(m_pConfig, m_iconName);
-        if (overridePath.isEmpty()) {
-            m_icon = QIcon(kIconPath.arg(m_iconName));
-        } else {
-            m_icon = QIcon(overridePath);
-            // QIcon generates the pixmap for a selected row by blending the
-            // Normal one 30% towards QPalette::Highlight, which on Windows is
-            // the OS accent colour and so is unrelated to the skin. Naming the
-            // file for the Selected mode as well makes QSvgIconEngine load it
-            // directly instead of generating a tinted variant, so an icon a
-            // skin ships is drawn in the colour it was authored in. Disabled
-            // is deliberately left to be generated, so disabled items still
-            // grey out.
-            m_icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::Off);
-            m_icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::On);
-        }
+        m_icon = iconForName(m_pConfig, m_iconName);
     }
 }
 

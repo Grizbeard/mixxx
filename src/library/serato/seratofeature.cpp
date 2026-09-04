@@ -429,7 +429,9 @@ QString parseCrate(
     return crateName;
 }
 
-QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* databaseItem) {
+QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
+        TreeItem* databaseItem,
+        const QIcon& crateIcon) {
     QString databaseName = databaseItem->getLabel();
     QString databaseFilePath = databaseItem->getData().toList().at(0).toString();
     QDir databaseDir = QFileInfo(databaseFilePath).dir();
@@ -650,7 +652,7 @@ QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* dat
                 TreeItem* crateItem = databaseItem->appendChild(crateName,
                         QList<QVariant>{
                                 QVariant(crateFilePath), QVariant(true)});
-                crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
+                crateItem->setIcon(crateIcon);
             }
         }
     } else {
@@ -1045,7 +1047,10 @@ void SeratoFeature::activateChild(const QModelIndex& index) {
 
     if (!isPlaylist) {
         // Let a worker thread do the parsing
-        m_tracksFuture = QtConcurrent::run(parseDatabase, static_cast<Library*>(parent())->dbConnectionPool(), item);
+        m_tracksFuture = QtConcurrent::run(parseDatabase,
+                static_cast<Library*>(parent())->dbConnectionPool(),
+                item,
+                iconForName(m_pConfig, QStringLiteral("crates")));
         m_tracksFutureWatcher.setFuture(m_tracksFuture);
 
         // This device is now a playlist element, future activations should
