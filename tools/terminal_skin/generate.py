@@ -150,6 +150,10 @@ class Palette:
         self.name = data["name"]
         self.dir = data["dir"]
         self.description = data.get("description", "")
+        # A single-hue palette. Cue and track colours come from the
+        # user's colour palette rather than from here, and a scheme with
+        # one hue has nowhere to put them, so it opts out of them.
+        self.mono = bool(data.get("mono", False))
         self.colors = dict(data["colors"])
         # Roles are indirection: role -> colour key -> hex.  Expose both so a
         # template can say {{accent}} or {{green}}.
@@ -1266,7 +1270,11 @@ def build_qss(palette: Palette, report: bool = False) -> set:
     overrides = render_template(
         HERE / "templates" / "terminal.qss.in",
         palette,
-        {"scheme_name": palette.name, "scheme_dir": palette.dir},
+        {
+            "scheme_name": palette.name,
+            "scheme_dir": palette.dir,
+            "hide_track_color": "true" if palette.mono else "false",
+        },
     )
     header = f"""/* Terminal skin -- colour scheme: {palette.name}
  *
@@ -1320,6 +1328,8 @@ def scheme_block(palette: Palette) -> str:
             "scheme_name": palette.name,
             "scheme_dir": palette.dir,
             "scheme_description": xml_comment_safe(palette.description),
+            "use_cue_color": "false" if palette.mono else "true",
+            "track_color_opacity": "0" if palette.mono else "0.175",
             # The launch stylesheet pins the label to the wordmark's own size,
             # so it is never scaled and the character cells stay square.
             "logo_width": str(logo_width),

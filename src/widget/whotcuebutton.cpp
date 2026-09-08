@@ -31,6 +31,7 @@ WHotcueButton::WHotcueButton(QWidget* pParent, const QString& group)
           m_group(group),
           m_hotcue(Cue::kNoHotCue),
           m_hoverCueColor(false),
+          m_useCueColor(true),
           m_pCoColor(nullptr),
           m_cueColorDimThreshold(kDefaultDimBrightThreshold),
           m_bCueColorDimmed(false),
@@ -63,6 +64,8 @@ void WHotcueButton::setup(const QDomNode& node, const SkinContext& context) {
     }
 
     m_hoverCueColor = context.selectBool(node, QStringLiteral("Hover"), false);
+    m_useCueColor =
+            context.selectBool(node, QStringLiteral("UseCueColor"), true);
 
     // For dnd/swapping hotcues we use the rendered widget pixmap as dnd cursor.
     // Unfortnately the margin that constraints the bg color is not considered,
@@ -304,6 +307,11 @@ ConfigKey WHotcueButton::createConfigKey(const QString& name) {
 }
 
 void WHotcueButton::slotColorChanged(double color) {
+    if (!m_useCueColor) {
+        // The skin paints this button itself, so the cue's colour never
+        // reaches the widget and nothing here has to be recomputed.
+        return;
+    }
     VERIFY_OR_DEBUG_ASSERT(color >= 0 && color <= 0xFFFFFF) {
         return;
     }
@@ -374,7 +382,7 @@ void WHotcueButton::slotTypeChanged(double type) {
 }
 
 void WHotcueButton::restyleAndRepaint() {
-    if (readDisplayValue()) {
+    if (m_useCueColor && readDisplayValue()) {
         // Adjust properties for Qss file
         m_bCueColorIsLight = !m_bCueColorDimmed;
         m_bCueColorIsDark = m_bCueColorDimmed;

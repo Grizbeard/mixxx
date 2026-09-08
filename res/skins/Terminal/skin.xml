@@ -183,6 +183,17 @@
       <SetVariable name="MarkDisabledColor">#6c7566</SetVariable>
       <SetVariable name="DurationTextColor">#ddf0d1</SetVariable>
 
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">true</SetVariable>
+      <SetVariable name="TrackColorOpacity">0.175</SetVariable>
+
       <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
       <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
       <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
@@ -315,6 +326,17 @@
       <SetVariable name="MarkDefaultColor">#d69c1f</SetVariable>
       <SetVariable name="MarkDisabledColor">#8e6e29</SetVariable>
       <SetVariable name="DurationTextColor">#ffdf99</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
 
       <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
       <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
@@ -449,6 +471,17 @@
       <SetVariable name="MarkDisabledColor">#298e2d</SetVariable>
       <SetVariable name="DurationTextColor">#b2ffb5</SetVariable>
 
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
       <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
       <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
       <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
@@ -581,6 +614,17 @@
       <SetVariable name="MarkDefaultColor">#939a9f</SetVariable>
       <SetVariable name="MarkDisabledColor">#666f75</SetVariable>
       <SetVariable name="DurationTextColor">#f7f7f8</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
 
       <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
       <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>

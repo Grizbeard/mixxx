@@ -227,6 +227,9 @@ WaveformMark::WaveformMark(const QString& group,
         m_pVisibleCO = std::make_unique<ControlProxy>(key);
     }
 
+    m_useCueColor =
+            context.selectBool(node, QStringLiteral("UseCueColor"), true);
+
     QColor color(context.selectString(node, "Color"));
     if (!color.isValid()) {
         // As a fallback, grab the color from the parent's AxesColor

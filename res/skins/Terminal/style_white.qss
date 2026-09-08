@@ -3972,6 +3972,15 @@ WTrackTableView {
   outline: none;
 }
 
+/* The track colour column is painted by ColorDelegate straight onto the
+   viewport, so no rule here can reach it -- but the delegate reads this
+   property first, and falls back to the row background when it is set. That is
+   the only handle a skin has on it, and it is what keeps a track's colour from
+   being the one coloured thing on a monochrome screen. */
+WTrackTableView {
+  qproperty-mixxxColorDelegateUseRowBackgroundForColorCell: true;
+}
+
 WTrackTableView::item:selected,
 WLibraryTableView::item:selected {
   background-color: #2e3438;

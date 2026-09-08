@@ -52,6 +52,11 @@ class WHotcueButton : public WPushButton {
     const QString m_group;
     int m_hotcue;
     bool m_hoverCueColor;
+    // Whether the cue's own colour is painted as this button's background.
+    // A monochrome skin turns it off and styles the button from its qss like
+    // any other latched button: a cue colour comes from the user's palette
+    // and has no counterpart in a single-hue scheme.
+    bool m_useCueColor;
     parented_ptr<ControlProxy> m_pCoColor;
     parented_ptr<ControlProxy> m_pCoType;
     parented_ptr<ControlProxy> m_pCoPosition;

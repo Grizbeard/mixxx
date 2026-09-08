@@ -180,6 +180,7 @@ for scheme in SCHEMES:
             " them by"
             " name, so every palette has to define them."
         ),
+        "mono": True,
         "name": scheme["name"],
         "dir": scheme["dir"],
         "description": scheme["description"],

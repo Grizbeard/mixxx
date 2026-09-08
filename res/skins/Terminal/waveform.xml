@@ -204,6 +204,7 @@
             -->
             <DefaultMark>
               <Align>bottom|right</Align>
+              <UseCueColor><Variable name="UseCueColor"/></UseCueColor>
               <Color><Variable name="MarkDefaultColor"/></Color>
               <TextColor><Variable name="MarkTextColor"/></TextColor>
               <EndIcon>skins:Terminal/<Variable name="StyleScheme"/>/style/mark_jump_%1.svg</EndIcon>

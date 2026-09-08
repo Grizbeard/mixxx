@@ -109,7 +109,11 @@
               <!-- Library Table-->
               <Library>
                 <ShowButtonText>false</ShowButtonText>
-                <TrackTableBackgroundColorOpacity>0.175</TrackTableBackgroundColorOpacity>
+                <!-- A track's own colour washed over its row. The monochrome
+                     schemes set this to 0: it comes from the user's colour
+                     palette, so it is the one thing on screen that a
+                     single-hue scheme has nowhere to put. -->
+                <TrackTableBackgroundColorOpacity><Variable name="TrackColorOpacity"/></TrackTableBackgroundColorOpacity>
                 <!-- Colors for the render modes of the Overview column -->
                 <!-- For the overview column we only set the signal color,
                      other colors are the defaults. -->

@@ -17,6 +17,7 @@
         <Hotcue><Variable name="number"/></Hotcue>
         <NumberStates>3</NumberStates>
         <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+        <UseCueColor><Variable name="UseCueColor"/></UseCueColor>
         <DndRectMargin><Variable name="DndRectMarginHotcueBtn"/></DndRectMargin>
         <State>
           <Number>0</Number>

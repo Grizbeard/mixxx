@@ -183,6 +183,20 @@ class WaveformMark {
     // Sets the appropriate mark colors based on the base color
     void setBaseColor(QColor baseColor, int dimBrightThreshold);
 
+    /// Adopt the colour the cue at this mark carries, unless the skin asked
+    /// its marks to keep their own with <UseCueColor>false</UseCueColor>.
+    ///
+    /// A cue colour comes from the user's colour palette and bears no relation
+    /// to the skin's, which a monochrome skin has no second hue to absorb it
+    /// into. Such a skin opts out and keeps the <Color> it declared, so a
+    /// hotcue marker looks like every other marker.
+    void setCueColor(QColor color, int dimBrightThreshold) {
+        if (!m_useCueColor) {
+            return;
+        }
+        setBaseColor(color, dimBrightThreshold);
+    }
+
     QColor fillColor() const {
         return m_fillColor;
     }
@@ -303,6 +317,9 @@ class WaveformMark {
 
     // Whether this marker is used in the show beats/time until next marker display.
     bool m_showUntilNext;
+
+    // Whether a hotcue's own colour replaces the one the skin declared.
+    bool m_useCueColor{true};
 
     QColor m_fillColor;
     QColor m_borderColor;

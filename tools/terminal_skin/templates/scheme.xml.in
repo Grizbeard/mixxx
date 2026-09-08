@@ -66,6 +66,17 @@
       <SetVariable name="MarkDisabledColor">{{fg_faint}}</SetVariable>
       <SetVariable name="DurationTextColor">{{fg_hi}}</SetVariable>
 
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">{{use_cue_color}}</SetVariable>
+      <SetVariable name="TrackColorOpacity">{{track_color_opacity}}</SetVariable>
+
       <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
       <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
       <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>

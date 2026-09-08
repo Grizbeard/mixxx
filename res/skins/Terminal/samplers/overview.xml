@@ -21,6 +21,7 @@
     <LabelFontSize><Variable name="OverviewFontSizeSampler"/></LabelFontSize>
     <DefaultMark>
       <Align>bottom|right</Align>
+      <UseCueColor><Variable name="UseCueColor"/></UseCueColor>
       <Color><Variable name="MarkDefaultColor"/></Color>
       <TextColor><Variable name="MarkTextColor"/></TextColor>
       <Text> %1 </Text>
