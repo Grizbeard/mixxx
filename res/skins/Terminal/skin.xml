@@ -128,16 +128,16 @@
           padding: 0;
           margin: 0px 2px 0px 2px;
           border: none;
-          min-width: 160px;
-          max-width: 160px;
-          min-height: 40px;
-          max-height: 40px;
+          min-width: 315px;
+          max-width: 315px;
+          min-height: 80px;
+          max-height: 80px;
         }
         QProgressBar {
           background: url(skins:Terminal/btop/style/progressbar_bg.svg);
           border: none;
-          min-width: 164px;
-          max-width: 164px;
+          min-width: 319px;
+          max-width: 319px;
           min-height: 5px;
           max-height: 5px;
         }

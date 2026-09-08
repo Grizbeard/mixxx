@@ -77,6 +77,26 @@ DARK_INK = {
     "#050505",
     "black",
 }
+# The wordmark for the launch screen, in figlet's "standard" font: a terminal
+# draws its splash out of characters, so this one does too.  One tuple per
+# letter of MIXXX, five rows each, every row of a letter the same width so the
+# columns line up once the letters are joined.
+ASCII_LOGO = (
+    (" __  __ ", "|  \\/  |", "| |\\/| |", "| |  | |", "|_|  |_|"),
+    (" ___ ", "|_ _|", " | | ", " | | ", "|___|"),
+    ("__  __", "\\ \\/ /", " \\  / ", " /  \\ ", "/_/\\_\\"),
+    ("__  __", "\\ \\/ /", " \\  / ", " /  \\ ", "/_/\\_\\"),
+    ("__  __", "\\ \\/ /", " \\  / ", " /  \\ ", "/_/\\_\\"),
+)
+# Character cell and type size for that art, in px.  The cell is deliberately
+# a little smaller than the glyphs so neighbours overlap: character art is made
+# of runs of "_" and "|" that have to read as continuous bars and uprights, and
+# at a cell the size of the advance width every run breaks up into dashes.  The
+# narrowest face in the stack sets the bound -- Consolas advances 0.55em, so a
+# 9px cell at 17px type still overlaps.
+ASCII_LOGO_CELL_W = 9.0
+ASCII_LOGO_CELL_H = 16.0
+ASCII_LOGO_FONT = 17.0
 # Glyphs whose source colours mean something worth keeping.  Flattening a
 # picture to one colour is right for an icon, where the colour is decoration,
 # but the fx mix mode button draws a diagram: LateNight puts the dry signal in
@@ -687,6 +707,63 @@ def gen_progressbar(
     return svg(width, height, rect(0, 0, width, height, color))
 
 
+def ascii_logo_rows() -> list[str]:
+    """The wordmark as one string per row, letters joined with a gutter.
+
+    Figlet's glyphs butt right up against each other, which leaves the M
+    touching the I and the three X's merging into a fence.  A column of space
+    between letters costs four characters and makes the word legible.
+    """
+    return [
+        " ".join(letter[row] for letter in ASCII_LOGO)
+        for row in range(len(ASCII_LOGO[0]))
+    ]
+
+
+def ascii_logo_size() -> tuple[int, int]:
+    """Pixel size of the character-art wordmark, for the launch stylesheet."""
+    rows = ascii_logo_rows()
+    return (
+        round(max(len(row) for row in rows) * ASCII_LOGO_CELL_W),
+        round(len(rows) * ASCII_LOGO_CELL_H),
+    )
+
+
+def gen_ascii_logo(palette: Palette) -> str:
+    """The Mixxx wordmark drawn as monospace character art.
+
+    Every character is centred in a cell of its own rather than being left to
+    the font's advance width.  Character art only reads if the columns line up,
+    and the advance differs between the faces in the monospace stack -- 0.55em
+    for Consolas against 0.60em for the rest -- so a row laid out as one string
+    would drift out of register on whichever platform did not set the spacing.
+    """
+    rows = ascii_logo_rows()
+    width, height = ascii_logo_size()
+    color = palette["fg_hi"]
+    parts = []
+    for row_index, row in enumerate(rows):
+        # 0.78 of the line box puts the baseline where a terminal puts it.
+        y = (row_index + 0.78) * ASCII_LOGO_CELL_H
+        for column, char in enumerate(row):
+            if char == " ":
+                continue
+            char = (
+                char.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            x = (column + 0.5) * ASCII_LOGO_CELL_W
+            parts.append(
+                f'<text x="{x:.1f}" y="{y:.1f}" fill="{color}"'
+                f' font-family="{MONO}"'
+                f' font-size="{ASCII_LOGO_FONT:.0f}"'
+                f' text-anchor="middle">{char}</text>'
+            )
+    body = "\n  " + "\n  ".join(parts) + "\n"
+    return svg(width, height, body, view_box=f"0 0 {width} {height}")
+
+
 def gen_spinny_bg(
     width: str, height: str, view_box: str | None, palette: Palette
 ) -> str:
@@ -925,8 +1002,14 @@ def build_style_assets(palette: Palette, out: Path, report: bool) -> int:
     ):
         width, height, _ = read_size(src_dir / name)
         emit(name, gen_branch(width, height, palette, open_, selected))
-    emit("progressbar.svg", gen_progressbar(164, 5, palette, True))
-    emit("progressbar_bg.svg", gen_progressbar(164, 5, palette, False))
+    # Only the launch screen uses these, so size them to its wordmark.
+    bar_width = ascii_logo_size()[0] + 4
+    emit("progressbar.svg", gen_progressbar(bar_width, 5, palette, True))
+    emit("progressbar_bg.svg", gen_progressbar(bar_width, 5, palette, False))
+    # The launch wordmark. LateNight's is a vector logotype sitting on a page
+    # plate that flattening cannot tell from the drawing, so it came out as a
+    # filled square; a terminal would spell its name out in characters anyway.
+    emit("mixxx_logo.svg", gen_ascii_logo(palette))
     for name in ("spinny_bg.svg",):
         width, height, view_box = read_size(src_dir / name)
         emit(name, gen_spinny_bg(width, height, view_box, palette))
@@ -1219,6 +1302,7 @@ def xml_comment_safe(text: str) -> str:
 
 
 def scheme_block(palette: Palette) -> str:
+    logo_width, logo_height = ascii_logo_size()
     return render_template(
         HERE / "templates" / "scheme.xml.in",
         palette,
@@ -1226,6 +1310,11 @@ def scheme_block(palette: Palette) -> str:
             "scheme_name": palette.name,
             "scheme_dir": palette.dir,
             "scheme_description": xml_comment_safe(palette.description),
+            # The launch stylesheet pins the label to the wordmark's own size,
+            # so it is never scaled and the character cells stay square.
+            "logo_width": str(logo_width),
+            "logo_height": str(logo_height),
+            "logo_bar_width": str(logo_width + 4),
         },
     )
 

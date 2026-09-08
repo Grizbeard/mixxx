@@ -11,16 +11,16 @@
           padding: 0;
           margin: 0px 2px 0px 2px;
           border: none;
-          min-width: 160px;
-          max-width: 160px;
-          min-height: 40px;
-          max-height: 40px;
+          min-width: {{logo_width}}px;
+          max-width: {{logo_width}}px;
+          min-height: {{logo_height}}px;
+          max-height: {{logo_height}}px;
         }
         QProgressBar {
           background: url(skins:Terminal/{{scheme_dir}}/style/progressbar_bg.svg);
           border: none;
-          min-width: 164px;
-          max-width: 164px;
+          min-width: {{logo_bar_width}}px;
+          max-width: {{logo_bar_width}}px;
           min-height: 5px;
           max-height: 5px;
         }
