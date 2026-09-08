@@ -20,6 +20,8 @@ const mixxx::Logger kLogger("LibraryFeature");
 const QString kIconPath = QStringLiteral(":/images/library/ic_library_%1.svg");
 const QString kSkinIconPath =
         QStringLiteral("%1/skins/%2/library/ic_library_%3.svg");
+const QString kSchemeIconPath =
+        QStringLiteral("%1/skins/%2/library/%3/ic_library_%4.svg");
 
 /// Path to a skin-provided replacement for a sidebar icon, or an empty string.
 ///
@@ -29,15 +31,23 @@ const QString kSkinIconPath =
 /// `<skin>/library/ic_library_<name>.svg` to override one.
 ///
 /// This is purely additive: a skin that provides nothing keeps the built-in
-/// icon, so existing skins are unaffected. Icons are resolved per skin rather
-/// than per colour scheme, because features are constructed before any skin is
-/// parsed and a scheme's asset directory is a skin-internal detail.
+/// icon, so existing skins are unaffected.
+///
+/// A skin whose colour schemes differ in more than accent -- a monochrome one,
+/// say -- needs an icon per scheme, so `library/<scheme>/` is preferred over
+/// `library/` when it exists. The scheme is keyed by the name the settings
+/// hold, not by the asset directory it happens to use: features are
+/// constructed before any skin is parsed, so there is nothing here that could
+/// map one onto the other without reading skin.xml. `library/` remains the
+/// fallback, for the first run of a settings file that names no scheme yet.
 QString skinIconPath(const UserSettingsPointer& pConfig, const QString& iconName) {
     const QString skinName =
             pConfig->getValueString(ConfigKey("[Config]", "ResizableSkin"));
     if (skinName.isEmpty()) {
         return QString();
     }
+    const QString scheme =
+            pConfig->getValueString(ConfigKey("[Config]", "Scheme"));
     // Same search order as SkinLoader: a user skin shadows a system one.
     const QStringList bases = {
             pConfig->getSettingsPath(), pConfig->getResourcePath()};
@@ -45,8 +55,16 @@ QString skinIconPath(const UserSettingsPointer& pConfig, const QString& iconName
         if (base.isEmpty()) {
             continue;
         }
-        const QString candidate = kSkinIconPath.arg(
-                QDir::cleanPath(base), skinName, iconName);
+        const QString clean = QDir::cleanPath(base);
+        if (!scheme.isEmpty()) {
+            const QString candidate =
+                    kSchemeIconPath.arg(clean, skinName, scheme, iconName);
+            if (QFile::exists(candidate)) {
+                return candidate;
+            }
+        }
+        const QString candidate =
+                kSkinIconPath.arg(clean, skinName, iconName);
         if (QFile::exists(candidate)) {
             return candidate;
         }

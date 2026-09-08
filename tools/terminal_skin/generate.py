@@ -847,7 +847,9 @@ KNOB_COLOR_ROLE = {
 SLIDER_HANDLE_RE = re.compile(r"^knob_")
 
 
-def build_assets(palette: Palette, report: bool = False) -> dict:
+def build_assets(
+    palette: Palette, report: bool = False, default: bool = False
+) -> dict:
     out = SKIN / palette.dir
     stats = {
         "glyph": 0,
@@ -859,7 +861,10 @@ def build_assets(palette: Palette, report: bool = False) -> dict:
     }
     if not report and out.exists():
         shutil.rmtree(out)
-    if not report:
+    if not report and default:
+        # library/ holds a subdirectory per scheme, so it can only be cleared
+        # on the first palette of a run -- clearing it on each one would leave
+        # nothing but the last scheme's icons behind.
         shutil.rmtree(SKIN / "library", ignore_errors=True)
     # ---- buttons -------------------------------------------------------- #
     for src in sorted((REF / "buttons").glob("*.svg")):
@@ -918,19 +923,24 @@ def build_assets(palette: Palette, report: bool = False) -> dict:
     # ---- library sidebar icons ------------------------------------------- #
     # These are Qt resources compiled into the binary, so they cannot be
     # restyled from a stylesheet. Ship flattened copies; LibraryFeature picks
-    # them up from <skin>/library/ and falls back to its own when absent.
-    # They sit outside the scheme directory because the override is resolved
-    # per skin, not per scheme.
+    # them up and falls back to its own when absent.
+    #
+    # One directory per scheme, named after the scheme rather than after its
+    # asset directory, because the scheme name is what LibraryFeature has to
+    # hand: it reads [Config]/Scheme from the settings, having no way to map a
+    # name onto a directory without parsing skin.xml. The copy directly under
+    # library/ is the fallback for a settings file that names no scheme yet,
+    # which is every first run.
     for name in LIBRARY_ICONS:
         src = REF_LIBRARY / f"ic_library_{name}.svg"
         if not src.is_file():
             continue
         stats["library"] += 1
         if not report:
-            write(
-                SKIN / "library" / src.name,
-                flatten_or_keep(src, palette["fg_dim"]),
-            )
+            icon = flatten_or_keep(src, palette["fg_dim"])
+            write(SKIN / "library" / palette.name / src.name, icon)
+            if default:
+                write(SKIN / "library" / src.name, icon)
     return stats
 
 
@@ -1370,7 +1380,11 @@ def main() -> int:
         raise SystemExit(f"geometry donor missing: {REF}")
     palettes = load_palettes(args.palette)
     for palette in palettes:
-        stats = build_assets(palette, args.report)
+        # The first palette is the skin's default scheme, and the one
+        # whose library icons sit at the fallback path.
+        stats = build_assets(
+            palette, args.report, default=palette is palettes[0]
+        )
         unknown = build_qss(palette, args.report)
         where = "would write" if args.report else f"wrote {SKIN / palette.dir}"
         print(

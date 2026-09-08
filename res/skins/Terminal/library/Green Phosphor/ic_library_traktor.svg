@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.inkscape.org/namespaces/inkscape" xmlns:ns2="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" version="1.1" width="32" height="32" ns1:version="0.92.3 (unknown)" ns2:docname="ic_library_traktor.svg" style="display:inline" ns1:export-filename="" ns1:export-xdpi="135" ns1:export-ydpi="135" fill="#1fd625">
+  <ns2:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns1:pageopacity="0" ns1:pageshadow="2" ns1:window-width="1366" ns1:window-height="740" id="namedview26" showgrid="false" ns1:zoom="8" ns1:cx="9.3537225" ns1:cy="10.201818" ns1:window-x="0" ns1:window-y="0" ns1:window-maximized="1" ns1:current-layer="ic_library_crates" ns1:object-paths="true" showguides="true" ns1:guide-bbox="true" ns1:snap-midpoints="true">
+    <ns1:grid type="xygrid" id="grid3788" empspacing="4" visible="true" enabled="true" snapvisiblegridlinesonly="true" originx="4" spacingx="1" spacingy="1" empcolor="#0072ff" empopacity="0.25098039" originy="4" dotted="false" />
+  </ns2:namedview>
+  <g id="ic_library_crates" ns1:label="#g6169">
+    <g id="ic_library_traktor" ns1:label="#g6131">
+      <path ns2:nodetypes="cc" ns1:connector-curvature="0" id="path4038" d="M 4,16 H 9" style="fill:none;stroke:#1fd625;stroke-width:4;stroke-linecap:round;stroke-linejoin:miter" />
+      <path style="fill:none;stroke:#1fd625;stroke-width:4;stroke-linecap:round;stroke-linejoin:miter" d="m 23,16 h 5" id="path4040" ns1:connector-curvature="0" ns2:nodetypes="cc" />
+      <circle transform="matrix(1.2309866,0,0,1.2309866,2.4591474,-0.0028258)" id="path4012" style="fill:none;stroke:#1fd625;stroke-width:4.06178284;stroke-linecap:round;stroke-linejoin:miter" cx="11" cy="13" r="4.4679608" />
+      <path ns1:connector-curvature="0" id="path5925" d="M 16,2 C 10.050165,2 4.962151,5.7471891 2.9375,11 h 3.25 C 8.0051259,7.4352737 11.712238,5 16,5 c 4.287762,0 7.994874,2.4352737 9.8125,6 h 3.25 C 27.037849,5.7471891 21.949835,2 16,2 Z M 2.9375,21 c 2.024651,5.252811 7.112665,9 13.0625,9 5.949835,0 11.037849,-3.747189 13.0625,-9 h -3.25 C 23.994874,24.564726 20.287762,27 16,27 11.712238,27 8.0051259,24.564726 6.1875,21 Z" style="font-weight:normal;font-size:medium;font-family:Sans;text-anchor:start;fill:#1fd625;stroke:none;stroke-width:1.65274727" />
+    </g>
+  </g>
+</svg>
