@@ -76,17 +76,27 @@ void Engine::preprocess() {
     }
 }
 
-void Engine::resize(int w, int h) {
+void Engine::resize(int w, int h, bool quarterTurn) {
     m_matrix.setToIdentity();
     m_matrix.ortho(QRectF(0.0f, 0.0f, w, h));
-    // TODO
-    // if (waveformRenderer->getOrientation() == Qt::Vertical) {
-    //    matrix.rotate(90.f, 0.0f, 0.0f, 1.0f);
-    //    matrix.translate(0.f, -waveformRenderer->getWidth() * ratio, 0.f);
-    //}
+    if (quarterTurn) {
+        // Nodes build their geometry in (length, breadth) space -- along the
+        // axis their content runs and across it -- so a client that wants that
+        // content turned a quarter turn only has to turn the scene, and every
+        // node goes on emitting vertices along +x as before.
+        //
+        // The pair maps a point (u, v) to (w - v, u): the length axis becomes
+        // the widget's y, the breadth axis its x. Breadth comes out mirrored,
+        // which is invisible on content symmetric across it and is the
+        // direction the alignment flags on the rest are resolved against.
+        m_matrix.rotate(90.f, 0.0f, 0.0f, 1.0f);
+        m_matrix.translate(0.f, -w, 0.f);
+    }
 
     if (m_pRootNode) {
-        resize(m_pRootNode.get(), w, h);
+        // A node that cares about its drawing area wants it in the space its
+        // geometry is in, so hand on the turned extent rather than the widget's.
+        resize(m_pRootNode.get(), quarterTurn ? h : w, quarterTurn ? w : h);
     }
 }
 

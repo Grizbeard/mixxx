@@ -185,7 +185,7 @@ void WaveformWidget::resizeGL(int w, int h) {
     // WaveformWidgetRenderer::getHeight to update their rendering stack, so we
     // must resize the renderer first, before updating the rendergraph
     WaveformWidgetRenderer::resizeRenderer(w, h, static_cast<float>(devicePixelRatio()));
-    m_pEngine->resize(w, h);
+    m_pEngine->resize(w, h, getOrientation() == Qt::Vertical);
 }
 
 void WaveformWidget::paintEvent(QPaintEvent* event) {

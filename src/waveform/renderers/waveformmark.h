@@ -249,8 +249,18 @@ class WaveformMark {
     // Check if a point (in image coordinates) lies on drawn image.
     bool contains(QPoint point, Qt::Orientation orientation) const;
 
-    QImage generateImage(float devicePixelRatio);
-    QImage generateEndImage(float devicePixelRatio);
+    /// Render the mark's label image.
+    ///
+    /// The image is always laid out the same way -- the mark's line runs down
+    /// it and its extent across the image is the breadth -- because the
+    /// renderer turns the whole scene for a vertical waveform and that keeps
+    /// the line spanning the breadth either way. What `orientation` changes is
+    /// only the chip: on a vertical waveform it is drawn turned a quarter turn
+    /// against the scene's, so the text comes out upright on screen.
+    QImage generateImage(float devicePixelRatio,
+            Qt::Orientation orientation = Qt::Horizontal);
+    QImage generateEndImage(float devicePixelRatio,
+            Qt::Orientation orientation = Qt::Horizontal);
 
     QColor m_textColor;
     QString m_text;
@@ -301,7 +311,8 @@ class WaveformMark {
             const QString& pixmapPath,
             const QString& text,
             WaveformMarkLabel* labelMark,
-            const QString& iconPath);
+            const QString& iconPath,
+            Qt::Orientation orientation);
 
     std::unique_ptr<ControlProxy> m_pPositionCO;
     std::unique_ptr<ControlProxy> m_pEndPositionCO;

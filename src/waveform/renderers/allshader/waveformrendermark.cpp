@@ -48,6 +48,12 @@ class WaveformMarkNode : public rendergraph::GeometryNode {
         initForRectangles<TextureMaterial>(1);
         updateTexture(pContext, image);
     }
+    /// The image is uploaded as it comes. It is laid out along the track and
+    /// across the breadth, the same axes this node's geometry uses, so the
+    /// scene's own turn is what puts a vertical waveform's marks the right way
+    /// round -- including the mark line, which has to keep spanning the
+    /// breadth. Turning the image here instead would undo exactly that.
+    /// WaveformMark::generateImage is where a vertical mark's *chip* is turned.
     void updateTexture(rendergraph::Context* pContext, const QImage& image) {
         dynamic_cast<TextureMaterial&>(material())
                 .setTexture(std::make_unique<Texture>(pContext, image));
@@ -615,33 +621,37 @@ void allshader::WaveformRenderMark::drawTriangle(QPainter* painter,
 }
 
 void allshader::WaveformRenderMark::updateMarkImage(WaveformMarkPointer pMark) {
+    const Qt::Orientation orientation = m_waveformRenderer->getOrientation();
     if (!pMark->m_pGraphics) {
         pMark->m_pGraphics =
                 std::make_unique<WaveformMarkNodeGraphics>(pMark.get(),
                         false,
                         m_waveformRenderer->getContext(),
                         pMark->generateImage(
-                                m_waveformRenderer->getDevicePixelRatio()));
+                                m_waveformRenderer->getDevicePixelRatio(),
+                                orientation));
     } else {
         auto* pGraphics = static_cast<WaveformMarkNodeGraphics*>(pMark->m_pGraphics.get());
         pGraphics->updateTexture(m_waveformRenderer->getContext(),
                 pMark->generateImage(
-                        m_waveformRenderer->getDevicePixelRatio()));
+                        m_waveformRenderer->getDevicePixelRatio(), orientation));
     }
 }
 void allshader::WaveformRenderMark::updateEndMarkImage(WaveformMarkPointer pMark) {
+    const Qt::Orientation orientation = m_waveformRenderer->getOrientation();
     if (!pMark->m_pEndGraphics) {
         pMark->m_pEndGraphics =
                 std::make_unique<WaveformMarkNodeGraphics>(pMark.get(),
                         true,
                         m_waveformRenderer->getContext(),
                         pMark->generateEndImage(
-                                m_waveformRenderer->getDevicePixelRatio()));
+                                m_waveformRenderer->getDevicePixelRatio(),
+                                orientation));
     } else {
         auto* pGraphics = static_cast<WaveformMarkNodeGraphics*>(pMark->m_pEndGraphics.get());
         pGraphics->updateTexture(m_waveformRenderer->getContext(),
                 pMark->generateEndImage(
-                        m_waveformRenderer->getDevicePixelRatio()));
+                        m_waveformRenderer->getDevicePixelRatio(), orientation));
     }
 }
 

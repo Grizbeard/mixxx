@@ -15,7 +15,10 @@ class rendergraph::Engine {
     ~Engine();
 
     void render();
-    void resize(int w, int h);
+    /// Set the projection for a widget of this size. With quarterTurn the
+    /// scene is turned so that a node's +x (the axis its content runs
+    /// along) points down the widget instead of across it.
+    void resize(int w, int h, bool quarterTurn = false);
     void preprocess();
     void add(BaseNode* pNode);
     void remove(BaseNode* pNode);

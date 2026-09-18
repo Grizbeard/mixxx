@@ -93,7 +93,9 @@ bool WaveformRendererEndOfTrack::preprocessInner() {
 
     const double alpha = std::clamp(criticalIntensity * blinkIntensity, 0.0, 1.0);
 
-    QSizeF size(m_waveformRenderer->getWidth(), m_waveformRenderer->getHeight());
+    // Length and breadth, not width and height: the gradient runs along the
+    // track, and on a vertical waveform that is the widget's y axis.
+    QSizeF size(m_waveformRenderer->getLength(), m_waveformRenderer->getBreadth());
     float r, g, b, a;
     getRgbF(m_color, &r, &g, &b, &a);
 
