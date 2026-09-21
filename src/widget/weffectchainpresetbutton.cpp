@@ -110,6 +110,14 @@ void WEffectChainPresetButton::populateMenu() {
     m_pMenu->addAction(tr("Save As New Preset..."), this, [this]() {
         m_pChainPresetManager->savePresetAndReload(m_pChain);
     });
+    // Last, and only for a preset that is loaded and can actually go: the
+    // manager asks for confirmation, refuses the read-only presets and drops
+    // the file, so this is only the way in.
+    if (!presetIsReadOnly && !m_pChain->presetName().isEmpty()) {
+        m_pMenu->addAction(tr("Delete Preset"), this, [this]() {
+            m_pChainPresetManager->deletePreset(m_pChain->presetName());
+        });
+    }
 
     m_pMenu->addSeparator();
 

@@ -116,6 +116,7 @@ class EffectChain : public QObject {
 
   protected slots:
     void slotEffectChainPresetRenamed(const QString& oldName, const QString& newName);
+    void slotEffectChainPresetDeleted(const QString& chainPresetName);
     void slotPresetListUpdated();
 
   private slots:
