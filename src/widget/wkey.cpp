@@ -21,6 +21,10 @@ WKey::WKey(const QString& group, UserSettingsPointer pConfig, QWidget* pParent)
                   this,
                   ControlFlag::AllowMissingOrInvalid),
           m_colorPaletteSettings(pConfig) {
+    // What the key-colour paint path used to hard-code. As the default it is
+    // the same picture for a skin that asks for nothing, and a skin that does
+    // ask - in <Alignment> or in a stylesheet - now gets what it asked for.
+    setAlignment(Qt::AlignCenter);
     setValue();
     m_keyNotation.connectValueChanged(this, &WKey::keyNotationChanged);
     m_engineKeyDistance.connectValueChanged(this, &WKey::setCents);
@@ -130,6 +134,6 @@ void WKey::paintEvent(QPaintEvent* event) {
             contRect.top(),
             contRect.width() - rectWidth,
             contRect.height(),
-            Qt::AlignCenter,
+            static_cast<int>(alignment()),
             elidedText);
 }
