@@ -56,12 +56,6 @@ QToolTip {
   margin: 0px 3px;
 }
 
-#ClockTime {
-  font-size: 24px;
-  margin-left: 8px;
-  qproperty-alignment: 'AlignRight | AlignVCenter';
-}
-
 /************** deck column **************************************************/
 
 #DeckPanelLeft {

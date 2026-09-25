@@ -277,7 +277,7 @@ WTrackTableViewHeader::section {
 }
 
 WNumber, WNumberPos, WNumberRate, WKey, WTime,
-#DeckTime, #DeckRate, #DeckKey, #ClockTime {
+#DeckTime, #DeckRate, #DeckKey {
   color: #f7f7f8;
   background: transparent;
 }
