@@ -4162,13 +4162,28 @@ QMenuBar::item:selected, QMenuBar::item:pressed {
 }
 
 /* ----------------------------------------------------- menus and popups -- */
-QMenu, WCueMenuPopup, WTrackMenu {
+/* The column-visibility and track-properties checkboxes in these menus are
+   real QCheckBox widgets (WTrackTableViewHeader builds its menu that way),
+   not checkable QAction items, so QMenu's own `color` never reaches their
+   label: QCheckBox is a distinct widget with its own palette. Without an
+   explicit color here the label falls back to the default (near-black)
+   palette text on this menu's black background -- invisible. */
+QMenu, WCueMenuPopup, WTrackMenu,
+WTrackTableViewHeader QMenu QCheckBox,
+WTrackMenu QMenu QCheckBox,
+WEffectChainPresetButton QMenu QCheckBox {
   background-color: #000000;
   border: 1px solid #4d555b;
   color: #e4e6e7;
 }
 
-QMenu::item:selected, QMenu::item:hover {
+QMenu::item:selected, QMenu::item:hover,
+WTrackTableViewHeader QMenu QCheckBox:focus,
+WTrackTableViewHeader QMenu QCheckBox:hover,
+WTrackMenu QMenu QCheckBox:focus,
+WTrackMenu QMenu QCheckBox:hover,
+WEffectChainPresetButton QMenu QCheckBox:focus,
+WEffectChainPresetButton QMenu QCheckBox:hover {
   background-color: #2e3438;
   color: #f7f7f8;
 }
