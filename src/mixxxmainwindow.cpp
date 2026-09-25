@@ -731,7 +731,20 @@ QDialog::DialogCode MixxxMainWindow::soundDeviceErrorMsgDlg(
 }
 
 QDialog::DialogCode MixxxMainWindow::noOutputDlg(bool* continueClicked) {
-    QMessageBox msgBox;
+    // Giving the dialog no parent leaves it with no xdg_toplevel parent
+    // relationship at the Wayland protocol level either, so labwc has no
+    // idea the two windows are related. Qt has no Wayland-level way to
+    // stop this window's clicks reaching the main window in the first
+    // place -- xdg-dialog-v1 is the protocol for that, labwc supports it,
+    // but Qt6's Wayland platform plugin doesn't use it -- so a click on
+    // the (still fully interactive, from the compositor's point of view)
+    // main window while this is open is what was leaving it stuck behind,
+    // unreachable. An explicit parent, with modality set back to
+    // application-wide since Qt defaults a parented QMessageBox to
+    // window-modal, at least gives the compositor the transient
+    // relationship it needs to keep this above its parent.
+    QMessageBox msgBox(this);
+    msgBox.setWindowModality(Qt::ApplicationModal);
     msgBox.setIcon(QMessageBox::Warning);
     msgBox.setWindowTitle(tr("No Output Devices"));
     msgBox.setText(
