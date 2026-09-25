@@ -570,8 +570,25 @@ void SidebarModel::slotRowsInserted(const QModelIndex& parent, int start, int en
     Q_UNUSED(start);
     Q_UNUSED(end);
     // qDebug() << "slotRowsInserted" << parent << start << end;
-    // QModelIndex newParent = translateSourceIndex(parent);
     endInsertRows();
+    // endInsertRows() alone doesn't repaint the parent row's own
+    // expand/branch decoration when that row went from zero children to
+    // some: QTreeView caches each row's "has children" state in its
+    // internal viewItems layout, built while walking the model, and a
+    // plain rowsInserted on a row that was never expanded (so Qt never
+    // walked into it) doesn't invalidate that cache -- confirmed on the
+    // Pi appliance: a manually forced expand() shows the freshly-added
+    // row fine, proving the model side is correct and this is a stale
+    // view cache. A feature that grows its tree well after the view
+    // first rendered it as a leaf -- Serato's device scan runs on
+    // demand, after the user clicks in -- can end up with real,
+    // reachable child rows and no visible arrow to say so.
+    // layoutChanged() forces QTreeView to rebuild that cache from
+    // scratch. Existing persistent indices (selection, current item)
+    // stay valid since nothing about them changed, only rows were added
+    // elsewhere.
+    emit layoutAboutToBeChanged();
+    emit layoutChanged();
 }
 
 void SidebarModel::slotRowsRemoved(const QModelIndex& parent, int start, int end) {
