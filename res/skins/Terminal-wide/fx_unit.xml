@@ -1,0 +1,136 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One whole effect unit: routing, unit controls, chain preset, and 3 slots
+    arranged side-by-side in 3 columns across the full panel width.
+
+  Variables:
+    FxUnit: 1, 2, 3, or 4
+-->
+<Template>
+  <SetVariable name="FxUnitGroup">[EffectRack1_EffectUnit<Variable name="FxUnit"/>]</SetVariable>
+
+  <WidgetGroup>
+    <ObjectName>FxUnitPanel</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+
+      <WidgetGroup>
+        <ObjectName>FxUnitHeader</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,68f</Size>
+        <Children>
+          <Label>
+            <ObjectName>FxUnitLabel</ObjectName>
+            <Size>80f,42f</Size>
+            <Text>fx <Variable name="FxUnit"/></Text>
+          </Label>
+          <PushButton>
+            <ObjectName>FxUnitEnable</ObjectName>
+            <TooltipId>EffectUnit_enabled</TooltipId>
+            <Size>76f,42f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>on</Text></State>
+            <State><Number>1</Number><Text>on</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="FxUnitGroup"/>,enabled</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <ObjectName>FxMixMode</ObjectName>
+            <TooltipId>EffectUnit_mix_mode</TooltipId>
+            <Size>84f,42f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>d/w</Text></State>
+            <State><Number>1</Number><Text>d+w</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="FxUnitGroup"/>,mix_mode</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+
+          <Template src="skin:templates/fx_knob.xml">
+            <SetVariable name="ObjectName">FxMixKnob</SetVariable>
+            <SetVariable name="TooltipId">EffectUnit_mix</SetVariable>
+            <SetVariable name="Caption">dry/wet</SetVariable>
+            <SetVariable name="ArcColor"><Variable name="ArcColorFxMix"/></SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="FxUnitGroup"/>,mix</SetVariable>
+          </Template>
+          <Template src="skin:templates/fx_knob.xml">
+            <SetVariable name="ObjectName">FxSuperKnob</SetVariable>
+            <SetVariable name="TooltipId">EffectUnit_super1</SetVariable>
+            <SetVariable name="Caption">super</SetVariable>
+            <SetVariable name="ArcColor"><Variable name="ArcColorSuper"/></SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="FxUnitGroup"/>,super1</SetVariable>
+          </Template>
+
+          <EffectChainPresetSelector>
+            <ObjectName>FxPresetSelector</ObjectName>
+            <TooltipId>EffectUnit_chain_selector</TooltipId>
+            <SizePolicy>me,f</SizePolicy>
+            <Size>0me,42f</Size>
+            <EffectUnit><Variable name="FxUnit"/></EffectUnit>
+          </EffectChainPresetSelector>
+
+          <EffectChainPresetButton>
+            <ObjectName>FxPresetButton</ObjectName>
+            <TooltipId>EffectUnit_chain_preset_menu</TooltipId>
+            <Size>76f,42f</Size>
+            <EffectUnit><Variable name="FxUnit"/></EffectUnit>
+          </EffectChainPresetButton>
+
+          <Label>
+            <ObjectName>FxRouteLabel</ObjectName>
+            <Size>56f,42f</Size>
+            <Text>route</Text>
+          </Label>
+          <PushButton>
+            <ObjectName>FxRouteButton</ObjectName>
+            <TooltipId>EffectUnit_deck_enabled</TooltipId>
+            <Size>52f,42f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>1</Text></State>
+            <State><Number>1</Number><Text>1</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="FxUnitGroup"/>,group_[Channel1]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+          <PushButton>
+            <ObjectName>FxRouteButton</ObjectName>
+            <TooltipId>EffectUnit_deck_enabled</TooltipId>
+            <Size>52f,42f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>2</Text></State>
+            <State><Number>1</Number><Text>2</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="FxUnitGroup"/>,group_[Channel2]_enable</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+        </Children>
+      </WidgetGroup>
+
+      <!-- 3 FX Slots side-by-side in 3 columns -->
+      <WidgetGroup>
+        <ObjectName>FxSlotsColumns</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+          <Template src="skin:fx_slot.xml">
+            <SetVariable name="FxNum">1</SetVariable>
+          </Template>
+          <Template src="skin:fx_slot.xml">
+            <SetVariable name="FxNum">2</SetVariable>
+          </Template>
+          <Template src="skin:fx_slot.xml">
+            <SetVariable name="FxNum">3</SetVariable>
+          </Template>
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

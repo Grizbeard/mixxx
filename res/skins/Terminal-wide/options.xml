@@ -1,0 +1,182 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    The options page. Everything that used to be a button in the toolbar lives
+    here, and everything added later should too: the toolbar has room for about
+    three controls before it stops being a status line, while this page has a
+    whole 1920x480 panel and two columns that are nowhere near full.
+
+    Every row is caption + cycling button, from templates/option_row.xml.
+
+    A note on when a change takes effect. The layout settings drive WidgetStacks
+    on the decks page, and WWidgetStack only acts on its control while it is
+    visible (wwidgetstack.cpp, onCurrentPageControlChanged) - but it re-reads
+    the control in showEvent. So changing deck width or overview height from
+    here applies the moment you go back to the decks page, which is the only
+    moment it could be seen anyway.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>OptionsPage</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+
+      <SingletonContainer>
+        <ObjectName>ToolBar_Singleton</ObjectName>
+        <SizePolicy>me,max</SizePolicy>
+      </SingletonContainer>
+
+      <WidgetGroup>
+        <ObjectName>OptionsBody</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+
+      <WidgetGroup>
+        <ObjectName>OptionsColumn</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>720f,0me</Size>
+        <Children>
+
+          <Label>
+            <ObjectName>OptionsSection</ObjectName>
+            <Size>0me,26f</Size>
+            <Text>layout</Text>
+          </Label>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptWaveLayout</SetVariable>
+            <SetVariable name="Caption">waveform lanes</SetVariable>
+            <SetVariable name="ConfigKey">[TerminalWide],waveform_columns</SetVariable>
+            <SetVariable name="NumberStates">2</SetVariable>
+            <SetVariable name="Text0">two rows</SetVariable>
+            <SetVariable name="Text1">two columns</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptDeckWidth</SetVariable>
+            <SetVariable name="Caption">deck column width</SetVariable>
+            <SetVariable name="ConfigKey">[TerminalWide],deck_width</SetVariable>
+            <SetVariable name="NumberStates">7</SetVariable>
+            <SetVariable name="Text0">360 px</SetVariable>
+            <SetVariable name="Text1">400 px</SetVariable>
+            <SetVariable name="Text2">440 px</SetVariable>
+            <SetVariable name="Text3">480 px</SetVariable>
+            <SetVariable name="Text4">520 px</SetVariable>
+            <SetVariable name="Text5">560 px</SetVariable>
+            <SetVariable name="Text6">600 px</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptOverviewPlace</SetVariable>
+            <SetVariable name="Caption">track overview</SetVariable>
+            <SetVariable name="ConfigKey">[TerminalWide],overview_place</SetVariable>
+            <SetVariable name="NumberStates">3</SetVariable>
+            <SetVariable name="Text0">under waveform</SetVariable>
+            <SetVariable name="Text1">in each deck</SetVariable>
+            <SetVariable name="Text2">full width</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptOverviewHeight</SetVariable>
+            <SetVariable name="Caption">overview height</SetVariable>
+            <SetVariable name="ConfigKey">[TerminalWide],overview_height</SetVariable>
+            <SetVariable name="NumberStates">4</SetVariable>
+            <SetVariable name="Text0">24 px</SetVariable>
+            <SetVariable name="Text1">36 px</SetVariable>
+            <SetVariable name="Text2">52 px</SetVariable>
+            <SetVariable name="Text3">72 px</SetVariable>
+          </Template>
+
+          <WidgetGroup>
+            <ObjectName>OptionsFiller</ObjectName>
+            <Layout>vertical</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>OptionsColumn</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>720f,0me</Size>
+        <Children>
+
+          <Label>
+            <ObjectName>OptionsSection</ObjectName>
+            <Size>0me,26f</Size>
+            <Text>display</Text>
+          </Label>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptDvsControls</SetVariable>
+            <SetVariable name="Caption">dvs controls</SetVariable>
+            <SetVariable name="ConfigKey">[VinylControl],show_vinylcontrol</SetVariable>
+            <SetVariable name="NumberStates">2</SetVariable>
+            <SetVariable name="Text0">hidden</SetVariable>
+            <SetVariable name="Text1">shown</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptIntroOutro</SetVariable>
+            <SetVariable name="Caption">intro &amp; outro markers</SetVariable>
+            <SetVariable name="ConfigKey">[Skin],show_intro_outro_cues</SetVariable>
+            <SetVariable name="NumberStates">2</SetVariable>
+            <SetVariable name="Text0">hidden</SetVariable>
+            <SetVariable name="Text1">shown</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptHotcues</SetVariable>
+            <SetVariable name="Caption">hot cues</SetVariable>
+            <SetVariable name="ConfigKey">[TerminalWide],hotcue_count</SetVariable>
+            <SetVariable name="NumberStates">3</SetVariable>
+            <SetVariable name="Text0">hidden</SetVariable>
+            <SetVariable name="Text1">4</SetVariable>
+            <SetVariable name="Text2">8</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptLoopControls</SetVariable>
+            <SetVariable name="Caption">loop</SetVariable>
+            <SetVariable name="ConfigKey">[Skin],show_loop_controls</SetVariable>
+            <SetVariable name="NumberStates">2</SetVariable>
+            <SetVariable name="Text0">hidden</SetVariable>
+            <SetVariable name="Text1">shown</SetVariable>
+          </Template>
+
+          <Template src="skin:templates/option_row.xml">
+            <SetVariable name="ObjectName">OptJumpControls</SetVariable>
+            <SetVariable name="Caption">beatjump</SetVariable>
+            <SetVariable name="ConfigKey">[Skin],show_beatjump_controls</SetVariable>
+            <SetVariable name="NumberStates">2</SetVariable>
+            <SetVariable name="Text0">hidden</SetVariable>
+            <SetVariable name="Text1">shown</SetVariable>
+          </Template>
+
+          <WidgetGroup>
+            <ObjectName>OptionsFiller</ObjectName>
+            <Layout>vertical</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>OptionsFiller</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children/>
+      </WidgetGroup>
+
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

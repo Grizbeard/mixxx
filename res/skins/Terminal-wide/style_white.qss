@@ -1,0 +1,806 @@
+/* Terminal-wide -- the design layer.
+ *
+ * Appended after the skin's own style.qss, which carries geometry and type and
+ * no colour at all. Double-brace placeholders resolve from the active palette;
+ * every colour here has to be a token, never a literal, or the skin stops being
+ * recolourable.
+ *
+ * Two rules of thumb, carried over from Terminal:
+ *   1. A terminal draws chrome with 1px rules and solid blocks -- no gradient,
+ *      no rounded corner, no bevel.
+ *   2. "On" means reverse video: the accent fills the cell and the label turns
+ *      the colour of the background.
+ *
+ * Unlike Terminal this skin has no inherited donor stylesheet underneath it and
+ * no icon assets, so these rules are the whole of the colour. Everything is
+ * text on a block.
+ */
+
+/* ---------------------------------------------------------------- ground -- */
+#Mixxx,
+#SkinContainer,
+#PageStack,
+#DecksPage,
+#DeckFiller,
+#ToolBarFiller {
+  background-color: #000000;
+}
+
+/* Square everything. Lowest specificity, so anything below can opt out. */
+* {
+  border-radius: 0px;
+}
+
+/* ------------------------------------------------------------- box rules -- */
+/* The three regions of the mixing page get a box each, the way btop frames
+   every panel. All are expanding containers, so a border costs no fixed px. */
+#DeckPanelLeft,
+#DeckPanelRight,
+#WaveformBox1, #WaveformBox2,
+#OverviewFrame1, #OverviewFrame2,
+#SidebarBox,
+#SearchLineBox {
+  background-color: #000000;
+  border: 1px solid #32383c;
+}
+
+#ToolBar {
+  background-color: #000000;
+  border: none;
+  border-bottom: 1px solid #32383c;
+}
+
+/* ------------------------------------------------------------- fx page -- */
+#FxPage,
+#FxBody {
+  background-color: #000000;
+}
+
+#OverviewFullRow,
+#OverviewFullBody,
+#OverviewFullBox1,
+#OverviewFullBox2,
+#DecksRow {
+  background-color: #000000;
+}
+
+#FxUnitPanel {
+  background-color: #000000;
+  border: 1px solid #32383c;
+}
+
+#FxUnitLabel {
+  color: #e4e6e7;
+  background: transparent;
+}
+
+#FxRouteLabel,
+#FxKnobLabel {
+  color: #939a9f;
+  background: transparent;
+}
+
+/* The unit's own on switch is the loudest thing on the page: with it off
+   nothing else on the panel does anything. */
+#Mixxx WPushButton#FxUnitEnable[displayValue="1"],
+#Mixxx WPushButton#FxUnitTabButton[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton#FxSlotEnable[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+/* A button parameter is a choice the effect offers, not a control of the
+   skin's, so it takes the same treatment as any other latched button: dim
+   block off, the effect hue on. Mixxx hides the ones the loaded effect does
+   not have, so a row of these is exactly as long as that effect is. */
+#Mixxx WEffectPushButton#FxParamButton[displayValue="0"] {
+  background-color: #111415;
+  color: #e4e6e7;
+}
+
+#Mixxx WEffectPushButton#FxParamButton[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#FxSlotColumn,
+#FxSlotHeadRow,
+#FxSlotButtonParams,
+#FxSlotKnobParamsRow1,
+#FxSlotKnobParamsRow2,
+#FxKnobBox,
+#FxButtonBox,
+#FxParamFiller,
+#FxMetaBox {
+  background-color: #000000;
+}
+
+/* Routing is a statement about a deck, so it takes that deck's waveform
+   colour and says which one it means without being read. */
+#Mixxx WPushButton#FxRouteButton[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+/* Mix mode is a selector - dry/wet against dry+wet, neither of them "on" -
+   so it keeps one block in both states and lets the label carry it. */
+#Mixxx WPushButton#FxMixMode[displayValue="0"],
+#Mixxx WPushButton#FxMixMode[displayValue="1"] {
+  background-color: #111415;
+  color: #e4e6e7;
+}
+
+WEffectSelector#FxSelector {
+  background-color: #111415;
+  border: 1px solid #32383c;
+  color: #e4e6e7;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+}
+
+WEffectSelector#FxSelector:hover {
+  border-color: #e4e6e7;
+  color: #f7f7f8;
+}
+
+/* The drop-down list is a top-level popup, not a child of the combo box in the
+   usual sense, so it needs naming both ways round - through the scroll area
+   and through the item view - or its current row falls back to the platform
+   highlight, which on Windows is the OS accent colour and has nothing to do
+   with the scheme. */
+WEffectSelector#FxSelector QAbstractScrollArea,
+WEffectSelector QAbstractItemView,
+WEffectSelector#FxSelector QAbstractItemView {
+  background-color: #000000;
+  border: 1px solid #4d555b;
+  color: #e4e6e7;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+  outline: none;
+}
+
+WEffectSelector QAbstractItemView::item {
+  color: #e4e6e7;
+  background-color: #000000;
+}
+
+WEffectSelector QAbstractItemView::item:selected,
+WEffectSelector QAbstractItemView::item:hover {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+/* --------------------------------------------------------- chain presets -- */
+/* The preset selector is the same object as an effect selector as far as the
+   eye is concerned, so it gets the same treatment - including naming the popup
+   both ways round, since a combo's drop-down is a top-level widget and picks up
+   the platform highlight otherwise. */
+WEffectChainPresetSelector#FxPresetSelector {
+  background-color: #111415;
+  border: 1px solid #32383c;
+  color: #e4e6e7;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+}
+
+WEffectChainPresetSelector#FxPresetSelector:hover {
+  border-color: #e4e6e7;
+  color: #f7f7f8;
+}
+
+WEffectChainPresetSelector QAbstractScrollArea,
+WEffectChainPresetSelector QAbstractItemView {
+  background-color: #000000;
+  border: 1px solid #4d555b;
+  color: #e4e6e7;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+  outline: none;
+}
+
+WEffectChainPresetSelector QAbstractItemView::item {
+  color: #e4e6e7;
+  background-color: #000000;
+}
+
+WEffectChainPresetSelector QAbstractItemView::item:selected,
+WEffectChainPresetSelector QAbstractItemView::item:hover {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+/* The menu button is navigation, not a latched control - it has no on state to
+   show - so it keeps one block whatever happens. */
+#Mixxx WEffectChainPresetButton#FxPresetButton {
+  background-color: #111415;
+  border: none;
+  color: #e4e6e7;
+}
+
+#Mixxx WEffectChainPresetButton#FxPresetButton:hover {
+  background-color: #1e2224;
+  color: #f7f7f8;
+}
+
+WEffectChainPresetButton QMenu {
+  background-color: #000000;
+  border: 1px solid #4d555b;
+  color: #e4e6e7;
+}
+
+WEffectChainPresetButton QMenu::item:selected {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+WEffectChainPresetButton QMenu::separator {
+  background-color: #32383c;
+  height: 1px;
+  margin: 2px 0px;
+}
+
+/* The deck header is the panel's status line: recessed, with the deck name and
+   the timecode state on it. It lights up while the deck is playing, which is
+   the only play indicator this skin has. */
+#DeckHeader {
+  background-color: #000000;
+  border-bottom: 1px solid #32383c;
+}
+
+#DeckHeader[highlight="1"] {
+  border-bottom: 1px solid #e4e6e7;
+}
+
+#DeckHeader[highlight="1"] #DeckLabel {
+  color: #e4e6e7;
+}
+
+/* ------------------------------------------------------------ typography -- */
+/* Captions are dim lowercase words; values are bright. */
+#DeckFieldLabel,
+#DeckRateSign,
+#DeckRateRange,
+#DeckKeySteps,
+WTrackTableViewHeader,
+WTrackTableViewHeader::section {
+  color: #939a9f;
+  background: transparent;
+}
+
+#DeckLabel {
+  color: #939a9f;
+  background: transparent;
+}
+
+WNumber, WNumberPos, WNumberRate, WKey, WTime,
+#DeckTime, #DeckRate, #DeckKey, #ClockTime {
+  color: #f7f7f8;
+  background: transparent;
+}
+
+/* The bpm block is the exception to "full accent is for engaged controls".
+   It is the number that decides what happens in the next few seconds, and on a
+   panel read at arm's length across a booth it has to be findable without
+   looking for it - so it takes the filled box and knocks the ink out, the same
+   reverse video an engaged button gets. Nothing else on the deck does. */
+#DeckBpmBox {
+  background-color: #e4e6e7;
+}
+
+#DeckBpm,
+#DeckBpmCaption {
+  color: #000000;
+  background: transparent;
+}
+
+WTrackProperty,
+#DeckTitle {
+  color: #e4e6e7;
+  background: transparent;
+}
+
+#DeckArtist {
+  color: #939a9f;
+  background: transparent;
+}
+
+/* Counting down rather than up. The highlight property is bound to
+   ShowDurationRemaining, so this is the one state where the big number means
+   something different from what it usually means. */
+#DeckTime[highlight="1"] {
+  color: #e4e6e7;
+}
+
+/* --------------------------------------------------------------- buttons -- */
+/* A button is a solid block: no border, no bevel, no gradient. The 1px margin
+   in style.qss lets the black ground show through and do all the separating.
+
+   Off is one dim block for every button, whatever it does. Forty dim hues read
+   as noise; one does not. On is the control's hue at full strength with the
+   label flipped to the background colour. */
+#Mixxx WPushButton {
+  border: none;
+  color: #e4e6e7;
+}
+
+#Mixxx WPushButton[displayValue="0"] {
+  background-color: #111415;
+  color: #e4e6e7;
+}
+
+#Mixxx WPushButton:hover {
+  background-color: #1e2224;
+  color: #f7f7f8;
+}
+
+#Mixxx WPushButton[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton[displayValue="1"]:hover {
+  background-color: #f7f7f8;
+  color: #000000;
+}
+
+/* Deck controls get their own hues, so "engaged" says which thing is engaged
+   without reading the word. */
+#Mixxx WPushButton#PlayDeck[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton#CueDeck[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton#SyncDeck[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton#KeylockDeck[displayValue="1"],
+#Mixxx WPushButton#QuantizeDeck[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton#VinylEnableButton[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+/* Passthrough routes the analogue signal straight past Mixxx. It is the one
+   state on this page where what you hear is not what the waveform shows, so it
+   gets the loudest colour in the palette. */
+#Mixxx WPushButton#VinylPassthroughButton[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+/* Mode selectors, not on/off switches. Absolute against relative against
+   constant, needle-drop against cue against hotcue: every state is an equally
+   valid choice and none of them is "engaged", so filling one with the accent
+   claims an on state for a control that has no off -- and the bright block
+   then drowns out the only thing that distinguishes the modes, which is the
+   word on it. Leave the block alone in every state and let the label carry it. */
+#Mixxx WPushButton#VinylModeButton[displayValue="0"],
+#Mixxx WPushButton#VinylModeButton[displayValue="1"],
+#Mixxx WPushButton#VinylModeButton[displayValue="2"],
+#Mixxx WPushButton#VinylCueButton[displayValue="0"],
+#Mixxx WPushButton#VinylCueButton[displayValue="1"],
+#Mixxx WPushButton#VinylCueButton[displayValue="2"] {
+  background-color: #111415;
+  color: #e4e6e7;
+}
+
+/* Navigation, not performance. The page tabs and the display toggles sit
+   shoulder to shoulder across the top; a full-accent fill merges them into one
+   bright band. Give them the muted selection colour and let the deck controls
+   own the loud hues. */
+#Mixxx #TabControls WPushButton[displayValue="1"] {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+#Mixxx #TabControls WPushButton[displayValue="0"] {
+  background-color: #000000;
+  color: #939a9f;
+}
+
+/* ----------------------------------------------------------- options page -- */
+/* An option button cycles rather than latches, so none of its states is "on"
+   and filling one with the accent would claim otherwise. Give every state the
+   muted selection colour and let the word on the button - "two rows", "440 px",
+   "in each deck" - be the readout. The four-state rows need states 2 and 3
+   named explicitly; without them they fall through to the bare WPushButton
+   rule and render with no fill at all. */
+#Mixxx #OptionRow WPushButton[displayValue="0"],
+#Mixxx #OptionRow WPushButton[displayValue="1"],
+#Mixxx #OptionRow WPushButton[displayValue="2"],
+#Mixxx #OptionRow WPushButton[displayValue="3"] {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+#Mixxx #OptionRow WPushButton:hover {
+  background-color: #1e2224;
+  color: #f7f7f8;
+}
+
+#OptionsSection {
+  color: #e4e6e7;
+  background: transparent;
+}
+
+#OptionCaption {
+  color: #e4e6e7;
+  background: transparent;
+}
+
+#OptionsNote {
+  color: #666f75;
+  background: transparent;
+}
+
+#OptionsPage,
+#OptionsColumn,
+#OptionsFiller {
+  background-color: #000000;
+}
+
+/* A hot cue slot that is empty reads as a slot, not as a control: same dim
+   block as everything else off, but the number in the faint ink so a row of
+   four empties does not look like four things you could press. Set and active
+   take the cue hue. On a monochrome scheme <UseCueColor> is off, so these
+   rules are the whole of a hotcue's colour.
+
+   With <UseCueColor> on, a set hotcue's background comes from the cue itself
+   and overrides the rule below; these two are what a monochrome scheme, which
+   turns that off, renders a hotcue with. */
+#Mixxx WPushButton#HotcueButton[displayValue="0"] {
+  background-color: #111415;
+  color: #666f75;
+}
+
+#Mixxx WPushButton#HotcueButton[displayValue="1"],
+#Mixxx WPushButton#HotcueButton[displayValue="2"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+/* The loop toggle is the one control on this row with a state, and that state
+   is "a loop is running" - worth the loop hue at full strength. The two jump
+   arrows are momentary and stay blocks. */
+#Mixxx WPushButton#LoopActivate[displayValue="1"] {
+  background-color: #e4e6e7;
+  color: #000000;
+}
+
+#Mixxx WPushButton#JumpBack[displayValue="0"],
+#Mixxx WPushButton#JumpForward[displayValue="0"] {
+  background-color: #111415;
+  color: #e4e6e7;
+}
+
+WBeatSpinBox {
+  background-color: #000000;
+  border: 1px solid #32383c;
+  color: #f7f7f8;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+}
+
+/* The two lengths are the row's reason for existing - everything else on it is
+   feedback about a button the controller owns - so they get the filled box with
+   the ink knocked out, and each takes its family's hue: loop the loop hue,
+   beatjump its own. A sunken box with a border reads as a field you are meant
+   to type in, which these are not; a filled one reads as a readout, and the hue
+   says which of the two you are looking at without reading the number at all.
+   On a one-hue scheme the two come out the same colour, which is as much as a
+   single hue can say. */
+#LoopSize {
+  background-color: #e4e6e7;
+  border: none;
+  color: #000000;
+  selection-background-color: #000000;
+  selection-color: #e4e6e7;
+}
+
+#JumpSize {
+  background-color: #e4e6e7;
+  border: none;
+  color: #000000;
+  selection-background-color: #000000;
+  selection-color: #e4e6e7;
+}
+
+WBeatSpinBox:focus {
+  border-color: #e4e6e7;
+}
+
+WBeatSpinBox::up-button, WBeatSpinBox::down-button {
+  background-color: #000000;
+  border: none;
+  border-left: 1px solid #32383c;
+}
+
+WBeatSpinBox::up-button:hover, WBeatSpinBox::down-button:hover {
+  background-color: #32383c;
+}
+
+/* ------------------------------------------------------------ dvs status -- */
+/* The one widget on screen that reports the timecode path, so it has to be
+   readable at a glance on every palette -- including the monochrome ones,
+   where hue cannot carry it. Each state is therefore a different *treatment*
+   as well as a different colour, and they get louder in order: dark and faint,
+   outlined, dim fill, full reverse video. On a single-hue scheme the fill and
+   the outline still separate cleanly; on btop they also separate by hue. */
+#DvsStatusLight[displayValue="0"] {
+  background-color: #111415;
+  border: 1px solid #32383c;
+  color: #666f75;
+}
+
+#DvsStatusLight[displayValue="1"] {
+  background-color: #111415;
+  border: 1px solid #e4e6e7;
+  color: #e4e6e7;
+}
+
+#DvsStatusLight[displayValue="2"] {
+  background-color: #4d555b;
+  border: 1px solid #e4e6e7;
+  color: #f7f7f8;
+}
+
+#DvsStatusLight[displayValue="3"] {
+  background-color: #e4e6e7;
+  border: 1px solid #e4e6e7;
+  color: #000000;
+}
+
+/* --------------------------------------------------------------- library -- */
+WLibrary,
+WLibraryTableView,
+WTrackTableView {
+  background-color: #000000;
+  alternate-background-color: #000000;
+  color: #e4e6e7;
+  border: 1px solid #32383c;
+  gridline-color: #32383c;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+  outline: none;
+}
+
+/* The track colour column is painted by ColorDelegate straight onto the
+   viewport, so no rule here can reach it -- but the delegate reads this
+   property first and falls back to the row background when it is set. That is
+   the only handle a skin has on it, and it is what keeps a track's colour from
+   being the one coloured thing on a monochrome screen. */
+WTrackTableView {
+  qproperty-mixxxColorDelegateUseRowBackgroundForColorCell: true;
+}
+
+WTrackTableView::item:selected,
+WLibraryTableView::item:selected {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+WTrackTableView::item:hover,
+WLibraryTableView::item:hover {
+  background-color: #000000;
+  color: #f7f7f8;
+}
+
+WTrackTableViewHeader,
+WTrackTableViewHeader::section {
+  background-color: #000000;
+  color: #939a9f;
+  border: none;
+  border-right: 1px solid #32383c;
+  border-bottom: 1px solid #32383c;
+}
+
+WTrackTableViewHeader::section:hover {
+  color: #f7f7f8;
+  background-color: #000000;
+}
+
+WLibrarySidebar {
+  background-color: #000000;
+  color: #e4e6e7;
+  border: none;
+  outline: none;
+  show-decoration-selected: 0;
+}
+
+WLibrarySidebar::item:selected,
+WLibrarySidebar::branch:selected {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+WLibrarySidebar::item:hover {
+  background-color: #000000;
+  color: #f7f7f8;
+}
+
+/* The search field as a prompt line: no box, just a rule underneath. */
+WSearchLineEdit {
+  background-color: #000000;
+  color: #f7f7f8;
+  border: none;
+  border-bottom: 1px solid #32383c;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+}
+
+WSearchLineEdit:focus {
+  border-bottom-color: #e4e6e7;
+}
+
+#LibraryFeatureControls QLabel,
+#LibraryFeatureControls QRadioButton {
+  color: #939a9f;
+  background: transparent;
+  text-transform: lowercase;
+}
+
+#LibraryFeatureControls QPushButton {
+  background-color: #000000;
+  border: 1px solid #32383c;
+  color: #e4e6e7;
+  text-transform: lowercase;
+}
+
+#LibraryFeatureControls QPushButton:hover {
+  border-color: #4d555b;
+  color: #f7f7f8;
+}
+
+#LibraryFeatureControls QPushButton:checked {
+  background-color: #e4e6e7;
+  border-color: #e4e6e7;
+  color: #000000;
+}
+
+/* ------------------------------------------------------------ scrollbars -- */
+QScrollBar:vertical, QScrollBar:horizontal {
+  background-color: #000000;
+  border: none;
+  margin: 0px;
+}
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+  background-color: #4d555b;
+  border: none;
+  min-height: 40px;
+  min-width: 40px;
+}
+
+QScrollBar::handle:hover {
+  background-color: #939a9f;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line,
+QScrollBar::add-page, QScrollBar::sub-page {
+  background: transparent;
+  border: none;
+  height: 0px;
+  width: 0px;
+}
+
+/* ----------------------------------------------------------- combo boxes -- */
+QComboBox,
+QSpinBox {
+  background-color: #000000;
+  border: 1px solid #32383c;
+  color: #e4e6e7;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+}
+
+QComboBox:hover,
+QSpinBox:hover {
+  border-color: #4d555b;
+  color: #f7f7f8;
+}
+
+QComboBox QAbstractItemView {
+  background-color: #000000;
+  border: 1px solid #4d555b;
+  color: #e4e6e7;
+  selection-background-color: #2e3438;
+  selection-color: #f7f7f8;
+}
+
+/* ------------------------------------------------------------- menu bar -- */
+/* Mixxx loads the platform's default menu styles before this file, which
+   deliberately leaves the menu bar looking native. A terminal has no native
+   chrome, so take it over: flat, square, reverse-video highlight. */
+#MainMenu,
+QMenuBar {
+  background-color: #000000;
+  color: #939a9f;
+  border: none;
+  border-bottom: 1px solid #32383c;
+}
+
+#MainMenu::item,
+QMenuBar::item {
+  background: transparent;
+  color: #939a9f;
+  padding: 3px 8px;
+}
+
+#MainMenu::item:selected, #MainMenu::item:pressed,
+QMenuBar::item:selected, QMenuBar::item:pressed {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+/* ----------------------------------------------------- menus and popups -- */
+QMenu, WCueMenuPopup, WTrackMenu {
+  background-color: #000000;
+  border: 1px solid #4d555b;
+  color: #e4e6e7;
+}
+
+/* A menu is the hardest thing to hit on a touchscreen, and Mixxx puts a lot
+   behind the track context menu. Give every row a finger's worth of height. */
+QMenu::item {
+  padding: 8px 16px;
+}
+
+QMenu::item:selected, QMenu::item:hover {
+  background-color: #2e3438;
+  color: #f7f7f8;
+}
+
+QMenu::item:disabled {
+  color: #666f75;
+}
+
+QMenu::separator {
+  background-color: #32383c;
+  height: 1px;
+  margin: 2px 0px;
+}
+
+QToolTip {
+  background-color: #000000;
+  border: 1px solid #e4e6e7;
+  color: #e4e6e7;
+  padding: 3px;
+}
+
+/* ------------------------------------------------------------- splitters -- */
+QSplitter::handle,
+#LibrarySplitter::handle {
+  background-color: #000000;
+  width: 6px;
+}
+
+QSplitter::handle:hover {
+  background-color: #4d555b;
+}
+
+/* --------------------------------------------------------------- overlays -- */
+QProgressBar {
+  background-color: #000000;
+  border: 1px solid #32383c;
+  color: #e4e6e7;
+  text-align: center;
+}
+
+QProgressBar::chunk {
+  background-color: #e4e6e7;
+}

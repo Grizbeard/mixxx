@@ -1,0 +1,69 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One effect parameter: its knob, and the name the loaded effect gives it.
+
+    Every slot lays out all eight and each one hides itself unless the loaded
+    effect actually has that parameter, so what is on screen is however many
+    that effect has - not a fixed row of eight.
+
+    The hiding is the skin's job, not Mixxx's: nothing about a parameter widget
+    makes it disappear when its parameter is absent, it just renders inert with
+    an empty name. Every parameter slot does publish
+    <group>,parameter<n>_loaded (effectknobparameterslot.h, formatItemPrefix),
+    and binding visibility to that is the handle.
+
+  Variables:
+    FxUnit, FxNum, FxParameter, FxUnitGroup, FxSlotGroup
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>FxKnobBox</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,min</SizePolicy>
+    <MinimumSize>68,70</MinimumSize>
+    <MaximumSize>108,</MaximumSize>
+    <Children>
+      <EffectParameterKnobComposed>
+        <ObjectName>FxParamKnob</ObjectName>
+        <TooltipId>EffectSlot_parameter</TooltipId>
+        <SizePolicy>me,f</SizePolicy>
+        <Size>0me,48f</Size>
+        <MinAngle><Variable name="PotiMinAngle"/></MinAngle>
+        <MaxAngle><Variable name="PotiMaxAngle"/></MaxAngle>
+        <ArcRadius><Variable name="ArcRadius"/></ArcRadius>
+        <ArcThickness><Variable name="ArcThickness"/></ArcThickness>
+        <ArcBgThickness><Variable name="ArcBgThickness"/></ArcBgThickness>
+        <ArcBgColor><Variable name="ArcBgColor"/></ArcBgColor>
+        <ArcColor><Variable name="ArcColorFxParameter"/></ArcColor>
+        <ArcRoundCaps><Variable name="ArcRoundCaps"/></ArcRoundCaps>
+        <EffectUnitGroup><Variable name="FxUnitGroup"/></EffectUnitGroup>
+        <Effect><Variable name="FxNum"/></Effect>
+        <EffectParameter><Variable name="FxParameter"/></EffectParameter>
+        <ArcUnipolar>true</ArcUnipolar>
+        <!-- The EffectUnitGroup/Effect/EffectParameter trio above is what tells
+             the widget which parameter it is showing. It is not what lets it
+             change one: that needs a control to write to, and without this
+             connection the knob draws the right value and moves nothing. -->
+        <Connection>
+          <ConfigKey><Variable name="FxSlotGroup"/>,parameter<Variable name="FxParameter"/></ConfigKey>
+        </Connection>
+      </EffectParameterKnobComposed>
+      <EffectParameterName>
+        <ObjectName>FxKnobLabel</ObjectName>
+        <SizePolicy>me,f</SizePolicy>
+        <Size>0me,22f</Size>
+        <EffectRack>1</EffectRack>
+        <EffectUnit><Variable name="FxUnit"/></EffectUnit>
+        <Effect><Variable name="FxNum"/></Effect>
+        <EffectParameter><Variable name="FxParameter"/></EffectParameter>
+        <Alignment>center</Alignment>
+        <Elide>right</Elide>
+      </EffectParameterName>
+    </Children>
+    <Connection>
+      <ConfigKey><Variable name="FxSlotGroup"/>,parameter<Variable name="FxParameter"/>_loaded</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>

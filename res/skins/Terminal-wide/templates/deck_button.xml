@@ -1,0 +1,35 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    A two-state deck button, labelled with a word rather than a glyph. There is
+    no icon set in this skin: on a monochrome scheme a word survives at arm's
+    length where a 16px pictogram does not, and it needs no asset to recolour.
+
+  Variables:
+    ObjectName: the object name, which is what the stylesheet colours it by
+    TooltipId:  Mixxx tooltip id
+    Text0:      label in state 0
+    Text1:      label in state 1
+    ConfigKey:  control to toggle
+-->
+<Template>
+  <PushButton>
+    <ObjectName><Variable name="ObjectName"/></ObjectName>
+    <TooltipId><Variable name="TooltipId"/></TooltipId>
+    <SizePolicy>me,f</SizePolicy>
+    <Size>0me,50f</Size>
+    <NumberStates>2</NumberStates>
+    <State>
+      <Number>0</Number>
+      <Text><Variable name="Text0"/></Text>
+    </State>
+    <State>
+      <Number>1</Number>
+      <Text><Variable name="Text1"/></Text>
+    </State>
+    <Connection>
+      <ConfigKey><Variable name="ConfigKey"/></ConfigKey>
+      <ButtonState>LeftButton</ButtonState>
+    </Connection>
+  </PushButton>
+</Template>

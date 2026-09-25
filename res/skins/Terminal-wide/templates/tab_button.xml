@@ -1,0 +1,29 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One page tab in the toolbar. Bound to the same [Tab] control the page stack
+    triggers on, so the button state and the visible page cannot disagree.
+
+  Variables:
+    Label:     the word on the tab
+    ConfigKey: the [Tab] control, e.g. decks
+-->
+<Template>
+  <PushButton>
+    <ObjectName>TabButton</ObjectName>
+    <Size>152f,36f</Size>
+    <NumberStates>2</NumberStates>
+    <State>
+      <Number>0</Number>
+      <Text><Variable name="Label"/></Text>
+    </State>
+    <State>
+      <Number>1</Number>
+      <Text><Variable name="Label"/></Text>
+    </State>
+    <Connection>
+      <ConfigKey persist="true">[Tab],<Variable name="ConfigKey"/></ConfigKey>
+      <ButtonState>LeftButton</ButtonState>
+    </Connection>
+  </PushButton>
+</Template>

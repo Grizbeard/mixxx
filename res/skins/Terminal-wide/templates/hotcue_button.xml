@@ -1,0 +1,41 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One hotcue button, labelled with its number.
+
+    Three states, as WHotcueButton expects: 0 empty, 1 set, 2 active. The
+    number is on the button in every state, so an empty slot still says which
+    one it is - on a panel this size there is no room for a legend elsewhere.
+
+    <UseCueColor> follows the scheme. A multi-hue scheme lets a set hotcue show
+    the colour the cue itself carries; a monochrome one turns that off, since
+    the colour comes from the user's palette and has nothing to do with the
+    scheme, and would be the only colour on the screen.
+
+    Worth knowing when a set hotcue looks blank: with <UseCueColor> on, the
+    cue's own colour wins over anything the stylesheet says, and a cue whose
+    stored colour is black - which tracks carrying imported Serato or rekordbox
+    markers often have - paints black on a black ground. That is the track's
+    data, not the skin. A monochrome scheme, which switches the cue colour off,
+    shows those cues normally.
+
+  Variables:
+    Group:  the deck, e.g. [Channel1]
+    Number: 1..8
+-->
+<Template>
+  <HotcueButton>
+    <TooltipId>hotcue</TooltipId>
+    <ObjectName>HotcueButton</ObjectName>
+    <SizePolicy>me,f</SizePolicy>
+    <Size>0me,44f</Size>
+    <Group><Variable name="Group"/></Group>
+    <Hotcue><Variable name="Number"/></Hotcue>
+    <NumberStates>3</NumberStates>
+    <DimBrightThreshold><Variable name="DimBrightThresholdHotcueBtn"/></DimBrightThreshold>
+    <UseCueColor><Variable name="UseCueColor"/></UseCueColor>
+    <State><Number>0</Number><Text><Variable name="Number"/></Text></State>
+    <State><Number>1</Number><Text><Variable name="Number"/></Text></State>
+    <State><Number>2</Number><Text><Variable name="Number"/></Text></State>
+  </HotcueButton>
+</Template>

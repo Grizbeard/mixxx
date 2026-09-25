@@ -1,0 +1,86 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    The browse page: search line over the tree and the track table.
+
+    Browsing is the dominant touch interaction on this appliance - the
+    turntables do everything else - so it gets the whole screen rather than a
+    strip under the decks. The tree is 380px wide because a crate name has to
+    be hittable with a thumb, not because it needs the room.
+
+    Track row height and library font size are Mixxx preferences
+    ([Library],RowHeight and [Library],Font), not skin settings. On the panel
+    they want to be turned up; the skin cannot do it without overwriting the
+    user's choice on every launch.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>LibraryPage</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+
+      <SingletonContainer>
+        <ObjectName>ToolBar_Singleton</ObjectName>
+        <SizePolicy>me,max</SizePolicy>
+      </SingletonContainer>
+
+      <WidgetGroup>
+        <ObjectName>SearchRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,40f</Size>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>SearchLineBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children>
+              <SearchBox></SearchBox>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>LibraryContainer</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+
+          <Splitter>
+            <ObjectName>LibrarySplitter</ObjectName>
+            <SizePolicy>me,me</SizePolicy>
+            <SplitSizes>380,1540</SplitSizes>
+            <SplitSizesConfigKey>[TerminalWide],librarySidebar_splitsize</SplitSizesConfigKey>
+            <Collapsible>1,0</Collapsible>
+            <Children>
+
+              <WidgetGroup>
+                <ObjectName>SidebarBox</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <MinimumSize>160,</MinimumSize>
+                <Children>
+                  <LibrarySidebar></LibrarySidebar>
+                </Children>
+              </WidgetGroup>
+
+              <Library>
+                <ShowButtonText>false</ShowButtonText>
+                <!-- A track's own colour washed over its row. The monochrome
+                     schemes set this to 0: it comes from the user's colour
+                     palette, so it is the one thing on screen a single-hue
+                     scheme has nowhere to put. -->
+                <TrackTableBackgroundColorOpacity><Variable name="TrackColorOpacity"/></TrackTableBackgroundColorOpacity>
+                <SignalColor><Variable name="SignalColor_1"/></SignalColor>
+              </Library>
+
+            </Children>
+          </Splitter>
+
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

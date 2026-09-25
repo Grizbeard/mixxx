@@ -1,0 +1,636 @@
+<!--
+  Terminal-wide, a Mixxx skin for an 8.8" 1920x480 ultrawide touchscreen.
+
+  Built for the DJM-T1 DVS appliance: two decks, external analogue mixing, and
+  turntables driving playback. What that leaves on screen is track state, the
+  waveforms, and the timecode path - so there is no mixer section, no level
+  meters and no crossfader here. Those are on the mixer, in hardware.
+
+  The visual design is Terminal's: monospace type, no gradients or rounded
+  corners, 1px box rules for chrome, reverse video for an engaged toggle. Every
+  colour comes from a palette in tools/palettes/; the <Schemes>
+  block below and the per-scheme stylesheets are generated from it by
+  tools/generate.py. Do not hand-edit either.
+
+  Terminal derives from "LateNight" by jus <s.brandt@mixxx.org>,
+  Owen Williams <owilliams@mixxx.org> and ronso0, licensed CC-BY-SA 3.0
+  Unported, and this skin keeps that licence.
+  http://creativecommons.org/licenses/by-sa/3.0/
+
+  The layout is original to this skin. It takes its touch sizing and its tabbed
+  page model as reference from "Pioneered" by Sven Boekelder (GPL-3.0), but
+  carries none of its markup - a three-column ultrawide has nothing in common
+  with Pioneered's stacked layout.
+  -->
+
+<!DOCTYPE skin>
+<skin>
+  <manifest>
+    <title>Terminal-wide</title>
+    <author>Justin Morken; design after Terminal, layout after LateNight by owilliams, ronso0</author>
+    <version>1.0.0</version>
+    <description>An OS-terminal skin for an 8.8" 1920x480 ultrawide touchscreen: two decks flanking the waveforms, per-deck DVS control and timecode status, no mixer and no meters. Waveform lanes switch between two full-width rows and two turned columns, and an options page carries the layout settings. Colours are palette-driven and switchable per colour scheme.</description>
+    <language>en</language>
+    <license>Creative Commons Attribution, Share-Alike 3.0 Unported</license>
+    <attributes>
+      <attribute config_key="[App],num_decks">2</attribute>
+      <attribute config_key="[App],num_samplers">0</attribute>
+      <attribute config_key="[App],num_preview_decks">0</attribute>
+
+      <!-- The DVS strip is the point of this skin. -->
+      <attribute persist="true" config_key="[VinylControl],show_vinylcontrol">1</attribute>
+
+      <!-- Layout settings, all driven from the options page. Each one selects
+           a page of a WidgetStack, so the values are indices, not sizes.
+             waveform_columns  0 two horizontal rows, 1 two vertical columns
+             deck_width        0..6 -> 360..600 px in 40s     (deck.xml)
+             overview_height   0..3 -> 24, 36, 52, 72 px       (both placements)
+             overview_place    0 under the waveforms, 1 inside each deck,
+                               2 a full-width row under the whole page
+             -->
+      <attribute persist="true" config_key="[TerminalWide],waveform_columns">0</attribute>
+      <attribute persist="true" config_key="[TerminalWide],deck_width">1</attribute>
+      <attribute persist="true" config_key="[TerminalWide],overview_height">1</attribute>
+      <attribute persist="true" config_key="[TerminalWide],overview_place">0</attribute>
+
+      <!-- Page selection. Decks is the page you mix from. -->
+      <attribute persist="true" config_key="[Tab],decks">1</attribute>
+      <attribute persist="true" config_key="[Tab],library">0</attribute>
+      <attribute persist="true" config_key="[Tab],fx">0</attribute>
+      <attribute persist="true" config_key="[Tab],options">0</attribute>
+
+      <!-- FX unit selection. Unit 1 selected by default. -->
+      <attribute persist="true" config_key="[TerminalWide],fx_unit_1">1</attribute>
+      <attribute persist="true" config_key="[TerminalWide],fx_unit_2">0</attribute>
+      <attribute persist="true" config_key="[TerminalWide],fx_unit_3">0</attribute>
+      <attribute persist="true" config_key="[TerminalWide],fx_unit_4">0</attribute>
+
+      <!-- Time display is NOT set here. It wants to be "remaining" - the deck's
+           time field is sized for seven cells, and "both" overflows it - but a
+           skin attribute can only get that by re-asserting it on every launch,
+           which means overriding whatever the operator picked in Preferences,
+           every time. Seeding [Controls],PositionDisplay in the config once
+           instead leaves the preference a preference; see
+           scripts/preview-terminal-wide.ps1, which does exactly that. -->
+
+      <!-- Deck rows the options page can show or hide. hotcue_count is
+           0 none, 1 four, 2 eight. Beatjump is off by default: with turntables
+           driving playback it is the least-used of the three, and the panel is
+           480px tall. -->
+      <attribute persist="true" config_key="[TerminalWide],hotcue_count">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_loop_controls">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_beatjump_controls">0</attribute>
+
+      <attribute persist="true" config_key="[Skin],show_intro_outro_cues">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_library_coverart">0</attribute>
+      <attribute persist="true" config_key="[Microphone],show_microphone">0</attribute>
+      <attribute persist="true" config_key="[PreviewDeck],show_previewdeck">0</attribute>
+
+      <!-- Effect routing is NOT set here either, for the same reason: Mixxx
+           persists it, and an attribute that re-asserts it every launch would
+           undo the route buttons on the fx page the moment you restarted.
+           Unit 1 to deck 1 and unit 2 to deck 2 are seeded into the config
+           alongside the time display.
+      -->
+
+    </attributes>
+  </manifest>
+
+  <Schemes>
+  <!-- TERMINAL-WIDE-SCHEMES-BEGIN: generated by tools/generate.py, do not edit -->
+    <Scheme>
+      <Name>Btop</Name>
+      <!-- btop palette: black ground, sage-grey rules and text, and only the four sample hues (magenta, yellow, cyan, green). -->
+
+      <!-- No wordmark: this skin ships no image assets at all, so the splash
+           is the ground colour and a one-line progress rule. -->
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: none;
+          min-height: 0px;
+          max-height: 0px;
+        }
+        QProgressBar {
+          background-color: #000000;
+          border: none;
+          min-width: 320px;
+          max-width: 320px;
+          min-height: 3px;
+          max-height: 3px;
+        }
+        QProgressBar::chunk {
+          background-color: #93d64a;
+        }
+      </LaunchImageStyle>
+
+      <Style src="skin:style_btop.qss"/>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. The two decks keep distinct
+           unfiltered signal colours where the palette has more than one hue. -->
+      <SetVariable name="BgColorWaveform">#000000</SetVariable>
+      <SetVariable name="BgColorOverview">#000000</SetVariable>
+      <SetVariable name="SignalColor_1">#93d64a</SetVariable>
+      <SetVariable name="SignalColor_2">#42c9d6</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#ea3c96</SetVariable>
+      <SetVariable name="SignalMidColor">#d8d84a</SetVariable>
+      <SetVariable name="SignalHighColor">#42c9d6</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#ea3c96</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#d8d84a</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#42c9d6</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#929e8a</SetVariable>
+      <SetVariable name="MarkDisabledColor">#6c7566</SetVariable>
+      <SetVariable name="DurationTextColor">#ddf0d1</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. TrackColorOpacity
+           is the wash of a track's colour over its library row; 0 removes it.
+
+           Both need the <UseCueColor> and <TrackTableBackgroundColorOpacity>
+           support in Mixxx. On a build without them the marks simply keep
+           their own colours - nothing breaks, the monochrome schemes just are
+           not quite monochrome. -->
+      <SetVariable name="UseCueColor">true</SetVariable>
+      <SetVariable name="TrackColorOpacity">0.175</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#3b4037</SetVariable>
+      <SetVariable name="BeatColor">#596154</SetVariable>
+      <SetVariable name="PlayPosColor">#ddf0d1</SetVariable>
+      <SetVariable name="CueColor">#ea3c96</SetVariable>
+      <SetVariable name="LoopColor">#d8d84a</SetVariable>
+      <SetVariable name="IntroOutroColor">#1d5c63</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#ea3c96</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#d8d84a</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#ea3c96</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">17</SetVariable>
+
+      <!-- Knobs on the fx page. There is no bezel image and no needle image:
+           WKnobComposed draws the value arc on its own when ArcRadius is set
+           (wknobcomposed.cpp, paintEvent), which is how this skin goes on
+           shipping no assets. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <!-- WKnobComposed centres the arc on the widget at this radius, so the
+           knob has to be at least 2*ArcRadius + ArcThickness in both
+           directions or the arc is clipped: 20 and 5 wanted 45px out of a 44px
+           knob, which is exactly the sliver that went missing. -->
+      <SetVariable name="ArcRadius">16</SetVariable>
+      <SetVariable name="ArcThickness">4</SetVariable>
+      <SetVariable name="ArcBgThickness">4</SetVariable>
+      <SetVariable name="ArcBgColor">#596154</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorFxMix">#ea3c96</SetVariable>
+      <SetVariable name="ArcColorSuper">#93d64a</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#b7c7ad</SetVariable>
+    </Scheme><!-- Btop -->
+    <Scheme>
+      <Name>Amber</Name>
+      <!-- P3 amber phosphor: one hue, separated by brightness alone, the warm monochrome of a late-eighties terminal. -->
+
+      <!-- No wordmark: this skin ships no image assets at all, so the splash
+           is the ground colour and a one-line progress rule. -->
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: none;
+          min-height: 0px;
+          max-height: 0px;
+        }
+        QProgressBar {
+          background-color: #000000;
+          border: none;
+          min-width: 320px;
+          max-width: 320px;
+          min-height: 3px;
+          max-height: 3px;
+        }
+        QProgressBar::chunk {
+          background-color: #ffb10a;
+        }
+      </LaunchImageStyle>
+
+      <Style src="skin:style_amber.qss"/>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. The two decks keep distinct
+           unfiltered signal colours where the palette has more than one hue. -->
+      <SetVariable name="BgColorWaveform">#000000</SetVariable>
+      <SetVariable name="BgColorOverview">#000000</SetVariable>
+      <SetVariable name="SignalColor_1">#ffb10a</SetVariable>
+      <SetVariable name="SignalColor_2">#d69c1f</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#d69c1f</SetVariable>
+      <SetVariable name="SignalMidColor">#ffb10a</SetVariable>
+      <SetVariable name="SignalHighColor">#ffdf99</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#d69c1f</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#ffb10a</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#ffdf99</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#d69c1f</SetVariable>
+      <SetVariable name="MarkDisabledColor">#8e6e29</SetVariable>
+      <SetVariable name="DurationTextColor">#ffdf99</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. TrackColorOpacity
+           is the wash of a track's colour over its library row; 0 removes it.
+
+           Both need the <UseCueColor> and <TrackTableBackgroundColorOpacity>
+           support in Mixxx. On a build without them the marks simply keep
+           their own colours - nothing breaks, the monochrome schemes just are
+           not quite monochrome. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#433516</SetVariable>
+      <SetVariable name="BeatColor">#665124</SetVariable>
+      <SetVariable name="PlayPosColor">#ffdf99</SetVariable>
+      <SetVariable name="CueColor">#ffb10a</SetVariable>
+      <SetVariable name="LoopColor">#ffb10a</SetVariable>
+      <SetVariable name="IntroOutroColor">#8e6e29</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#ffb10a</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#ffb10a</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#ffb10a</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">17</SetVariable>
+
+      <!-- Knobs on the fx page. There is no bezel image and no needle image:
+           WKnobComposed draws the value arc on its own when ArcRadius is set
+           (wknobcomposed.cpp, paintEvent), which is how this skin goes on
+           shipping no assets. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <!-- WKnobComposed centres the arc on the widget at this radius, so the
+           knob has to be at least 2*ArcRadius + ArcThickness in both
+           directions or the arc is clipped: 20 and 5 wanted 45px out of a 44px
+           knob, which is exactly the sliver that went missing. -->
+      <SetVariable name="ArcRadius">16</SetVariable>
+      <SetVariable name="ArcThickness">4</SetVariable>
+      <SetVariable name="ArcBgThickness">4</SetVariable>
+      <SetVariable name="ArcBgColor">#665124</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorFxMix">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorSuper">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#ffb10a</SetVariable>
+    </Scheme><!-- Amber -->
+    <Scheme>
+      <Name>Green Phosphor</Name>
+      <!-- P1 green phosphor: one hue, separated by brightness alone, the way a monochrome terminal separated everything. -->
+
+      <!-- No wordmark: this skin ships no image assets at all, so the splash
+           is the ground colour and a one-line progress rule. -->
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: none;
+          min-height: 0px;
+          max-height: 0px;
+        }
+        QProgressBar {
+          background-color: #000000;
+          border: none;
+          min-width: 320px;
+          max-width: 320px;
+          min-height: 3px;
+          max-height: 3px;
+        }
+        QProgressBar::chunk {
+          background-color: #33ff3a;
+        }
+      </LaunchImageStyle>
+
+      <Style src="skin:style_green.qss"/>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. The two decks keep distinct
+           unfiltered signal colours where the palette has more than one hue. -->
+      <SetVariable name="BgColorWaveform">#000000</SetVariable>
+      <SetVariable name="BgColorOverview">#000000</SetVariable>
+      <SetVariable name="SignalColor_1">#33ff3a</SetVariable>
+      <SetVariable name="SignalColor_2">#1fd625</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#1fd625</SetVariable>
+      <SetVariable name="SignalMidColor">#33ff3a</SetVariable>
+      <SetVariable name="SignalHighColor">#b2ffb5</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#1fd625</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#33ff3a</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#b2ffb5</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#1fd625</SetVariable>
+      <SetVariable name="MarkDisabledColor">#298e2d</SetVariable>
+      <SetVariable name="DurationTextColor">#b2ffb5</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. TrackColorOpacity
+           is the wash of a track's colour over its library row; 0 removes it.
+
+           Both need the <UseCueColor> and <TrackTableBackgroundColorOpacity>
+           support in Mixxx. On a build without them the marks simply keep
+           their own colours - nothing breaks, the monochrome schemes just are
+           not quite monochrome. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#164318</SetVariable>
+      <SetVariable name="BeatColor">#246626</SetVariable>
+      <SetVariable name="PlayPosColor">#b2ffb5</SetVariable>
+      <SetVariable name="CueColor">#33ff3a</SetVariable>
+      <SetVariable name="LoopColor">#33ff3a</SetVariable>
+      <SetVariable name="IntroOutroColor">#298e2d</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#33ff3a</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#33ff3a</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#33ff3a</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">17</SetVariable>
+
+      <!-- Knobs on the fx page. There is no bezel image and no needle image:
+           WKnobComposed draws the value arc on its own when ArcRadius is set
+           (wknobcomposed.cpp, paintEvent), which is how this skin goes on
+           shipping no assets. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <!-- WKnobComposed centres the arc on the widget at this radius, so the
+           knob has to be at least 2*ArcRadius + ArcThickness in both
+           directions or the arc is clipped: 20 and 5 wanted 45px out of a 44px
+           knob, which is exactly the sliver that went missing. -->
+      <SetVariable name="ArcRadius">16</SetVariable>
+      <SetVariable name="ArcThickness">4</SetVariable>
+      <SetVariable name="ArcBgThickness">4</SetVariable>
+      <SetVariable name="ArcBgColor">#246626</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorFxMix">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorSuper">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#33ff3a</SetVariable>
+    </Scheme><!-- Green Phosphor -->
+    <Scheme>
+      <Name>White Phosphor</Name>
+      <!-- P4 white phosphor: one barely-blue white, separated by brightness alone, like a paper-white monitor. -->
+
+      <!-- No wordmark: this skin ships no image assets at all, so the splash
+           is the ground colour and a one-line progress rule. -->
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: none;
+          min-height: 0px;
+          max-height: 0px;
+        }
+        QProgressBar {
+          background-color: #000000;
+          border: none;
+          min-width: 320px;
+          max-width: 320px;
+          min-height: 3px;
+          max-height: 3px;
+        }
+        QProgressBar::chunk {
+          background-color: #e4e6e7;
+        }
+      </LaunchImageStyle>
+
+      <Style src="skin:style_white.qss"/>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. The two decks keep distinct
+           unfiltered signal colours where the palette has more than one hue. -->
+      <SetVariable name="BgColorWaveform">#000000</SetVariable>
+      <SetVariable name="BgColorOverview">#000000</SetVariable>
+      <SetVariable name="SignalColor_1">#e4e6e7</SetVariable>
+      <SetVariable name="SignalColor_2">#939a9f</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#939a9f</SetVariable>
+      <SetVariable name="SignalMidColor">#e4e6e7</SetVariable>
+      <SetVariable name="SignalHighColor">#f7f7f8</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#939a9f</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#e4e6e7</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#f7f7f8</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#939a9f</SetVariable>
+      <SetVariable name="MarkDisabledColor">#666f75</SetVariable>
+      <SetVariable name="DurationTextColor">#f7f7f8</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. TrackColorOpacity
+           is the wash of a track's colour over its library row; 0 removes it.
+
+           Both need the <UseCueColor> and <TrackTableBackgroundColorOpacity>
+           support in Mixxx. On a build without them the marks simply keep
+           their own colours - nothing breaks, the monochrome schemes just are
+           not quite monochrome. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#32383c</SetVariable>
+      <SetVariable name="BeatColor">#4d555b</SetVariable>
+      <SetVariable name="PlayPosColor">#f7f7f8</SetVariable>
+      <SetVariable name="CueColor">#e4e6e7</SetVariable>
+      <SetVariable name="LoopColor">#e4e6e7</SetVariable>
+      <SetVariable name="IntroOutroColor">#666f75</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#e4e6e7</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#e4e6e7</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#e4e6e7</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">17</SetVariable>
+
+      <!-- Knobs on the fx page. There is no bezel image and no needle image:
+           WKnobComposed draws the value arc on its own when ArcRadius is set
+           (wknobcomposed.cpp, paintEvent), which is how this skin goes on
+           shipping no assets. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <!-- WKnobComposed centres the arc on the widget at this radius, so the
+           knob has to be at least 2*ArcRadius + ArcThickness in both
+           directions or the arc is clipped: 20 and 5 wanted 45px out of a 44px
+           knob, which is exactly the sliver that went missing. -->
+      <SetVariable name="ArcRadius">16</SetVariable>
+      <SetVariable name="ArcThickness">4</SetVariable>
+      <SetVariable name="ArcBgThickness">4</SetVariable>
+      <SetVariable name="ArcBgColor">#4d555b</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorFxMix">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorSuper">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#e4e6e7</SetVariable>
+    </Scheme><!-- White Phosphor -->
+  <!-- TERMINAL-WIDE-SCHEMES-END -->
+  </Schemes>
+
+  <ObjectName>Mixxx</ObjectName>
+  <Style src="skin:style.qss"
+         src-linux="skins:default-menu-styles-linux.qss"
+         src-windows="skins:default-menu-styles-windows.qss"/>
+  <!-- The panel is 1920x480. A minimum below that leaves room for a title bar
+       when this is run in a window rather than full screen on the appliance. -->
+  <MinimumSize>1024,400</MinimumSize>
+  <SizePolicy>me,me</SizePolicy>
+  <Layout>vertical</Layout>
+
+  <Children>
+    <!-- Singletons are resolved in parse order, so every definition has to come
+         before the container that asks for it. The overviews are defined first
+         because the decks page - defined below - contains containers for them.
+    -->
+    <!-- The track overviews are singletons for a different reason: not to
+         survive a page switch, but because the options page can put them
+         either under the waveforms or inside the deck columns, and one widget
+         that moves beats two widgets that take turns being hidden. -->
+    <SingletonDefinition>
+      <ObjectName>Overview1_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:overview.xml">
+          <SetVariable name="ChanNum">1</SetVariable>
+          <SetVariable name="WaveSignalColor"><Variable name="SignalColor_1"/></SetVariable>
+        </Template>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>Overview2_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:overview.xml">
+          <SetVariable name="ChanNum">2</SetVariable>
+          <SetVariable name="WaveSignalColor"><Variable name="SignalColor_2"/></SetVariable>
+        </Template>
+      </Children>
+    </SingletonDefinition>
+
+    <!-- Pages are singletons so that a tab switch does not tear one down and
+         rebuild it. -->
+    <!-- The tab bar. It sits inside each page rather than above the stack, so
+         that on the decks page it can run only the width of the waveform
+         column and leave the deck columns the full height of the panel. One
+         instance moves between the pages; only one page is ever visible. -->
+    <SingletonDefinition>
+      <ObjectName>ToolBar_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:toolbar.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>DecksPage_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:decks.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>LibraryPage_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:library.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>FxPage_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:fx.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>OptionsPage_Singleton</ObjectName>
+      <Children>
+        <Template src="skin:options.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <WidgetGroup>
+      <ObjectName>SkinContainer</ObjectName>
+      <Layout>vertical</Layout>
+      <SizePolicy>me,me</SizePolicy>
+      <Children>
+
+        <WidgetStack currentpage="[Tab],current" persist="true">
+          <ObjectName>PageStack</ObjectName>
+          <SizePolicy>me,me</SizePolicy>
+          <Children>
+            <SingletonContainer trigger="[Tab],decks">
+              <ObjectName>DecksPage_Singleton</ObjectName>
+            </SingletonContainer>
+            <SingletonContainer trigger="[Tab],library" on_hide_select="0">
+              <ObjectName>LibraryPage_Singleton</ObjectName>
+            </SingletonContainer>
+            <SingletonContainer trigger="[Tab],fx" on_hide_select="0">
+              <ObjectName>FxPage_Singleton</ObjectName>
+            </SingletonContainer>
+            <SingletonContainer trigger="[Tab],options" on_hide_select="0">
+              <ObjectName>OptionsPage_Singleton</ObjectName>
+            </SingletonContainer>
+          </Children>
+        </WidgetStack>
+
+      </Children>
+    </WidgetGroup>
+  </Children>
+</skin>

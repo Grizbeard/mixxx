@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.inkscape.org/namespaces/inkscape" xmlns:ns2="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" version="1.1" width="32" height="32" ns1:version="0.92.3 (unknown)" ns2:docname="ic_library_history_current.svg" style="display:inline" ns1:export-filename="" ns1:export-xdpi="135" ns1:export-ydpi="135" fill="#d69c1f">
+  <ns2:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns1:pageopacity="0" ns1:pageshadow="2" ns1:window-width="1366" ns1:window-height="740" id="namedview26" showgrid="true" ns1:zoom="8" ns1:cx="8.0581723" ns1:cy="18.828251" ns1:window-x="0" ns1:window-y="0" ns1:window-maximized="1" ns1:current-layer="ic_library_crates" ns1:object-paths="true" showguides="true" ns1:guide-bbox="true" ns1:snap-midpoints="true">
+    <ns1:grid type="xygrid" id="grid3788" empspacing="4" visible="true" enabled="true" snapvisiblegridlinesonly="true" originx="4" spacingx="1" spacingy="1" empcolor="#0072ff" empopacity="0.25098039" originy="4" dotted="false" />
+  </ns2:namedview>
+  <g id="ic_library_crates" ns1:label="#g6169">
+    <g id="ic_library_history_current.png" ns1:label="#g4465" transform="translate(-2.1654596e-8,2)">
+      <path ns2:nodetypes="cc" style="fill:none;stroke:#d69c1f;stroke-width:4;stroke-linecap:round;stroke-linejoin:miter" d="M 28,14 19,3" id="path4425" ns1:connector-curvature="0" />
+      <path ns2:nodetypes="cc" ns1:connector-curvature="0" id="path4427" d="M 19,25 28,14" style="fill:none;stroke:#d69c1f;stroke-width:3.99999976;stroke-linecap:round;stroke-linejoin:miter" />
+      <path ns2:nodetypes="cc" ns1:connector-curvature="0" id="path4461" d="M 28,14 H 4" style="fill:none;stroke:#d69c1f;stroke-width:4;stroke-linecap:round;stroke-linejoin:miter" />
+    </g>
+  </g>
+</svg>
