@@ -1323,6 +1323,19 @@ void SeratoFeature::onSeratoDatabasesFound() {
 
         if (!childrenToAdd.empty()) {
             m_pSidebarModel->insertTreeItemRows(std::move(childrenToAdd), 0);
+            // insertTreeItemRows() alone doesn't make WLibrarySidebar draw
+            // this row's expand arrow: unlike a feature populated up front
+            // (Crates, Playlists), the "Serato" row was already rendered as
+            // a leaf by the time this on-demand device scan finishes, and
+            // nothing else asks the view to reconsider it -- the found
+            // database is real and reachable (confirmed live on the Pi
+            // appliance: a manually forced expand() shows it fine), it's
+            // only the collapsed-row decoration that never updates.
+            // Selecting the newly-found database routes through
+            // WLibrarySidebar::selectIndex(), which does call expand() on
+            // its parent -- the same path SetlogFeature's dynamic history
+            // sessions already rely on.
+            emit featureSelect(this, m_pSidebarModel->index(0, 0));
         }
     }
 
