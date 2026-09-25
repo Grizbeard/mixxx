@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.inkscape.org/namespaces/inkscape" xmlns:ns2="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" version="1.1" width="32" height="32" ns1:version="0.92.3 (unknown)" ns2:docname="ic_library_playlist.svg" style="display:inline" ns1:export-filename="" ns1:export-xdpi="135" ns1:export-ydpi="135" fill="#939a9f">
+  <ns2:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns1:pageopacity="0" ns1:pageshadow="2" ns1:window-width="1366" ns1:window-height="740" id="namedview26" showgrid="true" ns1:zoom="8" ns1:cx="1.050546" ns1:cy="7.8168873" ns1:window-x="0" ns1:window-y="0" ns1:window-maximized="1" ns1:current-layer="ic_library_crates" ns1:object-paths="true" showguides="true" ns1:guide-bbox="true" ns1:snap-midpoints="true">
+    <ns1:grid type="xygrid" id="grid3788" empspacing="4" visible="true" enabled="true" snapvisiblegridlinesonly="true" originx="4" spacingx="1" spacingy="1" empcolor="#0072ff" empopacity="0.25098039" originy="4" dotted="false" />
+  </ns2:namedview>
+  <g id="ic_library_crates" ns1:label="#g6169">
+    <g id="ic_library_playlist" ns1:label="#g6141" transform="translate(2)">
+      <path ns1:connector-curvature="0" id="rect10668" d="M 1,4 C 0.446,4 0,4.446 0,5 v 18 c 0,0.554 0.446,1 1,1 h 24 c 0.554,0 1,-0.446 1,-1 V 5 C 26,4.446 25.554,4 25,4 Z M 8.9375,8.03125 C 9.2716216,8.0083571 9.6883986,8.0774079 10.09375,8.25 l 4.625,2.40625 4.6875,2.375 c 0.771083,0.373736 0.885067,1.433886 0.21875,1.9375 -0.07084,0.04305 -0.13991,0.09421 -0.21875,0.125 l -4.75,2.3125 L 10,19.6875 C 9,20.243635 8,20 8,19 L 7.96875,14 8,9 C 8,8.375 8.3806306,8.0694048 8.9375,8.03125 Z" style="fill:#939a9f;stroke:none;stroke-width:2" />
+      <path ns1:connector-curvature="0" id="path10670" d="M 2.999743,27.000257 H 29.000256 V 6.9997433" style="fill:none;stroke:#939a9f;stroke-width:1.99948609;stroke-linecap:round;stroke-linejoin:round" />
+    </g>
+  </g>
+</svg>

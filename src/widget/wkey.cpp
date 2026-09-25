@@ -21,6 +21,10 @@ WKey::WKey(const QString& group, UserSettingsPointer pConfig, QWidget* pParent)
                   this,
                   ControlFlag::AllowMissingOrInvalid),
           m_colorPaletteSettings(pConfig) {
+    // What the key-colour paint path used to hard-code. As the default it is
+    // the same picture for a skin that asks for nothing, and a skin that does
+    // ask - in <Alignment> or in a stylesheet - now gets what it asked for.
+    setAlignment(Qt::AlignCenter);
     setValue();
     m_keyNotation.connectValueChanged(this, &WKey::keyNotationChanged);
     m_engineKeyDistance.connectValueChanged(this, &WKey::setCents);
@@ -105,6 +109,9 @@ void WKey::paintEvent(QPaintEvent* event) {
     const QRect contRect = pStyle->subElementRect(QStyle::SE_FrameContents, &option, this);
 
     const int rectWidth = 4;
+    // Keep the text clear of the colour bar. Butted against it the first glyph
+    // and the bar read as one smudged mark rather than a marker and a value.
+    const int textGap = 4;
     const int splitHeight = static_cast<int>(contRect.height() * splitPoint);
 
     painter.fillRect(contRect.left(),
@@ -121,15 +128,21 @@ void WKey::paintEvent(QPaintEvent* event) {
 
     painter.setPen(option.palette.text().color());
 
+    // Measured and drawn in the same rect, and from the same origin the bar is
+    // drawn from: the text used to start at an absolute 4px, which is only the
+    // bar's right edge while the widget has no padding of its own.
+    const int textLeft = contRect.left() + rectWidth + textGap;
+    const int textWidth = contRect.width() - rectWidth - textGap;
+
     QString elidedText = option.fontMetrics.elidedText(
             text(),
             Qt::ElideRight,
-            width() - rectWidth);
+            textWidth);
 
-    painter.drawText(rectWidth,
+    painter.drawText(textLeft,
             contRect.top(),
-            contRect.width() - rectWidth,
+            textWidth,
             contRect.height(),
-            Qt::AlignCenter,
+            static_cast<int>(alignment()),
             elidedText);
 }

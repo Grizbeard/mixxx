@@ -72,7 +72,7 @@ void WaveformRenderMarkBase::updateMarksFromCues() {
         QString newLabel = pCue->getLabel();
         QColor newColor = mixxx::RgbColor::toQColor(pCue->getColor());
         pMark->setText(newLabel);
-        pMark->setBaseColor(newColor, dimBrightThreshold);
+        pMark->setCueColor(newColor, dimBrightThreshold);
         if (pMark->isJump()) {
             pMark->setNeedsImageUpdate();
         }

@@ -1,0 +1,893 @@
+  <!--
+  Terminal, a resizable OS-terminal skin for Mixxx
+  www.mixxx.org
+
+  The layout, widget XML and icon geometry are derived from "LateNight" by
+  jus <s.brandt@mixxx.org>, Owen Williams <owilliams@mixxx.org> and ronso0,
+  which is licensed CC-BY-SA 3.0 Unported. This derivative keeps that licence.
+  http://creativecommons.org/licenses/by-sa/3.0/
+
+  You are free to Share and to Remix, provided you give attribution (author,
+  title and URL) and distribute derivative work under the same or a similar
+  licence. A copy of the licence, or a link to it, must ship with every copy.
+
+  What Terminal changes: monospace type throughout, no gradients or rounded
+  corners, 1px box rules for panel chrome, and reverse video for engaged
+  toggles. Every colour comes from a palette in tools/terminal_skin/palettes/;
+  the <Schemes> block below and the per-scheme stylesheet and asset folder are
+  generated from it by tools/terminal_skin/generate.py.
+  -->
+
+<!DOCTYPE skin>
+<skin>
+  <manifest>
+    <title>Terminal</title>
+    <author>Terminal skin; layout after LateNight by owilliams, ronso0</author>
+    <version>1.0.0</version>
+    <description>An OS-terminal skin: monospace type, 1px box rules and reverse-video toggles, with stacked waveforms, 4 decks in 3 configurations and up to 16 samplers. Colours are palette-driven and switchable per colour scheme.</description>
+    <language>en</language>
+    <license>Creative Commons Attribution, Share-Alike 3.0 Unported</license>
+    <attributes>
+    <!-- Set skin defaults -->
+      <attribute config_key="[App],num_decks">4</attribute>
+      <attribute config_key="[App],num_samplers">16</attribute>
+      <attribute persist="true" config_key="[Skin],show_waveforms">1</attribute>
+      <attribute persist="true" config_key="[Skin],timing_shift_buttons">0</attribute>
+
+    <!-- Decks -->
+      <!-- general -->
+      <attribute persist="true" config_key="[Skin],show_4decks">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_hotcues">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_8_hotcues">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_intro_outro_cues">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_loop_controls">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_beatjump_controls">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_spinnies">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_coverart">1</attribute>
+      <attribute persist="true" config_key="[Skin],select_big_spinny_or_cover">0</attribute>
+      <!-- ToDo: deck-independent vinyl controls? -->
+      <attribute persist="true" config_key="[Skin],show_vinylcontrol">0</attribute>
+      <!-- Deck variant that is shown as soon as the mixer is hidden.
+          See deck.xml and /helpers/skin_helper_deck_size.xml for documentation.
+          0=mini 1=compact(default) 2=full deck -->
+      <attribute persist="true" config_key="[Terminal],deck_size_without_mixer">1</attribute>
+      <!-- Full deck -->
+      <attribute persist="true" config_key="[Skin],show_rate_controls">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_rate_control_buttons">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_beatgrid_controls">1</attribute>
+      <!-- Compact deck -->
+      <attribute persist="true" config_key="[Skin],show_rate_controls_compact">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_loop_controls_compact">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_beatjump_controls_compact">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_sync_button_compact">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_key_controls">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_key_controls_compact">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_vumeters_compact">1</attribute>
+
+    <!-- Mixer -->
+      <attribute persist="true" config_key="[Skin],show_mixer">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_main_head_mixer">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_eq_knobs">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_eq_kill_buttons">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_xfader">1</attribute>
+      <attribute persist="true" config_key="[Terminal],show_vumeters_compact">1</attribute>
+    <!-- Effects -->
+      <attribute persist="true" config_key="[Skin],show_effectrack">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_4effectunits">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_superknobs">0</attribute>
+    <!-- Samplers -->
+      <attribute persist="true" config_key="[Skin],show_samplers">0</attribute>
+      <attribute persist="true" config_key="[Terminal],sampler_rows">1</attribute>
+      <attribute persist="true" config_key="[Terminal],expand_samplers_1-4">0</attribute>
+      <attribute persist="true" config_key="[Terminal],expand_samplers_1-8">0</attribute>
+      <attribute persist="true" config_key="[Terminal],expand_samplers_9-16">0</attribute>
+    <!-- Mic / Aux -->
+      <attribute persist="true" config_key="[Skin],show_microphones">0</attribute>
+    <!-- Library -->
+      <attribute config_key="[Skin],show_maximized_library">0</attribute>
+      <attribute persist="true" config_key="[Terminal],max_lib_show_decks">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_preview_decks">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_library_coverart">1</attribute>
+
+    <!-- Disable hidden effect routing Buttons -->
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit1],group_[MasterOutput]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit1],group_[BusLeft]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit1],group_[BusCenter]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit1],group_[BusRight]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit1],group_[BusTalkover]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit2],group_[MasterOutput]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit2],group_[BusLeft]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit2],group_[BusCenter]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit2],group_[BusRight]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit2],group_[BusTalkover]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit3],group_[MasterOutput]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit3],group_[BusLeft]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit3],group_[BusCenter]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit3],group_[BusRight]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit3],group_[BusTalkover]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit4],group_[MasterOutput]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit4],group_[BusLeft]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit4],group_[BusCenter]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit4],group_[BusRight]_enable">0</attribute>
+      <attribute persist="false" config_key="[EffectRack1_EffectUnit4],group_[BusTalkover]_enable">0</attribute>
+    </attributes>
+  </manifest>
+
+  <Schemes>
+  <!-- TERMINAL-SCHEMES-BEGIN: generated by tools/terminal_skin/generate.py, do not edit -->
+    <Scheme>
+      <Name>Btop</Name>
+      <!-- btop palette: black ground, sage-grey rules and text, and only the four sample hues (magenta, yellow, cyan, green). -->
+
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: url(skins:Terminal/btop/style/mixxx_logo.svg);
+          padding: 0;
+          margin: 0px 2px 0px 2px;
+          border: none;
+          min-width: 315px;
+          max-width: 315px;
+          min-height: 80px;
+          max-height: 80px;
+        }
+        QProgressBar {
+          background: url(skins:Terminal/btop/style/progressbar_bg.svg);
+          border: none;
+          min-width: 319px;
+          max-width: 319px;
+          min-height: 5px;
+          max-height: 5px;
+        }
+        QProgressBar::chunk {
+          background: url(skins:Terminal/btop/style/progressbar.svg);
+        }
+      </LaunchImageStyle>
+
+      <Style src="skins:Terminal/style_btop.qss"/>
+
+      <!-- Asset subset. One directory per scheme, generated from the palette. -->
+      <SetVariable name="BtnScheme">btop</SetVariable>
+      <SetVariable name="KnobScheme">btop</SetVariable>
+      <SetVariable name="SliderScheme">btop</SetVariable>
+      <SetVariable name="StyleScheme">btop</SetVariable>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. -->
+      <SetVariable name="BgColorOverview_12">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_34">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_SamPre">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_12">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_34">#000000</SetVariable>
+      <SetVariable name="SignalColor_12">#93d64a</SetVariable>
+      <SetVariable name="SignalColor_34">#42c9d6</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#ea3c96</SetVariable>
+      <SetVariable name="SignalMidColor">#d8d84a</SetVariable>
+      <SetVariable name="SignalHighColor">#42c9d6</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#ea3c96</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#d8d84a</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#42c9d6</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#929e8a</SetVariable>
+      <SetVariable name="MarkDisabledColor">#6c7566</SetVariable>
+      <SetVariable name="DurationTextColor">#ddf0d1</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">true</SetVariable>
+      <SetVariable name="TrackColorOpacity">0.175</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+      <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
+      <SetVariable name="DndRectMarginHotcueBtn">1</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#3b4037</SetVariable>
+      <SetVariable name="BeatColor">#596154</SetVariable>
+      <SetVariable name="PlayPosColor">#ddf0d1</SetVariable>
+      <SetVariable name="CueColor">#ea3c96</SetVariable>
+      <SetVariable name="LoopColor">#d8d84a</SetVariable>
+      <SetVariable name="IntroOutroColor">#1d5c63</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#ea3c96</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#d8d84a</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#ea3c96</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">12</SetVariable>
+      <SetVariable name="OverviewFontSizeDeckMini">10</SetVariable>
+      <SetVariable name="OverviewFontSizeSampler">9</SetVariable>
+      <SetVariable name="OverviewFontSizePreview">8</SetVariable>
+
+      <!-- Button frames are blank SVGs; the borders come from the stylesheet. -->
+      <SetVariable name="TopRegion_BtnType">embedded</SetVariable>
+      <SetVariable name="SubRegion_BtnType">embedded</SetVariable>
+
+      <!-- Knobs. The bezel SVG is blank too: what you see is the value arc
+           over a dim background arc, plus a block needle. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <SetVariable name="ArcRadiusBig">14.5</SetVariable>
+      <SetVariable name="ArcRadiusCompact">12.5</SetVariable>
+      <SetVariable name="ArcRadiusSmall">12.0</SetVariable>
+      <SetVariable name="ArcThicknessBig">3</SetVariable>
+      <SetVariable name="ArcBgThickness">3</SetVariable>
+      <SetVariable name="ArcBgColor">#596154</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorEq">#b7c7ad</SetVariable>
+      <SetVariable name="ArcColorGain">#d8d84a</SetVariable>
+      <SetVariable name="ArcColorFx12Quick">#93d64a</SetVariable>
+      <SetVariable name="ArcColorFx34">#42c9d6</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#b7c7ad</SetVariable>
+      <SetVariable name="ArcColorGainLow">#d8d84a</SetVariable>
+      <SetVariable name="ArcColorMstBal">#ea3c96</SetVariable>
+      <SetVariable name="ArcColorFxMix">#ea3c96</SetVariable>
+      <!-- Needle image suffixes; each resolves to a palette colour. -->
+      <SetVariable name="KnobColorEq">grey</SetVariable>
+      <SetVariable name="KnobColorQuickEffect">green</SetVariable>
+      <SetVariable name="KnobColorFx12">green</SetVariable>
+      <SetVariable name="KnobColorFx34">blue</SetVariable>
+      <SetVariable name="KnobColorFxParameter">grey</SetVariable>
+      <SetVariable name="EqKillDotSize">9f,9f</SetVariable>
+
+      <!-- Fader level bars, drawn by the widget rather than by an image. -->
+      <SetVariable name="BarBgColor">#000000</SetVariable>
+      <SetVariable name="BarColorVolume">#93d64a</SetVariable>
+      <SetVariable name="BarColorCrossfader">#93d64a</SetVariable>
+      <SetVariable name="BarColorPitch">#929e8a</SetVariable>
+      <SetVariable name="BarWidth">2</SetVariable>
+      <SetVariable name="BarMarginVolume">8,8</SetVariable>
+      <SetVariable name="BarMarginPitch">7,8</SetVariable>
+      <SetVariable name="BarMarginPitchSampler">5,5</SetVariable>
+      <SetVariable name="BarMarginCrossfader">7,7</SetVariable>
+    </Scheme><!-- Btop -->
+
+    <Scheme>
+      <Name>Amber</Name>
+      <!-- P3 amber phosphor: one hue, separated by brightness alone, the warm monochrome of a late-eighties terminal. -->
+
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: url(skins:Terminal/amber/style/mixxx_logo.svg);
+          padding: 0;
+          margin: 0px 2px 0px 2px;
+          border: none;
+          min-width: 315px;
+          max-width: 315px;
+          min-height: 80px;
+          max-height: 80px;
+        }
+        QProgressBar {
+          background: url(skins:Terminal/amber/style/progressbar_bg.svg);
+          border: none;
+          min-width: 319px;
+          max-width: 319px;
+          min-height: 5px;
+          max-height: 5px;
+        }
+        QProgressBar::chunk {
+          background: url(skins:Terminal/amber/style/progressbar.svg);
+        }
+      </LaunchImageStyle>
+
+      <Style src="skins:Terminal/style_amber.qss"/>
+
+      <!-- Asset subset. One directory per scheme, generated from the palette. -->
+      <SetVariable name="BtnScheme">amber</SetVariable>
+      <SetVariable name="KnobScheme">amber</SetVariable>
+      <SetVariable name="SliderScheme">amber</SetVariable>
+      <SetVariable name="StyleScheme">amber</SetVariable>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. -->
+      <SetVariable name="BgColorOverview_12">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_34">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_SamPre">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_12">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_34">#000000</SetVariable>
+      <SetVariable name="SignalColor_12">#ffb10a</SetVariable>
+      <SetVariable name="SignalColor_34">#d69c1f</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#d69c1f</SetVariable>
+      <SetVariable name="SignalMidColor">#ffb10a</SetVariable>
+      <SetVariable name="SignalHighColor">#ffdf99</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#d69c1f</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#ffb10a</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#ffdf99</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#d69c1f</SetVariable>
+      <SetVariable name="MarkDisabledColor">#8e6e29</SetVariable>
+      <SetVariable name="DurationTextColor">#ffdf99</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+      <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
+      <SetVariable name="DndRectMarginHotcueBtn">1</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#433516</SetVariable>
+      <SetVariable name="BeatColor">#665124</SetVariable>
+      <SetVariable name="PlayPosColor">#ffdf99</SetVariable>
+      <SetVariable name="CueColor">#ffb10a</SetVariable>
+      <SetVariable name="LoopColor">#ffb10a</SetVariable>
+      <SetVariable name="IntroOutroColor">#8e6e29</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#ffb10a</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#ffb10a</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#ffb10a</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">12</SetVariable>
+      <SetVariable name="OverviewFontSizeDeckMini">10</SetVariable>
+      <SetVariable name="OverviewFontSizeSampler">9</SetVariable>
+      <SetVariable name="OverviewFontSizePreview">8</SetVariable>
+
+      <!-- Button frames are blank SVGs; the borders come from the stylesheet. -->
+      <SetVariable name="TopRegion_BtnType">embedded</SetVariable>
+      <SetVariable name="SubRegion_BtnType">embedded</SetVariable>
+
+      <!-- Knobs. The bezel SVG is blank too: what you see is the value arc
+           over a dim background arc, plus a block needle. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <SetVariable name="ArcRadiusBig">14.5</SetVariable>
+      <SetVariable name="ArcRadiusCompact">12.5</SetVariable>
+      <SetVariable name="ArcRadiusSmall">12.0</SetVariable>
+      <SetVariable name="ArcThicknessBig">3</SetVariable>
+      <SetVariable name="ArcBgThickness">3</SetVariable>
+      <SetVariable name="ArcBgColor">#665124</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorEq">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorGain">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorFx12Quick">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorFx34">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorGainLow">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorMstBal">#ffb10a</SetVariable>
+      <SetVariable name="ArcColorFxMix">#ffb10a</SetVariable>
+      <!-- Needle image suffixes; each resolves to a palette colour. -->
+      <SetVariable name="KnobColorEq">grey</SetVariable>
+      <SetVariable name="KnobColorQuickEffect">green</SetVariable>
+      <SetVariable name="KnobColorFx12">green</SetVariable>
+      <SetVariable name="KnobColorFx34">blue</SetVariable>
+      <SetVariable name="KnobColorFxParameter">grey</SetVariable>
+      <SetVariable name="EqKillDotSize">9f,9f</SetVariable>
+
+      <!-- Fader level bars, drawn by the widget rather than by an image. -->
+      <SetVariable name="BarBgColor">#000000</SetVariable>
+      <SetVariable name="BarColorVolume">#ffb10a</SetVariable>
+      <SetVariable name="BarColorCrossfader">#ffb10a</SetVariable>
+      <SetVariable name="BarColorPitch">#d69c1f</SetVariable>
+      <SetVariable name="BarWidth">2</SetVariable>
+      <SetVariable name="BarMarginVolume">8,8</SetVariable>
+      <SetVariable name="BarMarginPitch">7,8</SetVariable>
+      <SetVariable name="BarMarginPitchSampler">5,5</SetVariable>
+      <SetVariable name="BarMarginCrossfader">7,7</SetVariable>
+    </Scheme><!-- Amber -->
+
+    <Scheme>
+      <Name>Green Phosphor</Name>
+      <!-- P1 green phosphor: one hue, separated by brightness alone, the way a monochrome terminal separated everything. -->
+
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: url(skins:Terminal/green/style/mixxx_logo.svg);
+          padding: 0;
+          margin: 0px 2px 0px 2px;
+          border: none;
+          min-width: 315px;
+          max-width: 315px;
+          min-height: 80px;
+          max-height: 80px;
+        }
+        QProgressBar {
+          background: url(skins:Terminal/green/style/progressbar_bg.svg);
+          border: none;
+          min-width: 319px;
+          max-width: 319px;
+          min-height: 5px;
+          max-height: 5px;
+        }
+        QProgressBar::chunk {
+          background: url(skins:Terminal/green/style/progressbar.svg);
+        }
+      </LaunchImageStyle>
+
+      <Style src="skins:Terminal/style_green.qss"/>
+
+      <!-- Asset subset. One directory per scheme, generated from the palette. -->
+      <SetVariable name="BtnScheme">green</SetVariable>
+      <SetVariable name="KnobScheme">green</SetVariable>
+      <SetVariable name="SliderScheme">green</SetVariable>
+      <SetVariable name="StyleScheme">green</SetVariable>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. -->
+      <SetVariable name="BgColorOverview_12">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_34">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_SamPre">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_12">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_34">#000000</SetVariable>
+      <SetVariable name="SignalColor_12">#33ff3a</SetVariable>
+      <SetVariable name="SignalColor_34">#1fd625</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#1fd625</SetVariable>
+      <SetVariable name="SignalMidColor">#33ff3a</SetVariable>
+      <SetVariable name="SignalHighColor">#b2ffb5</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#1fd625</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#33ff3a</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#b2ffb5</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#1fd625</SetVariable>
+      <SetVariable name="MarkDisabledColor">#298e2d</SetVariable>
+      <SetVariable name="DurationTextColor">#b2ffb5</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+      <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
+      <SetVariable name="DndRectMarginHotcueBtn">1</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#164318</SetVariable>
+      <SetVariable name="BeatColor">#246626</SetVariable>
+      <SetVariable name="PlayPosColor">#b2ffb5</SetVariable>
+      <SetVariable name="CueColor">#33ff3a</SetVariable>
+      <SetVariable name="LoopColor">#33ff3a</SetVariable>
+      <SetVariable name="IntroOutroColor">#298e2d</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#33ff3a</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#33ff3a</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#33ff3a</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">12</SetVariable>
+      <SetVariable name="OverviewFontSizeDeckMini">10</SetVariable>
+      <SetVariable name="OverviewFontSizeSampler">9</SetVariable>
+      <SetVariable name="OverviewFontSizePreview">8</SetVariable>
+
+      <!-- Button frames are blank SVGs; the borders come from the stylesheet. -->
+      <SetVariable name="TopRegion_BtnType">embedded</SetVariable>
+      <SetVariable name="SubRegion_BtnType">embedded</SetVariable>
+
+      <!-- Knobs. The bezel SVG is blank too: what you see is the value arc
+           over a dim background arc, plus a block needle. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <SetVariable name="ArcRadiusBig">14.5</SetVariable>
+      <SetVariable name="ArcRadiusCompact">12.5</SetVariable>
+      <SetVariable name="ArcRadiusSmall">12.0</SetVariable>
+      <SetVariable name="ArcThicknessBig">3</SetVariable>
+      <SetVariable name="ArcBgThickness">3</SetVariable>
+      <SetVariable name="ArcBgColor">#246626</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorEq">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorGain">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorFx12Quick">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorFx34">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorGainLow">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorMstBal">#33ff3a</SetVariable>
+      <SetVariable name="ArcColorFxMix">#33ff3a</SetVariable>
+      <!-- Needle image suffixes; each resolves to a palette colour. -->
+      <SetVariable name="KnobColorEq">grey</SetVariable>
+      <SetVariable name="KnobColorQuickEffect">green</SetVariable>
+      <SetVariable name="KnobColorFx12">green</SetVariable>
+      <SetVariable name="KnobColorFx34">blue</SetVariable>
+      <SetVariable name="KnobColorFxParameter">grey</SetVariable>
+      <SetVariable name="EqKillDotSize">9f,9f</SetVariable>
+
+      <!-- Fader level bars, drawn by the widget rather than by an image. -->
+      <SetVariable name="BarBgColor">#000000</SetVariable>
+      <SetVariable name="BarColorVolume">#33ff3a</SetVariable>
+      <SetVariable name="BarColorCrossfader">#33ff3a</SetVariable>
+      <SetVariable name="BarColorPitch">#1fd625</SetVariable>
+      <SetVariable name="BarWidth">2</SetVariable>
+      <SetVariable name="BarMarginVolume">8,8</SetVariable>
+      <SetVariable name="BarMarginPitch">7,8</SetVariable>
+      <SetVariable name="BarMarginPitchSampler">5,5</SetVariable>
+      <SetVariable name="BarMarginCrossfader">7,7</SetVariable>
+    </Scheme><!-- Green Phosphor -->
+
+    <Scheme>
+      <Name>White Phosphor</Name>
+      <!-- P4 white phosphor: one barely-blue white, separated by brightness alone, like a paper-white monitor. -->
+
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: #000000;
+        }
+        QLabel {
+          image: url(skins:Terminal/white/style/mixxx_logo.svg);
+          padding: 0;
+          margin: 0px 2px 0px 2px;
+          border: none;
+          min-width: 315px;
+          max-width: 315px;
+          min-height: 80px;
+          max-height: 80px;
+        }
+        QProgressBar {
+          background: url(skins:Terminal/white/style/progressbar_bg.svg);
+          border: none;
+          min-width: 319px;
+          max-width: 319px;
+          min-height: 5px;
+          max-height: 5px;
+        }
+        QProgressBar::chunk {
+          background: url(skins:Terminal/white/style/progressbar.svg);
+        }
+      </LaunchImageStyle>
+
+      <Style src="skins:Terminal/style_white.qss"/>
+
+      <!-- Asset subset. One directory per scheme, generated from the palette. -->
+      <SetVariable name="BtnScheme">white</SetVariable>
+      <SetVariable name="KnobScheme">white</SetVariable>
+      <SetVariable name="SliderScheme">white</SetVariable>
+      <SetVariable name="StyleScheme">white</SetVariable>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. -->
+      <SetVariable name="BgColorOverview_12">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_34">#000000</SetVariable>
+      <SetVariable name="BgColorOverview_SamPre">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_12">#000000</SetVariable>
+      <SetVariable name="BgColorWaveform_34">#000000</SetVariable>
+      <SetVariable name="SignalColor_12">#e4e6e7</SetVariable>
+      <SetVariable name="SignalColor_34">#939a9f</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">#939a9f</SetVariable>
+      <SetVariable name="SignalMidColor">#e4e6e7</SetVariable>
+      <SetVariable name="SignalHighColor">#f7f7f8</SetVariable>
+      <SetVariable name="SignalRGBLowColor">#939a9f</SetVariable>
+      <SetVariable name="SignalRGBMidColor">#e4e6e7</SetVariable>
+      <SetVariable name="SignalRGBHighColor">#f7f7f8</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">#000000</SetVariable>
+      <SetVariable name="MarkDefaultColor">#939a9f</SetVariable>
+      <SetVariable name="MarkDisabledColor">#666f75</SetVariable>
+      <SetVariable name="DurationTextColor">#f7f7f8</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. Turning this
+           off makes a hotcue button style itself from the qss like any other
+           latched button, and a hotcue marker keep the <Color> the skin
+           declared. TrackColorOpacity is the wash of a track's colour over
+           its row in the library; 0 removes it. -->
+      <SetVariable name="UseCueColor">false</SetVariable>
+      <SetVariable name="TrackColorOpacity">0</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+      <SetVariable name="DimBrightThresholdHotcueBtn">105</SetVariable>
+      <SetVariable name="DndRectMarginHotcueBtn">1</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">#32383c</SetVariable>
+      <SetVariable name="BeatColor">#4d555b</SetVariable>
+      <SetVariable name="PlayPosColor">#f7f7f8</SetVariable>
+      <SetVariable name="CueColor">#e4e6e7</SetVariable>
+      <SetVariable name="LoopColor">#e4e6e7</SetVariable>
+      <SetVariable name="IntroOutroColor">#666f75</SetVariable>
+      <SetVariable name="PlayedOverlayColor">#dd000000</SetVariable>
+      <SetVariable name="EndOfTrackColor">#e4e6e7</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">#e4e6e7</SetVariable>
+      <SetVariable name="PassthroughLabelColor">#e4e6e7</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">12</SetVariable>
+      <SetVariable name="OverviewFontSizeDeckMini">10</SetVariable>
+      <SetVariable name="OverviewFontSizeSampler">9</SetVariable>
+      <SetVariable name="OverviewFontSizePreview">8</SetVariable>
+
+      <!-- Button frames are blank SVGs; the borders come from the stylesheet. -->
+      <SetVariable name="TopRegion_BtnType">embedded</SetVariable>
+      <SetVariable name="SubRegion_BtnType">embedded</SetVariable>
+
+      <!-- Knobs. The bezel SVG is blank too: what you see is the value arc
+           over a dim background arc, plus a block needle. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <SetVariable name="ArcRadiusBig">14.5</SetVariable>
+      <SetVariable name="ArcRadiusCompact">12.5</SetVariable>
+      <SetVariable name="ArcRadiusSmall">12.0</SetVariable>
+      <SetVariable name="ArcThicknessBig">3</SetVariable>
+      <SetVariable name="ArcBgThickness">3</SetVariable>
+      <SetVariable name="ArcBgColor">#4d555b</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorEq">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorGain">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorFx12Quick">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorFx34">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorFxParameter">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorGainLow">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorMstBal">#e4e6e7</SetVariable>
+      <SetVariable name="ArcColorFxMix">#e4e6e7</SetVariable>
+      <!-- Needle image suffixes; each resolves to a palette colour. -->
+      <SetVariable name="KnobColorEq">grey</SetVariable>
+      <SetVariable name="KnobColorQuickEffect">green</SetVariable>
+      <SetVariable name="KnobColorFx12">green</SetVariable>
+      <SetVariable name="KnobColorFx34">blue</SetVariable>
+      <SetVariable name="KnobColorFxParameter">grey</SetVariable>
+      <SetVariable name="EqKillDotSize">9f,9f</SetVariable>
+
+      <!-- Fader level bars, drawn by the widget rather than by an image. -->
+      <SetVariable name="BarBgColor">#000000</SetVariable>
+      <SetVariable name="BarColorVolume">#e4e6e7</SetVariable>
+      <SetVariable name="BarColorCrossfader">#e4e6e7</SetVariable>
+      <SetVariable name="BarColorPitch">#939a9f</SetVariable>
+      <SetVariable name="BarWidth">2</SetVariable>
+      <SetVariable name="BarMarginVolume">8,8</SetVariable>
+      <SetVariable name="BarMarginPitch">7,8</SetVariable>
+      <SetVariable name="BarMarginPitchSampler">5,5</SetVariable>
+      <SetVariable name="BarMarginCrossfader">7,7</SetVariable>
+    </Scheme><!-- White Phosphor -->
+
+  <!-- TERMINAL-SCHEMES-END -->
+  </Schemes>
+
+  <ObjectName>Mixxx</ObjectName>
+  <Style src="skins:Terminal/style.qss"
+         src-linux="skins:default-menu-styles-linux.qss"
+         src-windows="skins:default-menu-styles-windows.qss"/>
+  <!-- MinimumSize should not be an exact monitor resolution. There needs
+  to be space for the title bar or other chrome at full screen.
+  https://www.mixxx.org/wiki/doku.php/skin_guidelines#the_optimal_size_for_skins -->
+  <MinimumSize>1280,668</MinimumSize>
+  <SizePolicy>me,me</SizePolicy>
+  <Layout>vertical</Layout>
+  <Children>
+
+    <SetVariable name="Align">center</SetVariable>
+
+    <!-- Define singletons as early in the skin as possible.
+    Note that Singletons don't actually appear here, they are just instantiated
+    and configured. -->
+    <SingletonDefinition>
+      <ObjectName>Deck1_Src</ObjectName>
+      <Children>
+      <Template src="skins:Terminal/decks/deck.xml">
+        <SetVariable name="ChanNum">1</SetVariable>
+        <SetVariable name="DeckGroup">12</SetVariable>
+        <SetVariable name="SignalColor"><Variable name="SignalColor_12"/></SetVariable>
+        <SetVariable name="BgColor"><Variable name="BgColorOverview_12"/></SetVariable>
+      </Template>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>Deck2_Src</ObjectName>
+      <Children>
+        <Template src="skins:Terminal/decks/deck.xml">
+          <SetVariable name="ChanNum">2</SetVariable>
+          <SetVariable name="DeckGroup">12</SetVariable>
+          <SetVariable name="SignalColor"><Variable name="SignalColor_12"/></SetVariable>
+          <SetVariable name="BgColor"><Variable name="BgColorOverview_12"/></SetVariable>
+        </Template>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>Deck3_Src</ObjectName>
+      <Children>
+      <Template src="skins:Terminal/decks/deck.xml">
+        <SetVariable name="ChanNum">3</SetVariable>
+        <SetVariable name="DeckGroup">34</SetVariable>
+        <SetVariable name="SignalColor"><Variable name="SignalColor_34"/></SetVariable>
+        <SetVariable name="BgColor"><Variable name="BgColorOverview_34"/></SetVariable>
+      </Template>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>Deck4_Src</ObjectName>
+      <Children>
+      <Template src="skins:Terminal/decks/deck.xml">
+        <SetVariable name="ChanNum">4</SetVariable>
+        <SetVariable name="DeckGroup">34</SetVariable>
+        <SetVariable name="SignalColor"><Variable name="SignalColor_34"/></SetVariable>
+        <SetVariable name="BgColor"><Variable name="BgColorOverview_34"/></SetVariable>
+      </Template>
+      </Children>
+    </SingletonDefinition>
+
+    <Template src="skins:Terminal/mixer/singletons.xml"/>
+
+    <SingletonDefinition>
+      <ObjectName>LibrarySingleton</ObjectName>
+      <Children>
+        <Template src="skins:Terminal/library.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <SingletonDefinition>
+      <ObjectName>SamplerSettingsSingleton</ObjectName>
+      <Children>
+        <Template src="skins:Terminal/helpers/skin_settings_samplers.xml"/>
+      </Children>
+    </SingletonDefinition>
+
+    <WidgetGroup>
+      <ObjectName>SkinContainer</ObjectName>
+      <Layout>vertical</Layout>
+      <SizePolicy>me,me</SizePolicy>
+      <Children>
+
+        <Template src="skins:Terminal/toolbar.xml"/>
+
+        <!-- regular/maximized library  |  skin settings menu -->
+        <WidgetGroup>
+          <Layout>horizontal</Layout>
+          <SizePolicy>me,me</SizePolicy>
+          <Children>
+
+            <!-- regular or maximized library -->
+            <WidgetStack currentpage="[Skin],show_maximized_library">
+              <Children>
+
+                <!-- Waveforms, Decks, Effects... /  Library
+                This view needs to be set up first because it instantiates
+                the mini deck Singletons we need in maximized library view. -->
+                <Splitter>
+                  <ObjectName>WaveformSplitter</ObjectName>
+                  <Orientation>vertical</Orientation>
+                  <SizePolicy>me,min</SizePolicy>
+                  <SplitSizes>100,550</SplitSizes>
+                  <SplitSizesConfigKey>[Skin],stackedWaveforms_splitSize</SplitSizesConfigKey>
+                  <Collapsible>0,0</Collapsible>
+                  <Children>
+
+                    <WidgetGroup>
+                      <Layout>vertical</Layout>
+                      <SizePolicy>me,me</SizePolicy>
+                      <Children>
+                        <Template src="skins:Terminal/waveforms_container.xml"/>
+                      </Children>
+                      <Connection>
+                        <ConfigKey persist="true">[Skin],show_waveforms</ConfigKey>
+                        <BindProperty>visible</BindProperty>
+                      </Connection>
+                    </WidgetGroup>
+
+                    <WidgetGroup>
+                      <ObjectName>DecksMixerContainer</ObjectName>
+                      <Layout>vertical</Layout>
+                      <SizePolicy>me,me</SizePolicy>
+                      <Children>
+                        <WidgetGroup><!-- Top spacer when waveforms are hidden -->
+                          <ObjectName>ToolbarDeckSpacer</ObjectName>
+                          <Connection>
+                            <ConfigKey persist="true">[Skin],show_waveforms</ConfigKey>
+                            <Transform><Not/></Transform>
+                            <BindProperty>visible</BindProperty>
+                          </Connection>
+                        </WidgetGroup><!-- ToolbarDeckSpacer -->
+
+                        <WidgetGroup>
+                          <Layout>horizontal</Layout>
+                          <SizePolicy>me,max</SizePolicy>
+                          <Children>
+                            <Template src="skins:Terminal/decks/decks_left.xml"/>
+                            <Template src="skins:Terminal/mixer.xml"/>
+                            <Template src="skins:Terminal/decks/decks_right.xml"/>
+                          </Children>
+                        </WidgetGroup>
+
+                        <Template src="skins:Terminal/fx_rack.xml"/>
+                        <Template src="skins:Terminal/samplers_rack.xml"/>
+                        <Template src="skins:Terminal/mic_aux_rack.xml"/>
+
+                        <SingletonContainer>
+                          <ObjectName>LibrarySingleton</ObjectName>
+                        </SingletonContainer>
+                      </Children>
+                    </WidgetGroup>
+
+                  </Children>
+                </Splitter>
+                <!-- Decks, Effects, Samplers, Mic/Aux, Library -->
+
+                <!-- Maximized Library & mini decks only -->
+                <WidgetGroup trigger="[Skin],show_maximized_library" on_hide_select="0">
+                  <Layout>vertical</Layout>
+                  <SizePolicy>me,me</SizePolicy>
+                  <Children>
+
+                    <WidgetGroup>
+                      <Layout>horizontal</Layout>
+                      <SizePolicy>me,max</SizePolicy>
+                      <Children>
+                        <Template src="skins:Terminal/decks/decks_left_mini.xml"/>
+                        <Template src="skins:Terminal/decks/decks_right_mini.xml"/>
+                      </Children>
+                      <Connection>
+                        <ConfigKey persist="true">[Terminal],max_lib_show_decks</ConfigKey>
+                        <BindProperty>visible</BindProperty>
+                      </Connection>
+                    </WidgetGroup>
+
+                    <SingletonContainer>
+                      <ObjectName>LibrarySingleton</ObjectName>
+                    </SingletonContainer>
+                  </Children>
+                </WidgetGroup><!-- Maximized Library & mini decks only -->
+
+              </Children>
+            </WidgetStack>
+            <Template src="skins:Terminal/skin_settings.xml"/>
+
+          </Children>
+        </WidgetGroup><!-- regular/maximized library + skin settings menu -->
+
+      </Children>
+    </WidgetGroup>
+  </Children>
+</skin>

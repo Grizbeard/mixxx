@@ -88,6 +88,7 @@ class EffectChainPresetManager : public QObject {
 
   signals:
     void effectChainPresetRenamed(const QString& oldName, const QString& newName);
+    void effectChainPresetDeleted(const QString& chainPresetName);
     void effectChainPresetListUpdated();
     void quickEffectChainPresetListUpdated();
 

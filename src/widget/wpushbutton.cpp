@@ -586,6 +586,12 @@ void WPushButton::LongPressLatching::start() {
             static_cast<int>(
                     m_pButton->height() * m_pButton->devicePixelRatio()));
     m_preLongPressPixmap.setDevicePixelRatio(m_pButton->devicePixelRatio());
+    // A fresh QPixmap holds undefined bytes, and what is painted onto it next
+    // does not necessarily cover all of them: a stylesheet background is drawn
+    // antialiased, so along the button's edge it blends with whatever was
+    // already there. Left unfilled that is uninitialised memory, and the
+    // latching animation drags a fringe of random colour across the button.
+    m_preLongPressPixmap.fill(Qt::transparent);
     m_pButton->paintOnDevice(&m_preLongPressPixmap, 0);
     // ... and start the long press latching animation
     m_sinceStart.start();

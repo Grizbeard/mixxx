@@ -1,0 +1,191 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    The centre column: the two waveform lanes, and the track overviews when the
+    options page has them here rather than in the decks.
+
+    The lanes can be laid out two ways, and the options page switches between
+    them:
+
+      [TerminalWide],waveform_columns  0 = two horizontal rows (default), full
+                                           width and stacked, so the beat grids
+                                           line up under each other
+                                       1 = two vertical columns, one per deck,
+                                           each half as wide and twice as tall,
+                                           with the waveform itself turned so
+                                           time runs down the lane
+
+    <Orientation> is read once, when the widget is built, and a layout cannot be
+    rebuilt at runtime - so both arrangements are built up front and a
+    WidgetStack shows one. WaveformWidgetFactory skips waveform widgets that are
+    not visible (waveformwidgetfactory.cpp, isVisible check), so the hidden pair
+    costs nothing per frame.
+
+    True vertical rendering needs the rotation this repo's Mixxx branch adds.
+    Upstream parses <Orientation> and hands it to the renderer, but the
+    allshader backend never turns the scene, so the signal comes out squeezed
+    into `height` pixels of `width`. See ../patches/.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>WaveformColumn</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+
+      <!-- The tab bar, over the waveforms only. Running it across the whole
+           window cost the deck columns 34px of height they have better uses
+           for, and the tabs have no relationship to the decks anyway. -->
+      <SingletonContainer>
+        <ObjectName>ToolBar_Singleton</ObjectName>
+        <SizePolicy>me,max</SizePolicy>
+      </SingletonContainer>
+
+      <WidgetStack currentpage="[TerminalWide],waveform_columns" persist="true">
+        <ObjectName>WaveformStack</ObjectName>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+
+          <!-- 0: rows. Deck 1 above deck 2, adjacent, so the two beat grids
+               can be read against each other. -->
+          <WidgetGroup>
+            <ObjectName>WaveformRows</ObjectName>
+            <Layout>vertical</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children>
+              <Template src="skin:waveform.xml">
+                <SetVariable name="ChanNum">1</SetVariable>
+                <SetVariable name="WaveSignalColor"><Variable name="SignalColor_1"/></SetVariable>
+                <SetVariable name="WaveOrientation">horizontal</SetVariable>
+              </Template>
+              <Template src="skin:waveform.xml">
+                <SetVariable name="ChanNum">2</SetVariable>
+                <SetVariable name="WaveSignalColor"><Variable name="SignalColor_2"/></SetVariable>
+                <SetVariable name="WaveOrientation">horizontal</SetVariable>
+              </Template>
+            </Children>
+          </WidgetGroup>
+
+          <!-- 1: columns. Deck 1 left of deck 2, each lane turned. -->
+          <WidgetGroup>
+            <ObjectName>WaveformCols</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children>
+              <Template src="skin:waveform.xml">
+                <SetVariable name="ChanNum">1</SetVariable>
+                <SetVariable name="WaveSignalColor"><Variable name="SignalColor_1"/></SetVariable>
+                <SetVariable name="WaveOrientation">vertical</SetVariable>
+              </Template>
+              <Template src="skin:waveform.xml">
+                <SetVariable name="ChanNum">2</SetVariable>
+                <SetVariable name="WaveSignalColor"><Variable name="SignalColor_2"/></SetVariable>
+                <SetVariable name="WaveOrientation">vertical</SetVariable>
+              </Template>
+            </Children>
+          </WidgetGroup>
+
+        </Children>
+      </WidgetStack>
+
+      <!-- Whole-track overviews, side by side under the lanes. They stay
+           horizontal in both arrangements: an overview is a scale, not a
+           scrolling lane, and turning one would cost height a 480px panel does
+           not have.
+
+           The overviews are singletons, so the same two widgets are here, in
+           the deck columns or in the full-width row under the page, never in
+           two places at once - see deck.xml and decks.xml. -->
+      <WidgetGroup>
+        <ObjectName>OverviewRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <!-- Height comes from the strut below, the way the deck column's width
+             comes from its own. -->
+        <SizePolicy>me,f</SizePolicy>
+        <Children>
+
+          <WidgetGroup>
+            <ObjectName>OverviewRowBody</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,i</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <ObjectName>OverviewBox1</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Overview1_Singleton</ObjectName>
+                    <SizePolicy>me,me</SizePolicy>
+                  </SingletonContainer>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup>
+                <ObjectName>OverviewBox2</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Overview2_Singleton</ObjectName>
+                    <SizePolicy>me,me</SizePolicy>
+                  </SingletonContainer>
+                </Children>
+              </WidgetGroup>
+            </Children>
+          </WidgetGroup>
+
+          <!-- Overview height, from the options page. Zero-width struts of
+               fixed heights, exactly one visible; see deck.xml for why these
+               are visibility-bound siblings rather than a WidgetStack. -->
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,24f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,36f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,52f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>2</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,72f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>3</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],overview_place</ConfigKey>
+          <Transform><IsEqual>0</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

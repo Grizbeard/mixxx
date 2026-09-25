@@ -1,0 +1,658 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One deck column, 430px wide, sitting beside the waveforms.
+
+    What is here is what a DVS rig cannot read off the hardware: which track is
+    loaded, how much of it is left, what tempo the platter is actually running
+    at, and whether Mixxx is locked onto the timecode. What is deliberately not
+    here is the mixer - gain, EQ, faders, crossfader and level meters are all
+    analogue on the DJM-T1, and duplicating them on screen would double-attenuate
+    nothing but the operator's attention.
+
+  Variables:
+    ChanNum: deck number, 1 or 2
+    Side:    Left or Right, for the QSS to tell the two columns apart
+-->
+<Template>
+  <SetVariable name="Group">[Channel<Variable name="ChanNum"/>]</SetVariable>
+
+  <WidgetGroup>
+    <ObjectName>DeckPanel<Variable name="Side"/></ObjectName>
+    <Layout>vertical</Layout>
+    <!-- Width is whatever the widest child asks for, which is the spacer
+         below, and nothing else: the body's width policy is 'ignored' so a
+         long track title cannot widen the column. -->
+    <SizePolicy>f,me</SizePolicy>
+    <Children>
+
+      <!-- Deck width, from the options page: four zero-height struts of fixed
+           widths, of which exactly one is ever visible. Qt drops a hidden
+           widget from its parent's layout entirely, so the visible strut alone
+           sets this column's width and the body stretches to it.
+
+           A WidgetStack would read better here and does not work: its sizeHint
+           is the current page's own sizeHint, and a fixed size set through
+           <Size> is a min/max constraint that never reaches sizeHint - so
+           every page measured zero and the column collapsed. This keeps one
+           deck panel either way; a stack of whole panels would mean four of
+           everything. -->
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>360f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>0</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>400f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>1</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>440f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>2</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>480f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>3</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>520f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>4</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>560f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>5</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+      <WidgetGroup>
+        <ObjectName>DeckWidthStrut</ObjectName>
+        <Size>600f,0f</Size>
+        <Children/>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],deck_width</ConfigKey>
+          <Transform><IsEqual>6</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>DeckPanelBody</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>i,me</SizePolicy>
+        <Children>
+
+      <!-- Header: which deck, and the timecode state. -->
+      <WidgetGroup>
+        <ObjectName>DeckHeader</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,34f</Size>
+        <Children>
+          <Label>
+            <ObjectName>DeckLabel</ObjectName>
+            <Size>0me,32f</Size>
+            <Text>deck <Variable name="ChanNum"/></Text>
+          </Label>
+          <Template src="skin:templates/dvs_status.xml">
+            <SetVariable name="ChanNum"><Variable name="ChanNum"/></SetVariable>
+          </Template>
+        </Children>
+        <Connection>
+          <ConfigKey><Variable name="Group"/>,play_indicator</ConfigKey>
+          <BindProperty>highlight</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+      <!-- Track title. No artist row: at this size the title is what
+           identifies the track across the booth, and the row it cost was
+           better spent on the title being bigger. -->
+      <WidgetGroup>
+        <ObjectName>DeckTextBox</ObjectName>
+        <Layout>vertical</Layout>
+        <Size>0me,44f</Size>
+        <Children>
+          <TrackProperty>
+            <ObjectName>DeckTitle</ObjectName>
+            <TooltipId>track_title</TooltipId>
+            <Size>0me,42f</Size>
+            <Property>title</Property>
+            <Channel><Variable name="ChanNum"/></Channel>
+            <Elide>right</Elide>
+          </TrackProperty>
+        </Children>
+      </WidgetGroup>
+
+      <!-- Time and tempo on one row: the two numbers that are read together
+           while beat-matching, so they belong in one glance rather than two.
+           Time keeps the left and all the width left over; bpm is a fixed box
+           on the right, since it is five characters whatever happens. -->
+      <WidgetGroup>
+        <ObjectName>DeckTimeRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,74f</Size>
+        <Children>
+          <NumberPos>
+            <ObjectName>DeckTime</ObjectName>
+            <TooltipId>track_time</TooltipId>
+            <Size>0me,70f</Size>
+            <NumberOfDigits>6</NumberOfDigits>
+            <Channel><Variable name="ChanNum"/></Channel>
+          </NumberPos>
+          <!-- The bpm block, boxed and in reverse video. It is the one number
+               on the deck that decides what you do in the next few seconds, so
+               it gets the treatment this skin otherwise reserves for an engaged
+               control: a filled box with the ink knocked out of it.
+
+               Caption beside the number rather than over it. Stacked, the
+               caption cost 20px of the row's height and the number had to
+               share what was left; side by side the number gets the whole box
+               height and a size the stacked version could not afford. -->
+          <WidgetGroup>
+            <ObjectName>DeckBpmBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <Size>176f,72f</Size>
+            <Children>
+              <Label>
+                <ObjectName>DeckBpmCaption</ObjectName>
+                <Size>44f,0me</Size>
+                <Text>bpm</Text>
+              </Label>
+              <NumberBpm>
+                <ObjectName>DeckBpm</ObjectName>
+                <TooltipId>visual_bpm</TooltipId>
+                <Size>0me,0me</Size>
+                <NumberOfDigits>1</NumberOfDigits>
+                <Channel><Variable name="ChanNum"/></Channel>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,visual_bpm</ConfigKey>
+                </Connection>
+              </NumberBpm>
+            </Children>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+      <!-- What is left of the tempo block once bpm has moved up: the key,
+           and the rate the platter is actually running at.
+
+           Rate sits on the right, directly under the bpm box and the same
+           fixed width, because the two are one thought: the bpm you are
+           reading is the bpm that rate produced. Key takes the left with the
+           width left over, under the time.
+
+           Neither gets a caption. "key" over a value that reads 6A, and
+           "rate" over one that reads 0.00, are labels for someone who has
+           never seen a deck before; the range belongs on the value's own line
+           instead, where it is the thing that makes the number mean something.
+           That also gives the row back the 14px the caption line cost, which
+           the panel did not have to spare. -->
+      <WidgetGroup>
+        <ObjectName>DeckTempoRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,40f</Size>
+        <Children>
+
+          <!-- Key, and beside it how far the key has been moved, which reads
+               as one phrase the way "0.00 +-8" does on the other side.
+
+               <group>,pitch is the distance from the track's own key in
+               semitones (keycontrol.cpp: "pitch is the distance to the
+               original pitch in semitones"), so it is the number to show and
+               not a difference computed from key and file_key, which are key
+               enums rather than semitones.
+
+               Two widgets, one for each direction, because a skin cannot put a
+               "+" in front of a number: the positive one supplies the sign in
+               its own text and the negative one gets the minus from the number.
+               Exactly one is ever visible.
+
+               The visibility thresholds are in *parameter* space - a bound
+               property is fed the control's parameter, not its value, and pitch
+               is a potmeter over -6..+6, so a semitone is 1/12 and zero is
+               0.5. Each half appears once the offset reaches half a semitone in
+               its direction, which is the point at which the rounded number
+               stops being 0: 6.5/12 up, 5.5/12 down. That also keeps the field
+               empty while a platter wanders a few cents either side of the
+               track's own key, which with the key unlocked it does constantly. -->
+          <WidgetGroup>
+            <ObjectName>DeckKeyBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <Size>0me,38f</Size>
+            <Children>
+              <Key>
+                <ObjectName>DeckKey</ObjectName>
+                <TooltipId>visual_key</TooltipId>
+                <Group><Variable name="Group"/></Group>
+                <Size>76f,38f</Size>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,visual_key</ConfigKey>
+                </Connection>
+              </Key>
+
+              <Number>
+                <ObjectName>DeckKeySteps</ObjectName>
+                <TooltipId>pitch</TooltipId>
+                <Size>52f,38f</Size>
+                <NumberOfDigits>0</NumberOfDigits>
+                <Text>+%1</Text>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                </Connection>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                  <Transform><Add>-0.5416666667</Add></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Number>
+
+              <Number>
+                <ObjectName>DeckKeySteps</ObjectName>
+                <TooltipId>pitch</TooltipId>
+                <Size>52f,38f</Size>
+                <NumberOfDigits>0</NumberOfDigits>
+                <Text>%1</Text>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                </Connection>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,pitch</ConfigKey>
+                  <Transform><Add>-0.4583333333</Add><Invert/></Transform>
+                  <BindProperty>visible</BindProperty>
+                </Connection>
+              </Number>
+
+              <WidgetGroup>
+                <ObjectName>DeckKeyFiller</ObjectName>
+                <Layout>horizontal</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children/>
+              </WidgetGroup>
+            </Children>
+          </WidgetGroup>
+
+          <!-- Rate, then the window it is moving in: "0.00 +-8". The sign is a
+               label rather than the range widget's own prefix, which shows the
+               rate *direction* - which way the slider is wired - and not that
+               the window runs both ways. -->
+          <WidgetGroup>
+            <ObjectName>DeckRateBox</ObjectName>
+            <Layout>horizontal</Layout>
+            <Size>176f,38f</Size>
+            <Children>
+              <NumberRate>
+                <ObjectName>DeckRate</ObjectName>
+                <TooltipId>rate_display</TooltipId>
+                <Size>0me,38f</Size>
+                <NumberOfDigits>2</NumberOfDigits>
+                <Channel><Variable name="ChanNum"/></Channel>
+              </NumberRate>
+              <Label>
+                <ObjectName>DeckRateSign</ObjectName>
+                <Size>18f,38f</Size>
+                <Text>&#177;</Text>
+              </Label>
+              <RateRange>
+                <ObjectName>DeckRateRange</ObjectName>
+                <TooltipId>rate_range_display</TooltipId>
+                <Size>40f,38f</Size>
+                <Channel><Variable name="ChanNum"/></Channel>
+                <Display>range</Display>
+              </RateRange>
+            </Children>
+          </WidgetGroup>
+
+        </Children>
+      </WidgetGroup>
+
+      <!-- Hot cues. One row of four, or two rows of eight, or neither:
+           [TerminalWide],hotcue_count is 0, 1 or 2 and the second row is bound
+           to the 2. The first row's binding is the bare control, so it shows
+           for both 1 and 2 and hides only at 0. -->
+      <WidgetGroup>
+        <ObjectName>DeckHotcueRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,44f</Size>
+        <Children>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">1</SetVariable>
+          </Template>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">2</SetVariable>
+          </Template>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">3</SetVariable>
+          </Template>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">4</SetVariable>
+          </Template>
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],hotcue_count</ConfigKey>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>DeckHotcueRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,44f</Size>
+        <Children>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">5</SetVariable>
+          </Template>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">6</SetVariable>
+          </Template>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">7</SetVariable>
+          </Template>
+          <Template src="skin:templates/hotcue_button.xml">
+            <SetVariable name="Number">8</SetVariable>
+          </Template>
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],hotcue_count</ConfigKey>
+          <Transform><IsEqual>2</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+      <!-- Loop and beatjump share a row. Each is its length plus only the
+           control the length does not already imply: for the loop that is one
+           engage/disengage toggle, which doubles as the indicator of whether a
+           loop is running; for the jump it is the two directions. Everything
+           else - halving, doubling, setting a loop from scratch - is on the
+           DJM-T1's own buttons.
+
+           The row has no fixed height and takes it from whichever half is
+           showing, so with both hidden it collapses instead of leaving a gap.
+
+           The spin box is what gives Mixxx's own formatting of a beat count:
+           1/8 and 0.5 read as readily as 32. Its steppers are sized away in
+           the stylesheet - the length is a readout, and a stepper would be one
+           more thing to press.
+
+           Both readouts are a fixed width, and three fillers - before, between
+           and after - spread the two halves across the row. Letting them
+           expand instead tied the size of a two-character number to the deck
+           column's width, which is a setting about how much room the deck gets
+           and has nothing to say about how wide "32" is. -->
+      <WidgetGroup>
+        <ObjectName>DeckLoopJumpRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,max</SizePolicy>
+        <Children>
+
+          <WidgetGroup>
+            <ObjectName>DeckLoopJumpFiller</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>DeckLoopGroup</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,max</SizePolicy>
+            <Children>
+              <!-- Action on the left button, state from loop_enabled on a
+                   display-only connection, in that order: the last connection
+                   that reads back into the widget is the one that drives the
+                   rendered state. -->
+              <!-- The glyph rather than the word: it says the same thing in
+                   a third of the width. Two parallel runs with an arrow at
+                   each end, not a circle - a rectangle is the shape everything
+                   else here is drawn out of, and it is also closer to what a
+                   loop over a track actually is: out to the end, back to the
+                   start, along the same stretch. -->
+              <PushButton>
+                <ObjectName>LoopActivate</ObjectName>
+                <TooltipId>beatloop_activate</TooltipId>
+                <Size>54f,42f</Size>
+                <NumberStates>2</NumberStates>
+                <State><Number>0</Number><Text>&#8646;</Text></State>
+                <State><Number>1</Number><Text>&#8646;</Text></State>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,beatloop_activate</ConfigKey>
+                  <ButtonState>LeftButton</ButtonState>
+                </Connection>
+                <Connection>
+                  <ConfigKey><Variable name="Group"/>,loop_enabled</ConfigKey>
+                  <ConnectValueFromWidget>false</ConnectValueFromWidget>
+                </Connection>
+              </PushButton>
+              <BeatSpinBox>
+                <ObjectName>LoopSize</ObjectName>
+                <TooltipId>beatloop_size</TooltipId>
+                <Size>84f,42f</Size>
+                <Value><Variable name="Group"/>,beatloop_size</Value>
+              </BeatSpinBox>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[Skin],show_loop_controls</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>DeckLoopJumpFiller</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>DeckJumpGroup</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,max</SizePolicy>
+            <Children>
+              <Template src="skin:templates/push_button.xml">
+                <SetVariable name="ObjectName">JumpBack</SetVariable>
+                <SetVariable name="TooltipId">beatjump_backward</SetVariable>
+                <SetVariable name="Text">&#9664;</SetVariable>
+                <SetVariable name="Size">48f,42f</SetVariable>
+                <SetVariable name="ConfigKey"><Variable name="Group"/>,beatjump_backward</SetVariable>
+              </Template>
+              <BeatSpinBox>
+                <ObjectName>JumpSize</ObjectName>
+                <TooltipId>beatjump_size</TooltipId>
+                <Size>84f,42f</Size>
+                <Value><Variable name="Group"/>,beatjump_size</Value>
+              </BeatSpinBox>
+              <Template src="skin:templates/push_button.xml">
+                <SetVariable name="ObjectName">JumpForward</SetVariable>
+                <SetVariable name="TooltipId">beatjump_forward</SetVariable>
+                <SetVariable name="Text">&#9654;</SetVariable>
+                <SetVariable name="Size">48f,42f</SetVariable>
+                <SetVariable name="ConfigKey"><Variable name="Group"/>,beatjump_forward</SetVariable>
+              </Template>
+            </Children>
+            <Connection>
+              <ConfigKey persist="true">[Skin],show_beatjump_controls</ConfigKey>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>DeckLoopJumpFiller</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+
+        </Children>
+      </WidgetGroup>
+
+      <!-- The track overview, when the options page has it in the deck. The
+           same widget wherever it goes: a singleton moves to whichever
+           container is showing, and the three containers test the one control
+           for different values so exactly one of them ever is. -->
+      <WidgetGroup>
+        <ObjectName>DeckOverviewBox</ObjectName>
+        <Layout>horizontal</Layout>
+        <!-- Height from the struts, exactly as the row under the waveforms
+             takes it, so "overview height" means the same thing in both
+             places. -->
+        <SizePolicy>me,f</SizePolicy>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>DeckOverviewBody</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,i</SizePolicy>
+            <Children>
+              <SingletonContainer>
+                <ObjectName>Overview<Variable name="ChanNum"/>_Singleton</ObjectName>
+                <SizePolicy>me,me</SizePolicy>
+              </SingletonContainer>
+            </Children>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,24f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,36f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,52f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>2</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,72f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>3</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],overview_place</ConfigKey>
+          <Transform><IsEqual>1</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+      <!-- All the slack goes here, between the readouts and the controls, so
+           the buttons stay at the bottom edge whatever height the panel gets.
+           Left at the foot of the column instead it read as a band of dead
+           black under the deck. -->
+      <WidgetGroup>
+        <ObjectName>DeckFiller</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children/>
+      </WidgetGroup>
+
+      <!-- DVS. Pioneered-DVS kept only the status light on screen because at
+           1024px there was nowhere to put the controls; 1920px of width buys
+           the room, so the mode switches live here as well as on the mixer's
+           buttons. -->
+      <Template src="skin:templates/dvs_controls.xml">
+        <SetVariable name="ChanNum"><Variable name="ChanNum"/></SetVariable>
+      </Template>
+
+      <!-- Transport. The turntable does the playing; these are for loading,
+           cueing up and the two locks that a platter cannot express. -->
+      <WidgetGroup>
+        <ObjectName>DeckTransport</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,52f</Size>
+        <Children>
+          <Template src="skin:templates/deck_button.xml">
+            <SetVariable name="ObjectName">PlayDeck</SetVariable>
+            <SetVariable name="TooltipId">play_cue_set</SetVariable>
+            <SetVariable name="Text0">play</SetVariable>
+            <SetVariable name="Text1">play</SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="Group"/>,play</SetVariable>
+          </Template>
+          <Template src="skin:templates/deck_button.xml">
+            <SetVariable name="ObjectName">CueDeck</SetVariable>
+            <SetVariable name="TooltipId">cue_default_cue_gotoandstop</SetVariable>
+            <SetVariable name="Text0">cue</SetVariable>
+            <SetVariable name="Text1">cue</SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="Group"/>,cue_default</SetVariable>
+          </Template>
+          <Template src="skin:templates/deck_button.xml">
+            <SetVariable name="ObjectName">SyncDeck</SetVariable>
+            <SetVariable name="TooltipId">sync_enabled</SetVariable>
+            <SetVariable name="Text0">sync</SetVariable>
+            <SetVariable name="Text1">sync</SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="Group"/>,sync_enabled</SetVariable>
+          </Template>
+          <Template src="skin:templates/deck_button.xml">
+            <SetVariable name="ObjectName">KeylockDeck</SetVariable>
+            <SetVariable name="TooltipId">keylock</SetVariable>
+            <SetVariable name="Text0">lock</SetVariable>
+            <SetVariable name="Text1">lock</SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="Group"/>,keylock</SetVariable>
+          </Template>
+          <Template src="skin:templates/deck_button.xml">
+            <SetVariable name="ObjectName">QuantizeDeck</SetVariable>
+            <SetVariable name="TooltipId">quantize</SetVariable>
+            <SetVariable name="Text0">quant</SetVariable>
+            <SetVariable name="Text1">quant</SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="Group"/>,quantize</SetVariable>
+          </Template>
+        </Children>
+      </WidgetGroup>
+
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

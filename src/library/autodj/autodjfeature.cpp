@@ -71,7 +71,7 @@ AutoDJFeature::AutoDJFeature(Library* pLibrary,
     // Create the "Crates" tree-item under the root item.
     std::unique_ptr<TreeItem> pRootItem = TreeItem::newRoot(this);
     m_pCratesTreeItem = pRootItem->appendChild(tr("Crates"));
-    m_pCratesTreeItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
+    m_pCratesTreeItem->setIcon(iconForName(pConfig, QStringLiteral("crates")));
 
     // Create tree-items under "Crates".
     constructCrateChildModel();

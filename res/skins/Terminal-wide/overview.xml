@@ -1,0 +1,91 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    Whole-track overview for one deck: where in the track the needle is and
+    where the cues sit.
+
+    Instantiated once, as a singleton, so that the options page can move it
+    between the centre column and the deck it belongs to without a second copy
+    of the widget.
+
+  Variables:
+    ChanNum:         deck number, 1 or 2
+    WaveSignalColor: this deck's unfiltered signal colour
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>OverviewFrame<Variable name="ChanNum"/></ObjectName>
+    <Layout>horizontal</Layout>
+    <!-- 'me,me', not 'me,f': fixed vertical means WOverview's own sizeHint,
+         which is a few pixels, and the row it sits in then renders as a rule. -->
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+      <Overview>
+        <TooltipId>waveform_overview</TooltipId>
+        <ObjectName>Overview<Variable name="ChanNum"/></ObjectName>
+        <Channel><Variable name="ChanNum"/></Channel>
+        <SizePolicy>me,me</SizePolicy>
+        <BgColor><Variable name="BgColorOverview"/></BgColor>
+        <SignalColor><Variable name="WaveSignalColor"/></SignalColor>
+        <SignalHighColor><Variable name="SignalHighColor"/></SignalHighColor>
+        <SignalMidColor><Variable name="SignalMidColor"/></SignalMidColor>
+        <SignalLowColor><Variable name="SignalLowColor"/></SignalLowColor>
+        <SignalRGBHighColor><Variable name="SignalRGBHighColor"/></SignalRGBHighColor>
+        <SignalRGBMidColor><Variable name="SignalRGBMidColor"/></SignalRGBMidColor>
+        <SignalRGBLowColor><Variable name="SignalRGBLowColor"/></SignalRGBLowColor>
+        <PlayPosColor><Variable name="PlayPosColor"/></PlayPosColor>
+        <PlayedOverlayColor><Variable name="PlayedOverlayColor"/></PlayedOverlayColor>
+        <EndOfTrackColor><Variable name="EndOfTrackColor"/></EndOfTrackColor>
+        <PassthroughLabelColor><Variable name="PassthroughLabelColor"/></PassthroughLabelColor>
+        <DimBrightThreshold><Variable name="DimBrightThresholdOverview"/></DimBrightThreshold>
+        <LabelFontSize><Variable name="OverviewFontSizeDeck"/></LabelFontSize>
+
+        <DefaultMark>
+          <Align>bottom|right</Align>
+          <UseCueColor><Variable name="UseCueColor"/></UseCueColor>
+          <Color><Variable name="MarkDefaultColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+          <DisabledOpacity>0.25</DisabledOpacity>
+          <Text> %1 </Text>
+        </DefaultMark>
+
+        <Mark>
+          <Control>cue_point</Control>
+          <Text>cue</Text>
+          <Align>top|right</Align>
+          <Color><Variable name="CueColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+        </Mark>
+
+        <MarkRange>
+          <StartControl>loop_start_position</StartControl>
+          <EndControl>loop_end_position</EndControl>
+          <EnabledControl>loop_enabled</EnabledControl>
+          <Color><Variable name="LoopColor"/></Color>
+          <Opacity>0.8</Opacity>
+          <DisabledColor><Variable name="MarkDisabledColor"/></DisabledColor>
+          <DisabledOpacity>0.5</DisabledOpacity>
+        </MarkRange>
+
+        <MarkRange>
+          <StartControl>intro_start_position</StartControl>
+          <EndControl>intro_end_position</EndControl>
+          <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+          <Color><Variable name="IntroOutroColor"/></Color>
+          <Opacity>0.3</Opacity>
+        </MarkRange>
+        <MarkRange>
+          <StartControl>outro_start_position</StartControl>
+          <EndControl>outro_end_position</EndControl>
+          <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+          <Color><Variable name="IntroOutroColor"/></Color>
+          <Opacity>0.3</Opacity>
+        </MarkRange>
+
+        <Connection>
+          <ConfigKey>[Channel<Variable name="ChanNum"/>],playposition</ConfigKey>
+        </Connection>
+      </Overview>
+    </Children>
+  </WidgetGroup>
+</Template>

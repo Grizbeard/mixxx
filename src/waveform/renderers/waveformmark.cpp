@@ -227,6 +227,9 @@ WaveformMark::WaveformMark(const QString& group,
         m_pVisibleCO = std::make_unique<ControlProxy>(key);
     }
 
+    m_useCueColor =
+            context.selectBool(node, QStringLiteral("UseCueColor"), true);
+
     QColor color(context.selectString(node, "Color"));
     if (!color.isValid()) {
         // As a fallback, grab the color from the parent's AxesColor
@@ -359,7 +362,8 @@ class MarkerGeometry {
             bool useIcon,
             Qt::Alignment align,
             float breadth,
-            int level) {
+            int level,
+            Qt::Orientation orientation) {
         // If the label is 1 character long, and this character isn't a letter or a number,
         // we can assume it's a special symbol
         m_isSymbol = !useIcon && label.length() == 1 && !label[0].isLetterOrNumber();
@@ -433,11 +437,21 @@ class MarkerGeometry {
         // label rect width has to be even.
         const qreal widthRounding{alignHCenter ? 2.f : 1.f};
 
-        m_labelRect = QRectF{0.f,
-                0.f,
+        const qreal chipAlongText =
                 std::ceil((m_contentRect.width() + 2.f * margin) / widthRounding) *
-                        widthRounding,
-                std::ceil(capHeight + 2.f * margin)};
+                widthRounding;
+        const qreal chipAcrossText = std::ceil(capHeight + 2.f * margin);
+
+        // The image's x axis is the one the mark sits on -- time -- and its y
+        // axis is the breadth. On a vertical waveform the scene turns a
+        // quarter turn, so the chip has to be built on its side for it to come
+        // out upright: what reads along the text runs across the image, not
+        // along it. That also makes a vertical mark thin in time, which is the
+        // axis a tall narrow lane has least of.
+        m_sideways = orientation == Qt::Vertical;
+        m_labelRect = m_sideways
+                ? QRectF{0.f, 0.f, chipAcrossText, chipAlongText}
+                : QRectF{0.f, 0.f, chipAlongText, chipAcrossText};
 
         m_imageSize = QSizeF{m_labelRect.width() + 1.f, breadth};
 
@@ -476,8 +490,14 @@ class MarkerGeometry {
         return m_imageSize;
     }
 
+    /// Whether the chip is built turned a quarter turn against the scene's.
+    bool sideways() const {
+        return m_sideways;
+    }
+
   private:
     bool m_isSymbol; // is the label normal text or a single symbol (e.g. open circle arrow)
+    bool m_sideways{false};
     QFont m_font;
     QRectF m_contentRect;
     QRectF m_labelRect;
@@ -488,7 +508,8 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
         const QString& pixmapPath,
         const QString& text,
         WaveformMarkLabel* labelMark,
-        const QString& iconPath) {
+        const QString& iconPath,
+        Qt::Orientation orientation) {
     if (m_breadth == 0.0f) {
         return {};
     }
@@ -531,7 +552,8 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
     const bool useIcon = iconPath != "";
 
     // Determine drawing geometries
-    const MarkerGeometry markerGeometry{text, useIcon, m_align, m_breadth, m_level};
+    const MarkerGeometry markerGeometry{
+            text, useIcon, m_align, m_breadth, m_level, orientation};
 
     float linePos;
     if (labelMark) {
@@ -609,15 +631,35 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
         painter.fillPath(path, fillColor());
         painter.drawPath(path);
 
-        // Center m_contentRect.width() and m_contentRect.height() inside labelRectMarl
-        // and apply the offset x,y so the text ends up in the centered width,height.
-        QPointF pos(markerGeometry.labelRect().x() +
-                        (markerGeometry.labelRect().width() -
+        // The box the content is centred in. For a sideways chip that is the
+        // label rect stood back up: the content is laid out upright and the
+        // painter turns it, rather than every metric below having to know
+        // which way round it is.
+        QRectF contentBox = markerGeometry.labelRect();
+        if (markerGeometry.sideways()) {
+            contentBox.setSize(
+                    QSizeF(contentBox.height(), contentBox.width()));
+            contentBox.moveCenter(markerGeometry.labelRect().center());
+
+            // A quarter turn the other way from the one the scene applies, so
+            // the two cancel and the label reads left to right on screen.
+            painter.setWorldMatrixEnabled(true);
+            const QPointF pivot = markerGeometry.labelRect().center();
+            painter.translate(pivot);
+            painter.rotate(-90.0);
+            painter.translate(-pivot);
+        }
+
+        // Center m_contentRect.width() and m_contentRect.height() inside the
+        // content box and apply the offset x,y so the text ends up in the
+        // centered width,height.
+        QPointF pos(contentBox.x() +
+                        (contentBox.width() -
                                 markerGeometry.contentRect().width()) /
                                 2.f -
                         markerGeometry.contentRect().x(),
-                markerGeometry.labelRect().y() +
-                        (markerGeometry.labelRect().height() -
+                contentBox.y() +
+                        (contentBox.height() -
                                 markerGeometry.contentRect().height()) /
                                 2.f -
                         markerGeometry.contentRect().y());
@@ -632,6 +674,11 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
             painter.setFont(markerGeometry.font());
 
             painter.drawText(pos, text);
+        }
+
+        if (markerGeometry.sideways()) {
+            painter.resetTransform();
+            painter.setWorldMatrixEnabled(false);
         }
     }
 
@@ -681,7 +728,7 @@ std::optional<WaveformMark::WaveformMarkConstructionError> WaveformMark::validat
     return {};
 }
 
-QImage WaveformMark::generateImage(float devicePixelRatio) {
+QImage WaveformMark::generateImage(float devicePixelRatio, Qt::Orientation orientation) {
     DEBUG_ASSERT(needsImageUpdate());
 
     QString label = m_text;
@@ -694,10 +741,11 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
         label.prepend(QString::number(getHotCue() + 1));
     }
 
-    return performImageGeneration(devicePixelRatio, m_pixmapPath, label, &m_label, m_iconPath);
+    return performImageGeneration(
+            devicePixelRatio, m_pixmapPath, label, &m_label, m_iconPath, orientation);
 }
 
-QImage WaveformMark::generateEndImage(float devicePixelRatio) {
+QImage WaveformMark::generateEndImage(float devicePixelRatio, Qt::Orientation orientation) {
     assert(needsEndImageUpdate());
 
     QString direction = QStringLiteral("forward");
@@ -709,5 +757,6 @@ QImage WaveformMark::generateEndImage(float devicePixelRatio) {
             m_endPixmapPath,
             "",
             nullptr,
-            m_endIconPath.contains("%1") ? m_endIconPath.arg(direction) : m_endIconPath);
+            m_endIconPath.contains("%1") ? m_endIconPath.arg(direction) : m_endIconPath,
+            orientation);
 }

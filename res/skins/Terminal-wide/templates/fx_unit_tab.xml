@@ -1,0 +1,28 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One FX unit selection tab in the FX page toolbar.
+    Bound to [TerminalWide],fx_unit_<n> so the active tab matches the visible unit in the stack.
+
+  Variables:
+    UnitNum: 1, 2, 3, or 4
+-->
+<Template>
+  <PushButton>
+    <ObjectName>FxUnitTabButton</ObjectName>
+    <Size>160f,36f</Size>
+    <NumberStates>2</NumberStates>
+    <State>
+      <Number>0</Number>
+      <Text>fx unit <Variable name="UnitNum"/></Text>
+    </State>
+    <State>
+      <Number>1</Number>
+      <Text>fx unit <Variable name="UnitNum"/></Text>
+    </State>
+    <Connection>
+      <ConfigKey persist="true">[TerminalWide],fx_unit_<Variable name="UnitNum"/></ConfigKey>
+      <ButtonState>LeftButton</ButtonState>
+    </Connection>
+  </PushButton>
+</Template>

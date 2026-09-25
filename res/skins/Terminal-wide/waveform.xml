@@ -1,0 +1,123 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One scrolling waveform lane.
+
+    Hotcues have no explicit <Mark> here: this skin has no hotcue buttons, and
+    <DefaultMark> is what renders every hotcue that a button does not claim, so
+    one entry covers all of them at whatever the deck has set.
+
+  Variables:
+    ChanNum:         deck number, 1 or 2
+    WaveSignalColor: this deck's unfiltered signal colour
+    WaveOrientation: horizontal or vertical
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>WaveformBox<Variable name="ChanNum"/></ObjectName>
+    <Layout>horizontal</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+      <Visual>
+        <TooltipId>waveform_display</TooltipId>
+        <ObjectName>Waveform<Variable name="ChanNum"/></ObjectName>
+        <Channel><Variable name="ChanNum"/></Channel>
+        <Orientation><Variable name="WaveOrientation"/></Orientation>
+        <BgColor><Variable name="BgColorWaveform"/></BgColor>
+        <SignalColor><Variable name="WaveSignalColor"/></SignalColor>
+        <SignalHighColor><Variable name="SignalHighColor"/></SignalHighColor>
+        <SignalMidColor><Variable name="SignalMidColor"/></SignalMidColor>
+        <SignalLowColor><Variable name="SignalLowColor"/></SignalLowColor>
+        <SignalRGBHighColor><Variable name="SignalRGBHighColor"/></SignalRGBHighColor>
+        <SignalRGBMidColor><Variable name="SignalRGBMidColor"/></SignalRGBMidColor>
+        <SignalRGBLowColor><Variable name="SignalRGBLowColor"/></SignalRGBLowColor>
+        <BeatColor><Variable name="BeatColor"/></BeatColor>
+        <AxesColor><Variable name="AxesColor"/></AxesColor>
+        <BeatHighlightColor></BeatHighlightColor>
+        <PlayPosColor><Variable name="PlayPosColor"/></PlayPosColor>
+        <EndOfTrackColor><Variable name="EndOfTrackColor"/></EndOfTrackColor>
+        <SlipBorderOutlineColor><Variable name="SlipBorderOutlineColor"/></SlipBorderOutlineColor>
+        <SlipBorderTopOutlineSize>8</SlipBorderTopOutlineSize>
+        <SlipBorderBottomOutlineSize>16</SlipBorderBottomOutlineSize>
+        <PassthroughLabelColor><Variable name="PassthroughLabelColor"/></PassthroughLabelColor>
+        <DimBrightThreshold><Variable name="DimBrightThresholdWaveform"/></DimBrightThreshold>
+
+        <DefaultMark>
+          <Align>bottom|right</Align>
+          <UseCueColor><Variable name="UseCueColor"/></UseCueColor>
+          <Color><Variable name="MarkDefaultColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+          <DisabledOpacity>0.25</DisabledOpacity>
+          <Text> %1 </Text>
+        </DefaultMark>
+
+        <Mark>
+          <Control>cue_point</Control>
+          <Text>cue</Text>
+          <Align>top|right</Align>
+          <Color><Variable name="CueColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+        </Mark>
+
+        <MarkRange>
+          <StartControl>loop_start_position</StartControl>
+          <EndControl>loop_end_position</EndControl>
+          <EnabledControl>loop_enabled</EnabledControl>
+          <Color><Variable name="LoopColor"/></Color>
+          <Opacity>0.8</Opacity>
+          <DisabledColor><Variable name="MarkDisabledColor"/></DisabledColor>
+          <DisabledOpacity>0.5</DisabledOpacity>
+        </MarkRange>
+        <Mark>
+          <Control>loop_start_position</Control>
+          <Text>&#8635;</Text>
+          <Align>top|left</Align>
+          <Color><Variable name="LoopColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+        </Mark>
+        <Mark>
+          <Control>loop_end_position</Control>
+          <Align>top|right</Align>
+          <Color><Variable name="LoopColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+        </Mark>
+
+        <MarkRange>
+          <StartControl>intro_start_position</StartControl>
+          <EndControl>intro_end_position</EndControl>
+          <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+          <Color><Variable name="IntroOutroColor"/></Color>
+          <Opacity>0.1</Opacity>
+          <DurationTextColor><Variable name="DurationTextColor"/></DurationTextColor>
+          <DurationTextLocation>after</DurationTextLocation>
+        </MarkRange>
+        <Mark>
+          <Control>intro_end_position</Control>
+          <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+          <Text>&#9698;</Text>
+          <Align>top|left</Align>
+          <Color><Variable name="IntroOutroColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+        </Mark>
+
+        <MarkRange>
+          <StartControl>outro_start_position</StartControl>
+          <EndControl>outro_end_position</EndControl>
+          <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+          <Color><Variable name="IntroOutroColor"/></Color>
+          <Opacity>0.1</Opacity>
+          <DurationTextColor><Variable name="DurationTextColor"/></DurationTextColor>
+          <DurationTextLocation>before</DurationTextLocation>
+        </MarkRange>
+        <Mark>
+          <Control>outro_start_position</Control>
+          <VisibilityControl>[Skin],show_intro_outro_cues</VisibilityControl>
+          <Text>&#9699;</Text>
+          <Align>top|right</Align>
+          <Color><Variable name="IntroOutroColor"/></Color>
+          <TextColor><Variable name="MarkTextColor"/></TextColor>
+        </Mark>
+      </Visual>
+    </Children>
+  </WidgetGroup>
+</Template>

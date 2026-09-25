@@ -1,0 +1,120 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    The effects page: single-unit view with tabs to switch between FX Units 1-4.
+
+    Each unit takes the full width of the 1920x480 panel, providing maximum space for
+    unit routing, controls, chain presets, and expanded parameter controls across all 3 slots.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>FxPage</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+
+      <SingletonContainer>
+        <ObjectName>ToolBar_Singleton</ObjectName>
+        <SizePolicy>me,max</SizePolicy>
+      </SingletonContainer>
+
+      <!-- Unit selection tabs bar at top of FX page -->
+      <WidgetGroup>
+        <ObjectName>FxUnitTabs</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,38f</Size>
+        <Children>
+          <WidgetGroup>
+            <ObjectName>FxUnitTabsFiller</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>FxUnitTabsGroup</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>max,me</SizePolicy>
+            <Children>
+              <Template src="skin:templates/fx_unit_tab.xml">
+                <SetVariable name="UnitNum">1</SetVariable>
+              </Template>
+              <Template src="skin:templates/fx_unit_tab.xml">
+                <SetVariable name="UnitNum">2</SetVariable>
+              </Template>
+              <Template src="skin:templates/fx_unit_tab.xml">
+                <SetVariable name="UnitNum">3</SetVariable>
+              </Template>
+              <Template src="skin:templates/fx_unit_tab.xml">
+                <SetVariable name="UnitNum">4</SetVariable>
+              </Template>
+            </Children>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>FxUnitTabsFiller</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,me</SizePolicy>
+            <Children/>
+          </WidgetGroup>
+        </Children>
+      </WidgetGroup>
+
+      <!-- FX Body with WidgetStack for FX units 1..4 -->
+      <WidgetGroup>
+        <ObjectName>FxBody</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+          <WidgetStack currentpage="[TerminalWide],fx_unit_page" persist="true">
+            <ObjectName>FxUnitStack</ObjectName>
+            <SizePolicy>me,me</SizePolicy>
+            <Children>
+              <WidgetGroup trigger="[TerminalWide],fx_unit_1" persist="true">
+                <ObjectName>FxUnitPage1</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <Template src="skin:fx_unit.xml">
+                    <SetVariable name="FxUnit">1</SetVariable>
+                  </Template>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup trigger="[TerminalWide],fx_unit_2" on_hide_select="0" persist="true">
+                <ObjectName>FxUnitPage2</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <Template src="skin:fx_unit.xml">
+                    <SetVariable name="FxUnit">2</SetVariable>
+                  </Template>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup trigger="[TerminalWide],fx_unit_3" on_hide_select="0" persist="true">
+                <ObjectName>FxUnitPage3</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <Template src="skin:fx_unit.xml">
+                    <SetVariable name="FxUnit">3</SetVariable>
+                  </Template>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup trigger="[TerminalWide],fx_unit_4" on_hide_select="0" persist="true">
+                <ObjectName>FxUnitPage4</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <Template src="skin:fx_unit.xml">
+                    <SetVariable name="FxUnit">4</SetVariable>
+                  </Template>
+                </Children>
+              </WidgetGroup>
+            </Children>
+          </WidgetStack>
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

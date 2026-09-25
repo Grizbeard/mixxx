@@ -1,0 +1,46 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    A knob for a plain control, drawn as an arc with a caption under it.
+
+    No image: WKnobComposed renders the arc on its own when ArcRadius is set and
+    no pixmap is given (wknobcomposed.cpp, paintEvent), which is what lets this
+    skin keep shipping no assets at all.
+
+  Variables:
+    ObjectName: for the stylesheet
+    TooltipId:  Mixxx tooltip id
+    Caption:    the word under the knob
+    ArcColor:   the value arc's colour
+    ConfigKey:  the control
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>FxKnobBox</ObjectName>
+    <Layout>vertical</Layout>
+    <Size>84f,64f</Size>
+    <Children>
+      <KnobComposed>
+        <ObjectName><Variable name="ObjectName"/></ObjectName>
+        <TooltipId><Variable name="TooltipId"/></TooltipId>
+        <Size>0me,44f</Size>
+        <MinAngle><Variable name="PotiMinAngle"/></MinAngle>
+        <MaxAngle><Variable name="PotiMaxAngle"/></MaxAngle>
+        <ArcRadius><Variable name="ArcRadius"/></ArcRadius>
+        <ArcThickness><Variable name="ArcThickness"/></ArcThickness>
+        <ArcBgThickness><Variable name="ArcBgThickness"/></ArcBgThickness>
+        <ArcBgColor><Variable name="ArcBgColor"/></ArcBgColor>
+        <ArcColor><Variable name="ArcColor"/></ArcColor>
+        <ArcRoundCaps><Variable name="ArcRoundCaps"/></ArcRoundCaps>
+        <Connection>
+          <ConfigKey><Variable name="ConfigKey"/></ConfigKey>
+        </Connection>
+      </KnobComposed>
+      <Label>
+        <ObjectName>FxKnobLabel</ObjectName>
+        <Size>0me,20f</Size>
+        <Text><Variable name="Caption"/></Text>
+      </Label>
+    </Children>
+  </WidgetGroup>
+</Template>

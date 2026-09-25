@@ -463,7 +463,8 @@ QString parseCrate(
 // in the result, detached, to be attached on the GUI thread.
 SeratoDatabaseParseResult parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool,
         QString databaseName,
-        QString databaseFilePath) {
+        QString databaseFilePath,
+        const QIcon& crateIcon) {
     QDir databaseDir = QFileInfo(databaseFilePath).dir();
 
     QDir databaseRootDir = QDir(databaseDir);
@@ -827,7 +828,7 @@ SeratoDatabaseParseResult parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionP
                 crateItem = new TreeItem(segments.last(), itemData);
                 crateItems.append(crateItem);
             }
-            crateItem->setIcon(QIcon(":/images/library/ic_library_crates.svg"));
+            crateItem->setIcon(crateIcon);
             itemsByPath.insert(cratePath, crateItem);
         }
     } else {
@@ -1259,7 +1260,8 @@ void SeratoFeature::activateChild(const QModelIndex& index) {
         m_tracksFuture = QtConcurrent::run(parseDatabase,
                 static_cast<Library*>(parent())->dbConnectionPool(),
                 databaseName,
-                playlist);
+                playlist,
+                iconForName(m_pConfig, QStringLiteral("crates")));
         m_tracksFutureWatcher.setFuture(m_tracksFuture);
     } else {
         qDebug() << "Activate Serato Playlist: " << playlist;

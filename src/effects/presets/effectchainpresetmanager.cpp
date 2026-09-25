@@ -377,6 +377,7 @@ bool EffectChainPresetManager::deletePreset(const QString& chainPresetName) {
             m_effectChainPresets.take(chainPresetName);
     m_effectChainPresetsSorted.removeAll(pPreset);
     m_quickEffectChainPresetsSorted.removeAll(pPreset);
+    emit effectChainPresetDeleted(chainPresetName);
     emit effectChainPresetListUpdated();
     emit quickEffectChainPresetListUpdated();
     return true;

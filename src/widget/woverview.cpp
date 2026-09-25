@@ -501,7 +501,7 @@ void WOverview::updateCues(const QList<CuePointer> &loadedCues) {
             && pMark->getSamplePosition() != Cue::kNoPosition) {
             QColor newColor = mixxx::RgbColor::toQColor(currentCue->getColor());
             if (newColor != pMark->fillColor() || newColor != pMark->m_textColor) {
-                pMark->setBaseColor(newColor, m_dimBrightThreshold);
+                pMark->setCueColor(newColor, m_dimBrightThreshold);
             }
 
             int hotcueNumber = currentCue->getHotCue();

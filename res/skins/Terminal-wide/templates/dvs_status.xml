@@ -1,0 +1,59 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    Per-deck timecode signal status. Read-only.
+
+    This is the piece no existing Mixxx skin provides. Every community
+    small-screen skin is a controller companion built for jog wheels and pads,
+    so none surfaces vinyl control state. On a DVS appliance this is the only
+    troubleshooting surface for the timecode path: nothing on the mixer or the
+    turntables reports whether Mixxx is actually reading the control signal.
+
+    Values come from src/vinylcontrol/defs_vinylcontrol.h:
+      0 VINYL_STATUS_DISABLED   vinyl control is off for this deck
+      1 VINYL_STATUS_OK         timecode locked and tracking
+      2 VINYL_STATUS_WARNING    signal degraded - dirty stylus, low level, worn record
+      3 VINYL_STATUS_ERROR      no usable timecode
+
+    Rendered as text on a block rather than a pixmap, so it needs no image
+    asset and recolours with the palette like everything else.
+
+    displayValue only: there is no ButtonState connection, so the widget has no
+    control to write to and a stray touch does nothing.
+
+  Variables:
+    ChanNum: deck number, 1 or 2
+-->
+<Template>
+  <PushButton>
+    <ObjectName>DvsStatusLight</ObjectName>
+    <Tooltip>Timecode signal status for this deck.
+
+off  - vinyl control disabled
+ok   - timecode locked and tracking
+warn - signal degraded (stylus, level, worn record)
+err  - no usable timecode</Tooltip>
+    <Size>116f,38f</Size>
+    <NumberStates>4</NumberStates>
+    <State>
+      <Number>0</Number>
+      <Text>tc off</Text>
+    </State>
+    <State>
+      <Number>1</Number>
+      <Text>tc ok</Text>
+    </State>
+    <State>
+      <Number>2</Number>
+      <Text>tc warn</Text>
+    </State>
+    <State>
+      <Number>3</Number>
+      <Text>tc err</Text>
+    </State>
+    <Connection>
+      <ConfigKey>[Channel<Variable name="ChanNum"/>],vinylcontrol_status</ConfigKey>
+      <BindProperty>displayValue</BindProperty>
+    </Connection>
+  </PushButton>
+</Template>

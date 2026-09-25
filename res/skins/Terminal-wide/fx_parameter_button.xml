@@ -1,0 +1,57 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One effect *button* parameter: a switch, not a knob.
+
+    Some of what an effect exposes is a choice rather than an amount - a filter
+    shape, a ping-pong mode, a quantise on/off. Mixxx models those as button
+    parameters on their own numbering, separate from the knobs, and a skin that
+    lays out only knobs never shows them at all. Eight are laid out beside the
+    knobs, each hiding itself unless the loaded effect has it - see
+    fx_parameter.xml for why that binding is the skin's job.
+
+  Variables:
+    FxUnit, FxNum, FxParameter, FxUnitGroup, FxSlotGroup
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>FxButtonBox</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,min</SizePolicy>
+    <MinimumSize>68,70</MinimumSize>
+    <MaximumSize>108,</MaximumSize>
+    <Children>
+      <EffectPushButton>
+        <ObjectName>FxParamButton</ObjectName>
+        <TooltipId>EffectSlot_button_parameter</TooltipId>
+        <SizePolicy>me,f</SizePolicy>
+        <Size>0me,48f</Size>
+        <NumberStates>2</NumberStates>
+        <RightClickIsPushButton>false</RightClickIsPushButton>
+        <EffectUnitGroup><Variable name="FxUnitGroup"/></EffectUnitGroup>
+        <Effect><Variable name="FxNum"/></Effect>
+        <EffectButtonParameter><Variable name="FxParameter"/></EffectButtonParameter>
+        <State><Number>0</Number><Text><Variable name="FxParameter"/></Text></State>
+        <State><Number>1</Number><Text><Variable name="FxParameter"/></Text></State>
+        <Connection>
+          <ConfigKey><Variable name="FxSlotGroup"/>,button_parameter<Variable name="FxParameter"/></ConfigKey>
+          <ButtonState>LeftButton</ButtonState>
+        </Connection>
+      </EffectPushButton>
+      <EffectButtonParameterName>
+        <ObjectName>FxKnobLabel</ObjectName>
+        <SizePolicy>me,f</SizePolicy>
+        <Size>0me,22f</Size>
+        <EffectUnitGroup><Variable name="FxUnitGroup"/></EffectUnitGroup>
+        <Effect><Variable name="FxNum"/></Effect>
+        <EffectButtonParameter><Variable name="FxParameter"/></EffectButtonParameter>
+        <Alignment>center</Alignment>
+        <Elide>right</Elide>
+      </EffectButtonParameterName>
+    </Children>
+    <Connection>
+      <ConfigKey><Variable name="FxSlotGroup"/>,button_parameter<Variable name="FxParameter"/>_loaded</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>

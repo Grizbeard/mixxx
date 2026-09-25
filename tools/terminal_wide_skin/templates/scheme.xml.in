@@ -1,0 +1,106 @@
+    <Scheme>
+      <Name>{{scheme_name}}</Name>
+      <!-- {{scheme_description}} -->
+
+      <!-- No wordmark: this skin ships no image assets at all, so the splash
+           is the ground colour and a one-line progress rule. -->
+      <LaunchImageStyle>
+        LaunchImage {
+          background-color: {{bg}};
+        }
+        QLabel {
+          image: none;
+          min-height: 0px;
+          max-height: 0px;
+        }
+        QProgressBar {
+          background-color: {{sunken}};
+          border: none;
+          min-width: 320px;
+          max-width: 320px;
+          min-height: 3px;
+          max-height: 3px;
+        }
+        QProgressBar::chunk {
+          background-color: {{accent}};
+        }
+      </LaunchImageStyle>
+
+      <Style src="skin:style_{{scheme_dir}}.qss"/>
+
+      <!-- Waveforms & overviews. These follow the palette, so a single-hue
+           palette yields single-hue waveforms. The two decks keep distinct
+           unfiltered signal colours where the palette has more than one hue. -->
+      <SetVariable name="BgColorWaveform">{{sunken}}</SetVariable>
+      <SetVariable name="BgColorOverview">{{sunken}}</SetVariable>
+      <SetVariable name="SignalColor_1">{{deck12}}</SetVariable>
+      <SetVariable name="SignalColor_2">{{deck34}}</SetVariable>
+
+      <!-- Frequency bands, magenta/yellow/cyan in place of red/green/blue.
+           Mixxx has two independent band triples: the Filtered and HSV
+           renderers read Signal*Color, the RGB renderer and the deck overview
+           read SignalRGB*Color. Both are set to the same three hues so the
+           waveform and the overview match whichever type is selected. -->
+      <SetVariable name="SignalLowColor">{{band_low}}</SetVariable>
+      <SetVariable name="SignalMidColor">{{band_mid}}</SetVariable>
+      <SetVariable name="SignalHighColor">{{band_high}}</SetVariable>
+      <SetVariable name="SignalRGBLowColor">{{band_low}}</SetVariable>
+      <SetVariable name="SignalRGBMidColor">{{band_mid}}</SetVariable>
+      <SetVariable name="SignalRGBHighColor">{{band_high}}</SetVariable>
+
+      <!-- Waveform/overview marker labels are reverse video: the chip takes
+           the marker colour and the text takes the background. -->
+      <SetVariable name="MarkTextColor">{{bg}}</SetVariable>
+      <SetVariable name="MarkDefaultColor">{{fg_dim}}</SetVariable>
+      <SetVariable name="MarkDisabledColor">{{fg_faint}}</SetVariable>
+      <SetVariable name="DurationTextColor">{{fg_hi}}</SetVariable>
+
+      <!-- Cue and track colours come from the user's colour palette, so they
+           bear no relation to this scheme's. A scheme with more than one hue
+           can absorb them; a monochrome one has nowhere to put them, and a
+           stray red hotcue is then the only colour on screen. TrackColorOpacity
+           is the wash of a track's colour over its library row; 0 removes it.
+
+           Both need the <UseCueColor> and <TrackTableBackgroundColorOpacity>
+           support in Mixxx. On a build without them the marks simply keep
+           their own colours - nothing breaks, the monochrome schemes just are
+           not quite monochrome. -->
+      <SetVariable name="UseCueColor">{{use_cue_color}}</SetVariable>
+      <SetVariable name="TrackColorOpacity">{{track_color_opacity}}</SetVariable>
+
+      <SetVariable name="DimBrightThresholdOverview">127</SetVariable>
+      <SetVariable name="DimBrightThresholdWaveform">105</SetVariable>
+
+      <!-- Waveform furniture: thin dim rules, bright markers. -->
+      <SetVariable name="AxesColor">{{border}}</SetVariable>
+      <SetVariable name="BeatColor">{{border_lit}}</SetVariable>
+      <SetVariable name="PlayPosColor">{{fg_hi}}</SetVariable>
+      <SetVariable name="CueColor">{{cue}}</SetVariable>
+      <SetVariable name="LoopColor">{{loop}}</SetVariable>
+      <SetVariable name="IntroOutroColor">{{cyan_dim}}</SetVariable>
+      <SetVariable name="PlayedOverlayColor">{{played_overlay}}</SetVariable>
+      <SetVariable name="EndOfTrackColor">{{rec}}</SetVariable>
+      <SetVariable name="SlipBorderOutlineColor">{{loop}}</SetVariable>
+      <SetVariable name="PassthroughLabelColor">{{fx}}</SetVariable>
+      <SetVariable name="OverviewFontSizeDeck">17</SetVariable>
+
+      <!-- Knobs on the fx page. There is no bezel image and no needle image:
+           WKnobComposed draws the value arc on its own when ArcRadius is set
+           (wknobcomposed.cpp, paintEvent), which is how this skin goes on
+           shipping no assets. -->
+      <SetVariable name="PotiMinAngle">-130</SetVariable>
+      <SetVariable name="PotiMaxAngle">130</SetVariable>
+      <!-- WKnobComposed centres the arc on the widget at this radius, so the
+           knob has to be at least 2*ArcRadius + ArcThickness in both
+           directions or the arc is clipped: 20 and 5 wanted 45px out of a 44px
+           knob, which is exactly the sliver that went missing. -->
+      <SetVariable name="ArcRadius">16</SetVariable>
+      <SetVariable name="ArcThickness">4</SetVariable>
+      <SetVariable name="ArcBgThickness">4</SetVariable>
+      <SetVariable name="ArcBgColor">{{border_lit}}</SetVariable>
+      <!-- Square caps: a terminal meter has no rounded ends. -->
+      <SetVariable name="ArcRoundCaps">false</SetVariable>
+      <SetVariable name="ArcColorFxMix">{{fx}}</SetVariable>
+      <SetVariable name="ArcColorSuper">{{accent}}</SetVariable>
+      <SetVariable name="ArcColorFxParameter">{{fg}}</SetVariable>
+    </Scheme><!-- {{scheme_name}} -->

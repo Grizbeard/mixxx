@@ -1,0 +1,68 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    The status line across the top: page tabs, centred. One row, 34px, sized
+    so a finger hits a tab without aiming.
+
+    Display options used to sit here as buttons. They moved to the options
+    page: a toolbar with one control per setting stops scaling the moment there
+    are more than a handful, and on a 480px panel this row is too expensive to
+    spend on settings that get changed once and then left alone.
+
+    No clock: WTime's width is fixed and does not grow with the digit count,
+    so a two-digit hour clipped against it - "10:02 PM" read as ": 02 PM" -
+    and the panel has no room to spend fixing a reading a DJ has a phone for.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>ToolBar</ObjectName>
+    <Layout>horizontal</Layout>
+    <Size>0me,42f</Size>
+    <Children>
+
+      <!-- The tabs are centred, not left-aligned, so that they sit in the same
+           place on every page. On the decks page this bar spans the waveform
+           column only, on the others the whole window - but the deck columns
+           are the same width as each other, so both bars share a centre line
+           and the tabs do not move when you switch. -->
+      <WidgetGroup>
+        <ObjectName>ToolBarFiller</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children/>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>TabControls</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>max,me</SizePolicy>
+        <Children>
+          <Template src="skin:templates/tab_button.xml">
+            <SetVariable name="Label">decks</SetVariable>
+            <SetVariable name="ConfigKey">decks</SetVariable>
+          </Template>
+          <Template src="skin:templates/tab_button.xml">
+            <SetVariable name="Label">browse</SetVariable>
+            <SetVariable name="ConfigKey">library</SetVariable>
+          </Template>
+          <Template src="skin:templates/tab_button.xml">
+            <SetVariable name="Label">fx</SetVariable>
+            <SetVariable name="ConfigKey">fx</SetVariable>
+          </Template>
+          <Template src="skin:templates/tab_button.xml">
+            <SetVariable name="Label">options</SetVariable>
+            <SetVariable name="ConfigKey">options</SetVariable>
+          </Template>
+        </Children>
+      </WidgetGroup>
+
+      <WidgetGroup>
+        <ObjectName>ToolBarFiller</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children/>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

@@ -1,0 +1,75 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    One setting on the options page: a caption on the left and a button on the
+    right that cycles through the setting's states.
+
+    A cycling button rather than a row of radio buttons. Every one of these
+    controls has two to four states, a cycle needs one 44px target instead of
+    four small ones, and the button's own label is the readout - so the row
+    says what the setting is and what it currently is, in two words, with
+    nothing to align.
+
+  Variables:
+    ObjectName:   for the stylesheet
+    Caption:      what the setting is
+    ConfigKey:    the control, fully qualified, e.g. [TerminalWide],deck_width
+    NumberStates: 2 to 7 - must match the number of Text<n> given
+    Text0..Text6: the label in each state. Unused ones are simply never shown,
+                  since a state above NumberStates - 1 is never reached, and
+                  WPushButton ignores State nodes past NumberStates anyway.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>OptionRow</ObjectName>
+    <Layout>horizontal</Layout>
+    <Size>0me,52f</Size>
+    <Children>
+
+      <Label>
+        <ObjectName>OptionCaption</ObjectName>
+        <Size>0me,50f</Size>
+        <Text><Variable name="Caption"/></Text>
+      </Label>
+
+      <PushButton>
+        <ObjectName><Variable name="ObjectName"/></ObjectName>
+        <Size>220f,50f</Size>
+        <NumberStates><Variable name="NumberStates"/></NumberStates>
+        <State>
+          <Number>0</Number>
+          <Text><Variable name="Text0"/></Text>
+        </State>
+        <State>
+          <Number>1</Number>
+          <Text><Variable name="Text1"/></Text>
+        </State>
+        <State>
+          <Number>2</Number>
+          <Text><Variable name="Text2"/></Text>
+        </State>
+        <State>
+          <Number>3</Number>
+          <Text><Variable name="Text3"/></Text>
+        </State>
+        <State>
+          <Number>4</Number>
+          <Text><Variable name="Text4"/></Text>
+        </State>
+        <State>
+          <Number>5</Number>
+          <Text><Variable name="Text5"/></Text>
+        </State>
+        <State>
+          <Number>6</Number>
+          <Text><Variable name="Text6"/></Text>
+        </State>
+        <Connection>
+          <ConfigKey persist="true"><Variable name="ConfigKey"/></ConfigKey>
+          <ButtonState>LeftButton</ButtonState>
+        </Connection>
+      </PushButton>
+
+    </Children>
+  </WidgetGroup>
+</Template>

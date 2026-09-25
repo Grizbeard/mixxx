@@ -46,6 +46,10 @@ EffectChain::EffectChain(const QString& group,
             this,
             &EffectChain::slotEffectChainPresetRenamed);
     connect(m_pChainPresetManager.data(),
+            &EffectChainPresetManager::effectChainPresetDeleted,
+            this,
+            &EffectChain::slotEffectChainPresetDeleted);
+    connect(m_pChainPresetManager.data(),
             &EffectChainPresetManager::effectChainPresetListUpdated,
             this,
             &EffectChain::slotPresetListUpdated);
@@ -411,6 +415,18 @@ void EffectChain::slotChannelStatusChanged(
 void EffectChain::slotEffectChainPresetRenamed(const QString& oldName, const QString& newName) {
     if (m_presetName == oldName) {
         m_presetName = newName;
+    }
+}
+
+void EffectChain::slotEffectChainPresetDeleted(const QString& chainPresetName) {
+    // The effects stay loaded -- deleting a preset is not meant to tear down
+    // whatever is playing through it -- but the chain stops naming a preset
+    // that no longer exists, which is the same state a chain built by hand is
+    // in. Leaving the name behind would leave the selector pointing at nothing
+    // and offering to update a preset that is gone.
+    if (m_presetName == chainPresetName) {
+        m_presetName = QString();
+        emit chainPresetChanged(m_presetName);
     }
 }
 

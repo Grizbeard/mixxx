@@ -1,5 +1,7 @@
 #include "library/libraryfeature.h"
 
+#include <QDir>
+#include <QFile>
 #include <QStandardPaths>
 
 #include "library/library.h"
@@ -16,8 +18,80 @@ namespace {
 
 const mixxx::Logger kLogger("LibraryFeature");
 const QString kIconPath = QStringLiteral(":/images/library/ic_library_%1.svg");
+const QString kSkinIconPath =
+        QStringLiteral("%1/skins/%2/library/ic_library_%3.svg");
+const QString kSchemeIconPath =
+        QStringLiteral("%1/skins/%2/library/%3/ic_library_%4.svg");
+
+/// Path to a skin-provided replacement for a sidebar icon, or an empty string.
+///
+/// The built-in icons are compiled into the binary, so a skin whose palette
+/// does not contain their colours has no way to bring the sidebar into line
+/// with the rest of itself. A skin may ship
+/// `<skin>/library/ic_library_<name>.svg` to override one.
+///
+/// This is purely additive: a skin that provides nothing keeps the built-in
+/// icon, so existing skins are unaffected.
+///
+/// A skin whose colour schemes differ in more than accent -- a monochrome one,
+/// say -- needs an icon per scheme, so `library/<scheme>/` is preferred over
+/// `library/` when it exists. The scheme is keyed by the name the settings
+/// hold, not by the asset directory it happens to use: features are
+/// constructed before any skin is parsed, so there is nothing here that could
+/// map one onto the other without reading skin.xml. `library/` remains the
+/// fallback, for the first run of a settings file that names no scheme yet.
+QString skinIconPath(const UserSettingsPointer& pConfig, const QString& iconName) {
+    const QString skinName =
+            pConfig->getValueString(ConfigKey("[Config]", "ResizableSkin"));
+    if (skinName.isEmpty()) {
+        return QString();
+    }
+    const QString scheme =
+            pConfig->getValueString(ConfigKey("[Config]", "Scheme"));
+    // Same search order as SkinLoader: a user skin shadows a system one.
+    const QStringList bases = {
+            pConfig->getSettingsPath(), pConfig->getResourcePath()};
+    for (const QString& base : bases) {
+        if (base.isEmpty()) {
+            continue;
+        }
+        const QString clean = QDir::cleanPath(base);
+        if (!scheme.isEmpty()) {
+            const QString candidate =
+                    kSchemeIconPath.arg(clean, skinName, scheme, iconName);
+            if (QFile::exists(candidate)) {
+                return candidate;
+            }
+        }
+        const QString candidate =
+                kSkinIconPath.arg(clean, skinName, iconName);
+        if (QFile::exists(candidate)) {
+            return candidate;
+        }
+    }
+    return QString();
+}
 
 } // anonymous namespace
+
+QIcon LibraryFeature::iconForName(
+        const UserSettingsPointer& pConfig, const QString& iconName) {
+    const QString overridePath = skinIconPath(pConfig, iconName);
+    if (overridePath.isEmpty()) {
+        return QIcon(kIconPath.arg(iconName));
+    }
+    QIcon icon(overridePath);
+    // QIcon generates the pixmap for a selected row by blending the Normal one
+    // 30% towards QPalette::Highlight, which on Windows is the OS accent
+    // colour and so is unrelated to the skin. Naming the file for the Selected
+    // mode as well makes QSvgIconEngine load it directly instead of generating
+    // a tinted variant, so an icon a skin ships is drawn in the colour it was
+    // authored in. Disabled is deliberately left to be generated, so disabled
+    // items still grey out.
+    icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::Off);
+    icon.addFile(overridePath, QSize(), QIcon::Selected, QIcon::On);
+    return icon;
+}
 
 LibraryFeature::LibraryFeature(
         Library* pLibrary,
@@ -28,7 +102,7 @@ LibraryFeature::LibraryFeature(
           m_pConfig(pConfig),
           m_iconName(iconName) {
     if (!m_iconName.isEmpty()) {
-        m_icon = QIcon(kIconPath.arg(m_iconName));
+        m_icon = iconForName(m_pConfig, m_iconName);
     }
 }
 

@@ -1,0 +1,140 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    The mixing page: deck 1 | waveforms | deck 2, with the track overviews
+    optionally in a full-width row beneath all three.
+
+    On a 1920x480 panel the two deck columns take 400px each by default and the
+    waveforms get what is between them. That is the whole argument for this
+    skin - an ultrawide has horizontal room and almost no vertical room, so the
+    deck state goes beside the waveforms rather than under them.
+
+    Effects are not here. They were tried as columns at the outside edges and
+    the columns could only ever hold the three selectors - everything else an
+    effect unit has needs room this page does not have. They get their own tab
+    instead, where there is space for the whole unit.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>DecksPage</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <Children>
+
+      <WidgetGroup>
+        <ObjectName>DecksRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+
+          <Template src="skin:deck.xml">
+            <SetVariable name="ChanNum">1</SetVariable>
+            <SetVariable name="Side">Left</SetVariable>
+          </Template>
+
+          <Template src="skin:waveforms.xml"/>
+
+          <Template src="skin:deck.xml">
+            <SetVariable name="ChanNum">2</SetVariable>
+            <SetVariable name="Side">Right</SetVariable>
+          </Template>
+
+        </Children>
+      </WidgetGroup>
+
+      <!-- Overviews across the whole window, deck 1 on the left half and deck 2
+           on the right, when [TerminalWide],overview_place is 2. The widest a
+           whole track can be drawn on this panel, and the only placement where
+           the two overviews are the same width as each other *and* line up
+           with nothing else - which is rather the point of a scale.
+
+           The overviews are singletons, so they are here, in the centre column
+           or in the decks, never in two places at once. -->
+      <WidgetGroup>
+        <ObjectName>OverviewFullRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,f</SizePolicy>
+        <Children>
+
+          <WidgetGroup>
+            <ObjectName>OverviewFullBody</ObjectName>
+            <Layout>horizontal</Layout>
+            <SizePolicy>me,i</SizePolicy>
+            <Children>
+              <WidgetGroup>
+                <ObjectName>OverviewFullBox1</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Overview1_Singleton</ObjectName>
+                    <SizePolicy>me,me</SizePolicy>
+                  </SingletonContainer>
+                </Children>
+              </WidgetGroup>
+              <WidgetGroup>
+                <ObjectName>OverviewFullBox2</ObjectName>
+                <Layout>vertical</Layout>
+                <SizePolicy>me,me</SizePolicy>
+                <Children>
+                  <SingletonContainer>
+                    <ObjectName>Overview2_Singleton</ObjectName>
+                    <SizePolicy>me,me</SizePolicy>
+                  </SingletonContainer>
+                </Children>
+              </WidgetGroup>
+            </Children>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,24f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>0</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,36f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>1</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,52f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>2</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+          <WidgetGroup>
+            <ObjectName>OverviewHeightStrut</ObjectName>
+            <Size>0f,72f</Size>
+            <Children/>
+            <Connection>
+              <ConfigKey persist="true">[TerminalWide],overview_height</ConfigKey>
+              <Transform><IsEqual>3</IsEqual></Transform>
+              <BindProperty>visible</BindProperty>
+            </Connection>
+          </WidgetGroup>
+
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[TerminalWide],overview_place</ConfigKey>
+          <Transform><IsEqual>2</IsEqual></Transform>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup>
+
+    </Children>
+  </WidgetGroup>
+</Template>

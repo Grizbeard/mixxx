@@ -1,0 +1,110 @@
+<!DOCTYPE template>
+<!--
+  Description:
+    Per-deck vinyl control. Enable, tracking mode, what a needle drop does, and
+    the analogue passthrough.
+
+    Pioneered-DVS deliberately kept these off screen: at 1024px the deck info
+    row had no horizontal space for them, so the rule there was "controls on
+    hardware, state on screen". An ultrawide panel removes that constraint, and
+    having the mode switches in reach of the deck they belong to is worth the
+    room. They stay bound to the same controls as the DJM-T1's own buttons in
+    controllers/Pioneer-DJM-T1-DVS.midi.xml, so either surface works and both
+    show the same state.
+
+    Mode and cueing are selectors, not on/off switches - every state is a valid
+    choice - so the stylesheet gives them one block in every state and lets the
+    word carry the meaning, the way Terminal treats vinyl mode.
+
+  Variables:
+    ChanNum: deck number, 1 or 2
+-->
+<Template>
+  <SetVariable name="Group">[Channel<Variable name="ChanNum"/>]</SetVariable>
+
+  <WidgetGroup>
+    <ObjectName>DvsControls</ObjectName>
+    <Layout>vertical</Layout>
+    <Size>0me,74f</Size>
+    <Children>
+
+      <Label>
+        <ObjectName>DeckFieldLabel</ObjectName>
+        <Size>0me,18f</Size>
+        <Text>timecode</Text>
+      </Label>
+
+      <WidgetGroup>
+        <ObjectName>DvsControlsRow</ObjectName>
+        <Layout>horizontal</Layout>
+        <Size>0me,52f</Size>
+        <Children>
+
+          <PushButton>
+            <ObjectName>VinylEnableButton</ObjectName>
+            <TooltipId>vinylcontrol_enabled</TooltipId>
+            <SizePolicy>me,f</SizePolicy>
+            <Size>0me,50f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>vinyl</Text></State>
+            <State><Number>1</Number><Text>vinyl</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,vinylcontrol_enabled</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+
+          <PushButton>
+            <ObjectName>VinylModeButton</ObjectName>
+            <TooltipId>vinylcontrol_mode</TooltipId>
+            <SizePolicy>me,f</SizePolicy>
+            <Size>0me,50f</Size>
+            <NumberStates>3</NumberStates>
+            <State><Number>0</Number><Text>abs</Text></State>
+            <State><Number>1</Number><Text>rel</Text></State>
+            <State><Number>2</Number><Text>const</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,vinylcontrol_mode</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+
+          <PushButton>
+            <ObjectName>VinylCueButton</ObjectName>
+            <TooltipId>vinylcontrol_cueing</TooltipId>
+            <SizePolicy>me,f</SizePolicy>
+            <Size>0me,50f</Size>
+            <NumberStates>3</NumberStates>
+            <State><Number>0</Number><Text>drop</Text></State>
+            <State><Number>1</Number><Text>cue</Text></State>
+            <State><Number>2</Number><Text>hot</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,vinylcontrol_cueing</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+
+          <PushButton>
+            <ObjectName>VinylPassthroughButton</ObjectName>
+            <TooltipId>passthrough_enabled</TooltipId>
+            <SizePolicy>me,f</SizePolicy>
+            <Size>0me,50f</Size>
+            <NumberStates>2</NumberStates>
+            <State><Number>0</Number><Text>thru</Text></State>
+            <State><Number>1</Number><Text>thru</Text></State>
+            <Connection>
+              <ConfigKey><Variable name="Group"/>,passthrough</ConfigKey>
+              <ButtonState>LeftButton</ButtonState>
+            </Connection>
+          </PushButton>
+
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+    <Connection>
+      <ConfigKey persist="true">[VinylControl],show_vinylcontrol</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>
