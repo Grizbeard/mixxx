@@ -264,6 +264,8 @@ void EffectChain::sendParameterUpdate() {
     pRequest->SetEffectChainParameters.enabled = m_pControlChainEnabled->toBool();
     pRequest->SetEffectChainParameters.mix_mode = mixMode();
     pRequest->SetEffectChainParameters.mix = m_pControlChainMix->get();
+    pRequest->SetEffectChainParameters.wet_only =
+            m_pControlChainWetOnly && m_pControlChainWetOnly->toBool();
     m_pMessenger->writeRequest(pRequest);
 }
 

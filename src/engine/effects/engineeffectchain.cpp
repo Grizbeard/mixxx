@@ -11,8 +11,10 @@ EngineEffectChain::EngineEffectChain(const QString& group,
           m_enableState(true),
           m_mixMode(EffectChainMixMode::DrySlashWet),
           m_dMix(0),
+          m_wetOnly(false),
           m_buffer1(kMaxEngineSamples),
-          m_buffer2(kMaxEngineSamples) {
+          m_buffer2(kMaxEngineSamples),
+          m_sendBuffer(kMaxEngineSamples) {
     // Try to prevent memory allocation.
     m_effects.reserve(256);
 
@@ -80,6 +82,7 @@ bool EngineEffectChain::updateParameters(const EffectsRequest& message) {
     // TODO(rryan): Parameter interpolation.
     m_mixMode = message.SetEffectChainParameters.mix_mode;
     m_dMix = static_cast<CSAMPLE>(message.SetEffectChainParameters.mix);
+    m_wetOnly = message.SetEffectChainParameters.wet_only;
     m_enableState = message.SetEffectParameters.enabled;
     return true;
 }
@@ -222,6 +225,20 @@ bool EngineEffectChain::process(const ChannelHandle& inputHandle,
     CSAMPLE currentMixKnob = m_dMix;
     CSAMPLE lastCallbackMixKnob = channelStatus.oldMixKnob;
 
+    if (m_wetOnly) {
+        const bool wrote = processWetOnly(&channelStatus,
+                effectiveChainEnableState,
+                inputHandle,
+                outputHandle,
+                pIn,
+                pOut,
+                numSamples,
+                sampleRate,
+                groupFeatures);
+        channelStatus.oldMixKnob = currentMixKnob;
+        return wrote;
+    }
+
     bool processingOccured = false;
     if (effectiveChainEnableState != EffectEnableState::Disabled) {
         // Ramping code inside the effects need to access the original samples
@@ -317,4 +334,123 @@ bool EngineEffectChain::process(const ChannelHandle& inputHandle,
     channelStatus.oldMixKnob = currentMixKnob;
 
     return processingOccured;
+}
+
+// Wet-only mode: a send/return rather than an insert.
+//
+//   output = effects(input * mix)
+//
+// The mix knob is the send level, so it scales what goes *into* the effects,
+// and nothing of the input reaches the output except through them. Turning the
+// send down stops feeding an echo without cutting its tail, which is what makes
+// a post-fader send out of a knob that follows a hardware channel fader.
+//
+// The output is silence whenever nothing processed - the unit is off, every
+// slot is off or empty - where the normal modes pass the input through. That is
+// the point: on a bus that feeds a return, "pass the input through" means a
+// second copy of the whole mix.
+//
+// Returns true whenever it wrote pOut, so that the in-place and the mixing
+// callers both take its output, silence included. A channel the unit is not
+// routed to is left alone, exactly as in the other modes.
+bool EngineEffectChain::processWetOnly(ChannelStatus* pChannelStatus,
+        EffectEnableState effectiveChainEnableState,
+        const ChannelHandle& inputHandle,
+        const ChannelHandle& outputHandle,
+        const CSAMPLE* pIn,
+        CSAMPLE* pOut,
+        const std::size_t numSamples,
+        const mixxx::audio::SampleRate sampleRate,
+        const GroupFeatureState& groupFeatures) {
+    if (effectiveChainEnableState == EffectEnableState::Disabled &&
+            pChannelStatus->enableState == EffectEnableState::Disabled) {
+        // Not routed to this input. (Routed but switched off is Enabling:
+        // the standby state the enable logic above parks it in.)
+        pChannelStatus->wetOnlyOutputting = false;
+        pChannelStatus->wetOnlyEndedOnInput = false;
+        return false;
+    }
+
+    // Copy before anything writes pOut: in the in-place case pIn is pOut.
+    SampleUtil::copyWithRampingGain(m_sendBuffer.data(),
+            pIn,
+            pChannelStatus->oldMixKnob,
+            m_dMix,
+            static_cast<int>(numSamples));
+
+    bool processingOccured = false;
+    bool lastEffectFadesToInput = false;
+    CSAMPLE* pIntermediateInput = m_sendBuffer.data();
+    if (effectiveChainEnableState != EffectEnableState::Disabled) {
+        CSAMPLE* pIntermediateOutput;
+        bool firstAddDryToWetEffectProcessed = false;
+        for (EngineEffect* pEffect : std::as_const(m_effects)) {
+            if (pEffect == nullptr) {
+                continue;
+            }
+            if (pIntermediateInput == m_buffer1.data()) {
+                pIntermediateOutput = m_buffer2.data();
+            } else {
+                pIntermediateOutput = m_buffer1.data();
+            }
+            if (!pEffect->process(inputHandle,
+                        outputHandle,
+                        pIntermediateInput,
+                        pIntermediateOutput,
+                        numSamples,
+                        sampleRate,
+                        effectiveChainEnableState,
+                        groupFeatures)) {
+                continue;
+            }
+            if (pEffect->getManifest()->addDryToWet()) {
+                // Echo and Reverb output only their tail and rely on the chain
+                // to add their input back. The first one's input is the send,
+                // which must not reach the output; any later one's input is the
+                // effect before it, which should - the same rule as Dry+Wet.
+                if (firstAddDryToWetEffectProcessed) {
+                    SampleUtil::add(pIntermediateOutput,
+                            pIntermediateInput,
+                            static_cast<SINT>(numSamples));
+                }
+                firstAddDryToWetEffectProcessed = true;
+            }
+            // An effect that does not ramp itself is crossfaded to its input
+            // by EngineEffect when it switches off; one that does fades to
+            // its own silence.
+            lastEffectFadesToInput = !pEffect->getManifest()->effectRampsFromDry();
+            processingOccured = true;
+            pIntermediateInput = pIntermediateOutput;
+        }
+    }
+
+    if (processingOccured) {
+        if (pChannelStatus->wetOnlyOutputting) {
+            SampleUtil::copy(pOut, pIntermediateInput, static_cast<SINT>(numSamples));
+        } else {
+            // Starting from silence. An effect switching on is faded in from
+            // its input, which here would be a step up to the send level.
+            SampleUtil::copyWithRampingGain(pOut,
+                    pIntermediateInput,
+                    CSAMPLE_GAIN_ZERO,
+                    CSAMPLE_GAIN_ONE,
+                    static_cast<int>(numSamples));
+        }
+    } else if (pChannelStatus->wetOnlyOutputting && pChannelStatus->wetOnlyEndedOnInput) {
+        // Last callback an effect switched off by fading to its input, so the
+        // output ended on the send signal. Fade that out instead of stepping to
+        // silence. (Exact for a unit whose last effect was fed by the send, which
+        // is every unit with one effect on.)
+        SampleUtil::copyWithRampingGain(pOut,
+                m_sendBuffer.data(),
+                CSAMPLE_GAIN_ONE,
+                CSAMPLE_GAIN_ZERO,
+                static_cast<int>(numSamples));
+    } else {
+        SampleUtil::clear(pOut, static_cast<SINT>(numSamples));
+    }
+
+    pChannelStatus->wetOnlyOutputting = processingOccured;
+    pChannelStatus->wetOnlyEndedOnInput = processingOccured && lastEffectFadesToInput;
+    return true;
 }

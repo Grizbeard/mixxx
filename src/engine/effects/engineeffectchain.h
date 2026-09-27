@@ -49,10 +49,19 @@ class EngineEffectChain final : public EffectsRequestHandler {
     struct ChannelStatus {
         ChannelStatus()
                 : oldMixKnob(0),
-                  enableState(EffectEnableState::Disabled) {
+                  enableState(EffectEnableState::Disabled),
+                  wetOnlyOutputting(false),
+                  wetOnlyEndedOnInput(false) {
         }
         CSAMPLE oldMixKnob;
         EffectEnableState enableState;
+        // Wet-only mode only: whether the last callback put effect output on
+        // this channel, and whether that output was fading to the effect's
+        // input (an effect that does not ramp from dry itself) rather than to
+        // silence. Together they let the output fade instead of stepping when
+        // the effects stop.
+        bool wetOnlyOutputting;
+        bool wetOnlyEndedOnInput;
     };
 
     QString debugString() const {
@@ -60,6 +69,15 @@ class EngineEffectChain final : public EffectsRequestHandler {
     }
 
     bool updateParameters(const EffectsRequest& message);
+    bool processWetOnly(ChannelStatus* pChannelStatus,
+            EffectEnableState effectiveChainEnableState,
+            const ChannelHandle& inputHandle,
+            const ChannelHandle& outputHandle,
+            const CSAMPLE* pIn,
+            CSAMPLE* pOut,
+            const std::size_t numSamples,
+            const mixxx::audio::SampleRate sampleRate,
+            const GroupFeatureState& groupFeatures);
     bool addEffect(EngineEffect* pEffect, int iIndex);
     bool removeEffect(EngineEffect* pEffect, int iIndex);
     bool enableForInputChannel(ChannelHandle inputHandle);
@@ -69,9 +87,12 @@ class EngineEffectChain final : public EffectsRequestHandler {
     bool m_enableState;
     EffectChainMixMode::Type m_mixMode;
     CSAMPLE m_dMix;
+    bool m_wetOnly;
     QList<EngineEffect*> m_effects;
     mixxx::SampleBuffer m_buffer1;
     mixxx::SampleBuffer m_buffer2;
+    // Wet-only mode: the input scaled by the mix (send) knob.
+    mixxx::SampleBuffer m_sendBuffer;
     ChannelHandleMap<ChannelStatus> m_outputChannelMap;
     ChannelHandleMap<ChannelHandleMap<ChannelStatus>> m_chainStatusForChannelMatrix;
     EngineEffectsDelay m_effectsDelay;

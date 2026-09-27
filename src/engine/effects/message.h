@@ -89,6 +89,7 @@ struct EffectsRequest {
             bool enabled;
             EffectChainMixMode::Type mix_mode;
             double mix;
+            bool wet_only;
         } SetEffectChainParameters;
         struct {
             bool enabled;

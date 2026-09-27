@@ -112,6 +112,8 @@ class EffectChain : public QObject {
     std::unique_ptr<ControlObject> m_pControlChainMix;
     std::unique_ptr<ControlObject> m_pControlChainSuperParameter;
     std::unique_ptr<ControlObject> m_pControlNumChainPresets;
+    /// Only standard effect units have this; see StandardEffectChain.
+    std::unique_ptr<ControlPushButton> m_pControlChainWetOnly;
     QList<EffectSlotPointer> m_effectSlots;
 
   protected slots:

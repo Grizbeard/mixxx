@@ -2923,6 +2923,7 @@ if(BUILD_TESTING)
     src/test/enginebufferscalelineartest.cpp
     src/test/enginebuffertest.cpp
     src/test/enginefilterbiquadtest.cpp
+    src/test/engineeffectchain_wetonly_test.cpp
     src/test/enginemixertest.cpp
     src/test/enginemicrophonetest.cpp
     src/test/enginesynctest.cpp

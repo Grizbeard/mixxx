@@ -504,15 +504,26 @@ void EngineMixer::process(const std::size_t bufferSize) {
                 m_pEngineEffectsManager);
     }
 
-    // Process crossfader orientation bus channel effects
+    // Process crossfader orientation bus channel effects.
+    // A bus holding exactly one channel takes that channel's features, the same
+    // way the headphone mix does for a single PFL channel, so that tempo-synced
+    // effects on it (Echo, above all) follow the deck instead of falling back
+    // to a delay in seconds. With two or more channels there is no one tempo to
+    // give them, and they get none, as before.
     if (m_pEngineEffectsManager) {
+        const auto featuresForBus = [&](int orientation) -> const GroupFeatureState& {
+            if (m_activeBusChannels[orientation].size() == 1) {
+                return m_activeBusChannels[orientation].at(0)->m_features;
+            }
+            return busFeatures;
+        };
         m_pEngineEffectsManager->processPostFaderInPlace(
                 m_busCrossfaderLeftHandle.handle(),
                 m_mainHandle.handle(),
                 m_outputBusBuffers[EngineChannel::LEFT].data(),
                 bufferSize,
                 m_sampleRate,
-                busFeatures,
+                featuresForBus(EngineChannel::LEFT),
                 CSAMPLE_GAIN_ONE,
                 CSAMPLE_GAIN_ONE);
         m_pEngineEffectsManager->processPostFaderInPlace(
@@ -521,7 +532,7 @@ void EngineMixer::process(const std::size_t bufferSize) {
                 m_outputBusBuffers[EngineChannel::CENTER].data(),
                 bufferSize,
                 m_sampleRate,
-                busFeatures,
+                featuresForBus(EngineChannel::CENTER),
                 CSAMPLE_GAIN_ONE,
                 CSAMPLE_GAIN_ONE);
         m_pEngineEffectsManager->processPostFaderInPlace(
@@ -530,7 +541,7 @@ void EngineMixer::process(const std::size_t bufferSize) {
                 m_outputBusBuffers[EngineChannel::RIGHT].data(),
                 bufferSize,
                 m_sampleRate,
-                busFeatures,
+                featuresForBus(EngineChannel::RIGHT),
                 CSAMPLE_GAIN_ONE,
                 CSAMPLE_GAIN_ONE);
     }
