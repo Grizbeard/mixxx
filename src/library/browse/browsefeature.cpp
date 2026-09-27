@@ -10,6 +10,7 @@
 
 #include "library/browse/foldertreemodel.h"
 #include "library/library.h"
+#include "library/removabledevicewatcher.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/treeitem.h"
@@ -96,6 +97,13 @@ BrowseFeature::BrowseFeature(
             &QAction::triggered,
             this,
             &BrowseFeature::slotRefreshDirectoryTree);
+
+    m_pDeviceWatcher = new RemovableDeviceWatcher(
+            RemovableDeviceWatcher::defaultRootPaths(), this);
+    connect(m_pDeviceWatcher,
+            &RemovableDeviceWatcher::devicesChanged,
+            this,
+            &BrowseFeature::slotRemovableDevicesChanged);
 
     m_proxyModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_proxyModel.setSortCaseSensitivity(Qt::CaseInsensitive);
@@ -309,6 +317,7 @@ void BrowseFeature::activateChild(const QModelIndex& index) {
     if (path == QUICK_LINK_NODE || path == DEVICE_NODE) {
         emit saveModelState();
         // Clear the tracks view
+        m_browsedPath.clear();
         m_browseModel.setPath({});
     } else {
         // Open a security token for this path and if we do not have access, ask
@@ -325,6 +334,7 @@ void BrowseFeature::activateChild(const QModelIndex& index) {
             }
         }
         emit saveModelState();
+        m_browsedPath = path;
         m_browseModel.setPath(std::move(dirAccess));
     }
     emit showTrackModel(&m_proxyModel);
@@ -478,6 +488,24 @@ void BrowseFeature::onLazyChildExpandation(const QModelIndex& index) {
 
     if (!folders.empty()) {
         m_pSidebarModel->insertTreeItemRows(std::move(folders), 0, idx);
+    }
+}
+
+// A device was mounted or unmounted: rebuild Removable Devices the way
+// collapsing and expanding it would, so it lists what is actually there.
+void BrowseFeature::slotRemovableDevicesChanged() {
+    TreeItem* pRoot = m_pSidebarModel->getRootItem();
+    for (int row = 0; pRoot && row < pRoot->childRows(); ++row) {
+        if (pRoot->child(row)->getData().toString() == DEVICE_NODE) {
+            onLazyChildExpandation(m_pSidebarModel->index(row, 0));
+            break;
+        }
+    }
+    // The track list may be showing a folder on the device that just went.
+    // Clear it rather than go on listing files that are no longer there.
+    if (!m_browsedPath.isEmpty() && !QFileInfo(m_browsedPath).isDir()) {
+        m_browsedPath.clear();
+        m_browseModel.setPath({});
     }
 }
 

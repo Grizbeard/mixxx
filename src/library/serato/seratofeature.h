@@ -88,4 +88,9 @@ class SeratoFeature : public BaseExternalLibraryFeature {
     QString m_title;
 
     QSharedPointer<BaseTrackCache> m_trackSource;
+
+    // Look for databases again without changing the view, when a device is
+    // mounted or unmounted (RemovableDeviceWatcher), as well as on activate().
+    void refreshDatabases();
+    bool m_refreshDatabasesAgain = false;
 };

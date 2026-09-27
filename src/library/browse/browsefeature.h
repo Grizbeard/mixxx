@@ -16,6 +16,7 @@
 #define DEVICE_NODE "::mixxx_device_node::"
 
 class Library;
+class RemovableDeviceWatcher;
 class TrackCollection;
 class WLibrarySidebar;
 class QModelIndex;
@@ -65,12 +66,16 @@ class BrowseFeature : public LibraryFeature {
     void saveQuickLinks();
     void loadQuickLinks();
     QString getLastRightClickedPath() const;
+    void slotRemovableDevicesChanged();
 
     TrackCollection* const m_pTrackCollection;
 
     BrowseTableModel m_browseModel;
     ProxyTrackModel m_proxyModel;
     FolderTreeModel* m_pSidebarModel;
+    RemovableDeviceWatcher* m_pDeviceWatcher;
+    // The folder the track list is showing, or empty for a built-in node.
+    QString m_browsedPath;
     QAction* m_pAddQuickLinkAction;
     QAction* m_pRemoveQuickLinkAction;
     QAction* m_pAddtoLibraryAction;

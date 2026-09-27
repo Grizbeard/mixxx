@@ -13,6 +13,7 @@
 #include "library/dao/trackschema.h"
 #include "library/library.h"
 #include "library/queryutil.h"
+#include "library/removabledevicewatcher.h"
 #include "library/serato/seratoplaylistmodel.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -1085,6 +1086,22 @@ SeratoFeature::SeratoFeature(
             &QFutureWatcher<QString>::finished,
             this,
             &SeratoFeature::onTracksFound);
+    // A device mounted or unmounted while a search was already running is
+    // looked for once that search is done.
+    connect(&m_databasesFutureWatcher,
+            &QFutureWatcher<QList<TreeItem*>>::finished,
+            this,
+            [this] {
+                if (m_refreshDatabasesAgain) {
+                    m_refreshDatabasesAgain = false;
+                    refreshDatabases();
+                }
+            });
+    connect(new RemovableDeviceWatcher(
+                    RemovableDeviceWatcher::defaultRootPaths(), this),
+            &RemovableDeviceWatcher::devicesChanged,
+            this,
+            &SeratoFeature::refreshDatabases);
 
     // initialize the model
     m_pSidebarModel->setRootItem(TreeItem::newRoot(this));
@@ -1199,16 +1216,24 @@ void SeratoFeature::refreshLibraryModels() {
 void SeratoFeature::activate() {
     qDebug() << "SeratoFeature::activate()";
 
+    refreshDatabases();
+
+    emit enableCoverArtDisplay(true);
+    emit switchToView("SERATOHOME");
+    emit disableSearch();
+}
+
+void SeratoFeature::refreshDatabases() {
+    if (m_databasesFuture.isRunning()) {
+        m_refreshDatabasesAgain = true;
+        return;
+    }
     // Let a worker thread do the parsing
     m_databasesFuture = QtConcurrent::run(findSeratoDatabases);
     m_databasesFutureWatcher.setFuture(m_databasesFuture);
     m_title = tr("(loading) Serato");
     //calls a slot in the sidebar model such that 'Serato (isLoading)' is displayed.
     emit featureIsLoading(this, true);
-
-    emit enableCoverArtDisplay(true);
-    emit switchToView("SERATOHOME");
-    emit disableSearch();
 }
 
 void SeratoFeature::activateChild(const QModelIndex& index) {
@@ -1288,7 +1313,8 @@ void SeratoFeature::onSeratoDatabasesFound() {
             m_pSidebarModel->removeRows(0, root->childRows());
         }
     } else {
-        for (int databaseIndex = 0; databaseIndex < root->childRows(); databaseIndex++) {
+        // Backwards, since removing a row moves the next one into its place.
+        for (int databaseIndex = root->childRows() - 1; databaseIndex >= 0; databaseIndex--) {
             TreeItem* child = root->child(databaseIndex);
             bool removeChild = true;
 

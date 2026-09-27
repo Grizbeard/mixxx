@@ -213,6 +213,11 @@ void BrowseTableModel::setPath(mixxx::FileAccess path) {
     } else {
         m_currentDirectory = {};
         m_pBrowseThread->executePopulation({}, this);
+        // The thread skips an empty path without clearing the model, which
+        // left the previous folder's files listed: after selecting a built-in
+        // node, or once the device the folder was on had gone. There is
+        // nothing to list, so clear it here.
+        removeRows(0, rowCount());
     }
 }
 

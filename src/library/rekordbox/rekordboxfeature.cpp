@@ -18,6 +18,7 @@
 #include "library/library.h"
 #include "library/queryutil.h"
 #include "library/rekordbox/rekordboxconstants.h"
+#include "library/removabledevicewatcher.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/treeitem.h"
@@ -1387,6 +1388,22 @@ RekordboxFeature::RekordboxFeature(
             &QFutureWatcher<QString>::finished,
             this,
             &RekordboxFeature::onTracksFound);
+    // A device mounted or unmounted while a search was already running is
+    // looked for once that search is done.
+    connect(&m_devicesFutureWatcher,
+            &QFutureWatcher<QList<TreeItem*>>::finished,
+            this,
+            [this] {
+                if (m_refreshDevicesAgain) {
+                    m_refreshDevicesAgain = false;
+                    refreshDevices();
+                }
+            });
+    connect(new RemovableDeviceWatcher(
+                    RemovableDeviceWatcher::defaultRootPaths(), this),
+            &RemovableDeviceWatcher::devicesChanged,
+            this,
+            &RekordboxFeature::refreshDevices);
     // initialize the model
     m_pSidebarModel->setRootItem(TreeItem::newRoot(this));
 }
@@ -1498,16 +1515,24 @@ void RekordboxFeature::refreshLibraryModels() {
 void RekordboxFeature::activate() {
     qDebug() << "RekordboxFeature::activate()";
 
+    refreshDevices();
+
+    emit enableCoverArtDisplay(true);
+    emit switchToView("REKORDBOXHOME");
+    emit disableSearch();
+}
+
+void RekordboxFeature::refreshDevices() {
+    if (m_devicesFuture.isRunning()) {
+        m_refreshDevicesAgain = true;
+        return;
+    }
     // Let a worker thread do the XML parsing
     m_devicesFuture = QtConcurrent::run(findRekordboxDevices);
     m_devicesFutureWatcher.setFuture(m_devicesFuture);
     m_title = tr("(loading) Rekordbox");
     //calls a slot in the sidebar model such that 'Rekordbox (isLoading)' is displayed.
     emit featureIsLoading(this, true);
-
-    emit enableCoverArtDisplay(true);
-    emit switchToView("REKORDBOXHOME");
-    emit disableSearch();
 }
 
 void RekordboxFeature::activateChild(const QModelIndex& index) {
@@ -1581,7 +1606,8 @@ void RekordboxFeature::onRekordboxDevicesFound() {
             m_pSidebarModel->removeRows(0, root->childRows());
         }
     } else {
-        for (int deviceIndex = 0; deviceIndex < root->childRows(); deviceIndex++) {
+        // Backwards, since removing a row moves the next one into its place.
+        for (int deviceIndex = root->childRows() - 1; deviceIndex >= 0; deviceIndex--) {
             TreeItem* child = root->child(deviceIndex);
             bool removeChild = true;
 

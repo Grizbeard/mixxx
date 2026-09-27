@@ -91,4 +91,9 @@ class RekordboxFeature : public BaseExternalLibraryFeature {
     QString m_title;
 
     QSharedPointer<BaseTrackCache> m_trackSource;
+
+    // Look for devices again without changing the view, when one is mounted
+    // or unmounted (RemovableDeviceWatcher), as well as on activate().
+    void refreshDevices();
+    bool m_refreshDevicesAgain = false;
 };
