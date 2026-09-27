@@ -5,6 +5,7 @@
 
 #include "control/controlproxy.h"
 #include "library/library_decl.h"
+#include "preferences/usersettings.h"
 #ifdef __STEM__
 #include "engine/engine.h"
 #endif
@@ -14,6 +15,7 @@ class ControlObject;
 class ControlPushButton;
 class Library;
 class LibraryControl;
+class LibraryFavorites;
 class WLibrary;
 class WLibrarySidebar;
 class WSearchLineEdit;
@@ -52,7 +54,7 @@ class LoadToGroupController : public QObject {
 class LibraryControl : public QObject {
     Q_OBJECT
   public:
-    LibraryControl(Library* pLibrary);
+    LibraryControl(Library* pLibrary, UserSettingsPointer pConfig);
     virtual ~LibraryControl();
 
     void bindLibraryWidget(WLibrary* pLibrary, KeyboardEventFilter* pKeyboard);
@@ -236,4 +238,7 @@ class LibraryControl : public QObject {
     ControlProxy m_numSamplers;
     ControlProxy m_numPreviewDecks;
     std::map<QString, std::unique_ptr<LoadToGroupController>> m_loadToGroupControllers;
+
+    // Numbered favorites for sidebar items ([Library],favorite_N_*)
+    LibraryFavorites* m_pFavorites;
 };

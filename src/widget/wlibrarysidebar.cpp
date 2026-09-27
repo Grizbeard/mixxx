@@ -436,6 +436,18 @@ void WLibrarySidebar::selectChildIndex(const QModelIndex& index, bool selectItem
     scrollTo(translated, EnsureVisible);
 }
 
+void WLibrarySidebar::activateIndex(const QModelIndex& index) {
+    if (!index.isValid()) {
+        return;
+    }
+    for (QModelIndex parentIndex = index.parent(); parentIndex.isValid();
+            parentIndex = parentIndex.parent()) {
+        expand(parentIndex);
+    }
+    selectIndex(index, true);
+    emit clicked(index);
+}
+
 QModelIndex WLibrarySidebar::selectedIndex() {
     QModelIndexList selectedIndices = selectionModel()->selectedRows();
     if (selectedIndices.isEmpty()) {

@@ -1427,6 +1427,7 @@ add_library(
   src/library/library_prefs.cpp
   src/library/library.cpp
   src/library/librarycontrol.cpp
+  src/library/libraryfavorites.cpp
   src/library/libraryfeature.cpp
   src/library/librarytablemodel.cpp
   src/library/missing_hidden/dlghidden.cpp
@@ -2941,6 +2942,7 @@ if(BUILD_TESTING)
     src/test/keyutilstest.cpp
     src/test/lcstest.cpp
     src/test/learningutilstest.cpp
+    src/test/libraryfavorites_test.cpp
     src/test/libraryscannertest.cpp
     src/test/librarytest.cpp
     src/test/looping_control_test.cpp

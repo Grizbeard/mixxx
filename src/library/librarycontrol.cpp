@@ -11,6 +11,7 @@
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
 #include "library/library.h"
+#include "library/libraryfavorites.h"
 #include "library/libraryview.h"
 #include "mixer/playermanager.h"
 #include "moc_librarycontrol.cpp"
@@ -87,7 +88,7 @@ void LoadToGroupController::slotLoadToGroupAndPlay(double v) {
     }
 }
 
-LibraryControl::LibraryControl(Library* pLibrary)
+LibraryControl::LibraryControl(Library* pLibrary, UserSettingsPointer pConfig)
         : QObject(pLibrary),
           m_pLibrary(pLibrary),
           m_focusedWidget(FocusWidget::None),
@@ -97,7 +98,8 @@ LibraryControl::LibraryControl(Library* pLibrary)
           m_pSearchbox(nullptr),
           m_numDecks(kAppGroup, QStringLiteral("num_decks"), this),
           m_numSamplers(kAppGroup, QStringLiteral("num_samplers"), this),
-          m_numPreviewDecks(kAppGroup, QStringLiteral("num_preview_decks"), this) {
+          m_numPreviewDecks(kAppGroup, QStringLiteral("num_preview_decks"), this),
+          m_pFavorites(new LibraryFavorites(std::move(pConfig), this)) {
     qRegisterMetaType<FocusWidget>("FocusWidget");
 
     slotNumDecksChanged(m_numDecks.get());
@@ -627,6 +629,7 @@ void LibraryControl::bindSidebarWidget(WLibrarySidebar* pSidebarWidget) {
             &WLibrarySidebar::destroyed,
             this,
             &LibraryControl::sidebarWidgetDeleted);
+    m_pFavorites->bindSidebarWidget(pSidebarWidget);
 }
 
 void LibraryControl::bindLibraryWidget(WLibrary* pLibraryWidget, KeyboardEventFilter* pKeyboard) {

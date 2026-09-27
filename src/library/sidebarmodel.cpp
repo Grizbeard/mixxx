@@ -156,6 +156,24 @@ QModelIndex SidebarModel::getFeatureRootIndex(LibraryFeature* pFeature) {
     return ind;
 }
 
+LibraryFeature* SidebarModel::featureForIndex(const QModelIndex& index) const {
+    if (!index.isValid()) {
+        return nullptr;
+    }
+    if (index.internalPointer() == this) {
+        return index.row() < m_sFeatures.size() ? m_sFeatures[index.row()] : nullptr;
+    }
+    const TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+    return pTreeItem ? pTreeItem->feature() : nullptr;
+}
+
+QModelIndex SidebarModel::indexForTreeItem(TreeItem* pItem) const {
+    VERIFY_OR_DEBUG_ASSERT(pItem && !pItem->isRoot()) {
+        return QModelIndex();
+    }
+    return createIndex(pItem->parentRow(), 0, pItem);
+}
+
 void SidebarModel::clear(const QModelIndex& index) {
     if (index.internalPointer() == this) {
         m_sFeatures[index.row()]->clear();

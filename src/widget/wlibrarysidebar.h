@@ -30,6 +30,11 @@ class WLibrarySidebar : public QTreeView, public WBaseWidget {
     bool isChildIndexSelected(const QModelIndex& index);
     bool isFeatureRootIndexSelected(LibraryFeature* pFeature);
 
+    QModelIndex selectedIndex();
+    /// Select a sidebar item, expand everything above it, scroll to it and open
+    /// it the way a click would.
+    void activateIndex(const QModelIndex& index);
+
   public slots:
     void selectIndex(const QModelIndex& index, bool scrollToIndex = true);
     void selectChildIndex(const QModelIndex&, bool selectItem = true);
@@ -48,7 +53,6 @@ class WLibrarySidebar : public QTreeView, public WBaseWidget {
 
   private:
     void focusSelectedIndex();
-    QModelIndex selectedIndex();
 
     void toggleDragHoverPropertyAndUpdateStyle(bool enabled);
     void resetHoverIndexAndDragMoveResult();

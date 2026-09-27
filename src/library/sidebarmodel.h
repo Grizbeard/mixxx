@@ -7,6 +7,7 @@
 
 class LibraryFeature;
 class QTimer;
+class TreeItem;
 
 class SidebarModel : public QAbstractItemModel {
     Q_OBJECT
@@ -46,6 +47,15 @@ class SidebarModel : public QAbstractItemModel {
         return translateIndex(index, index.model());
     }
     QModelIndex getFeatureRootIndex(LibraryFeature* pFeature);
+
+    const QList<LibraryFeature*>& features() const {
+        return m_sFeatures;
+    }
+    /// The feature a sidebar index belongs to: its own row, or any item in
+    /// its tree. nullptr for an invalid index.
+    LibraryFeature* featureForIndex(const QModelIndex& index) const;
+    /// The sidebar index of an item in a feature's tree (not its root).
+    QModelIndex indexForTreeItem(TreeItem* pItem) const;
 
     void clear(const QModelIndex& index);
     void paste(const QModelIndex& index);
