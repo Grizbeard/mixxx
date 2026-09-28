@@ -1275,6 +1275,7 @@ add_library(
   src/effects/backends/builtin/autogaincontroleffect.cpp
   src/effects/backends/builtin/parametriceqeffect.cpp
   src/effects/backends/builtin/phasereffect.cpp
+  src/effects/backends/builtin/remixeffect.cpp
   src/effects/backends/builtin/reverbeffect.cpp
   src/effects/backends/builtin/threebandbiquadeqeffect.cpp
   src/effects/backends/builtin/tremoloeffect.cpp
@@ -1294,6 +1295,7 @@ add_library(
   src/effects/effectknobparameterslot.cpp
   src/effects/effectparameter.cpp
   src/effects/effectparameterslotbase.cpp
+  src/effects/remixcrossoverlink.cpp
   src/effects/effectslot.cpp
   src/effects/effectsmanager.cpp
   src/effects/effectsmessenger.cpp
@@ -2965,6 +2967,8 @@ if(BUILD_TESTING)
     src/test/queryutiltest.cpp
     src/test/rangelist_test.cpp
     src/test/readaheadmanager_test.cpp
+    src/test/remixcrossoverlink_test.cpp
+    src/test/remixeffect_test.cpp
     src/test/removabledevicewatcher_test.cpp
     src/test/replaygaintest.cpp
     src/test/rescalertest.cpp

@@ -12,6 +12,7 @@
 #include "effects/backends/builtin/linkwitzriley8eqeffect.h"
 #include "effects/backends/builtin/moogladder4filtereffect.h"
 #include "effects/backends/builtin/parametriceqeffect.h"
+#include "effects/backends/builtin/remixeffect.h"
 #include "effects/backends/builtin/threebandbiquadeqeffect.h"
 #ifndef __MACAPPSTORE__
 #include "effects/backends/builtin/reverbeffect.h"
@@ -51,6 +52,9 @@ BuiltInBackend::BuiltInBackend() {
     registerEffect<BitCrusherEffect>();
     registerEffect<WhiteNoiseEffect>();
     registerEffect<BalanceEffect>();
+    registerEffect<RemixLowEffect>();
+    registerEffect<RemixMidEffect>();
+    registerEffect<RemixHighEffect>();
     // Fancy effects
     registerEffect<FlangerEffect>();
     registerEffect<EchoEffect>();

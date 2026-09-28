@@ -1,6 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include "effects/effectchain.h"
+
+class RemixCrossoverLink;
 
 /// StandardEffectChain is a chain shown in the GUI with the
 /// detail of the input routing switches, mix knob, superknob,
@@ -13,7 +17,12 @@ class StandardEffectChain : public EffectChain {
     StandardEffectChain(unsigned int iChainNumber,
             EffectsManager* pEffectsManager,
             EffectsMessengerPointer pEffectsMessenger);
+    ~StandardEffectChain() override;
+
     static QString formatEffectChainGroup(const int iChainNumber);
     static QString formatEffectSlotGroup(const int iChainSlotNumber,
             const int iEffectSlotNumber);
+
+  private:
+    std::unique_ptr<RemixCrossoverLink> m_pRemixCrossoverLink;
 };

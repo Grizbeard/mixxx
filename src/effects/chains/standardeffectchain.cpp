@@ -1,6 +1,7 @@
 #include "effects/chains/standardeffectchain.h"
 
 #include "effects/effectsmanager.h"
+#include "effects/remixcrossoverlink.h"
 #include "mixer/playermanager.h"
 #include "moc_standardeffectchain.cpp"
 
@@ -14,6 +15,7 @@ StandardEffectChain::StandardEffectChain(unsigned int iChainNumber,
     for (int i = 0; i < kNumEffectsPerUnit; ++i) {
         addEffectSlot(formatEffectSlotGroup(iChainNumber, i));
     }
+    m_pRemixCrossoverLink = std::make_unique<RemixCrossoverLink>(this);
 
     const QSet<ChannelHandleAndGroup>& registeredChannels =
             m_pEffectsManager->registeredInputChannels();
@@ -27,6 +29,8 @@ StandardEffectChain::StandardEffectChain(unsigned int iChainNumber,
         }
     }
 }
+
+StandardEffectChain::~StandardEffectChain() = default;
 
 QString StandardEffectChain::formatEffectChainGroup(const int iChainNumber) {
     // EffectRacks never did anything and there was never more than one of them,
