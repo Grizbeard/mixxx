@@ -11,6 +11,10 @@
 #include "analyzer/analyzerscheduledtrack.h"
 #include "analyzer/analyzersilence.h"
 #include "analyzer/analyzertrack.h"
+#ifdef __STEM__
+#include "library/stemconverter/dlgstemconverter.h"
+#include "library/stemconverter/stemconverter.h"
+#endif
 #include "control/controlobject.h"
 #include "library/coverartutils.h"
 #include "library/dao/trackschema.h"
@@ -565,6 +569,16 @@ void WTrackMenu::createActions() {
         m_pAnalyzeAction = make_parented<QAction>(tr("Analyze"), this);
         connect(m_pAnalyzeAction, &QAction::triggered, this, &WTrackMenu::slotAnalyze);
 
+#ifdef __STEM__
+        if (m_pLibrary && m_pLibrary->stemConverter()) {
+            m_pConvertToStemsAction = make_parented<QAction>(tr("Convert to Stems..."), this);
+            connect(m_pConvertToStemsAction,
+                    &QAction::triggered,
+                    this,
+                    &WTrackMenu::slotConvertToStems);
+        }
+#endif
+
         m_pReanalyzeAction = make_parented<QAction>(tr("Reanalyze"), this);
         connect(m_pReanalyzeAction, &QAction::triggered, this, &WTrackMenu::slotReanalyze);
 
@@ -751,6 +765,11 @@ void WTrackMenu::setupActions() {
         m_pAnalyzeMenu->addAction(m_pReanalyzeConstBpmAction);
         m_pAnalyzeMenu->addAction(m_pReanalyzeVarBpmAction);
         addMenu(m_pAnalyzeMenu);
+#ifdef __STEM__
+        if (m_pConvertToStemsAction) {
+            addAction(m_pConvertToStemsAction);
+        }
+#endif
     }
 
     // This action is created only for menus instantiated by deck widgets (e.g.
@@ -1775,6 +1794,19 @@ void WTrackMenu::addToAnalysis(AnalyzerTrack::Options options) {
 void WTrackMenu::slotAnalyze() {
     addToAnalysis();
 }
+
+#ifdef __STEM__
+void WTrackMenu::slotConvertToStems() {
+    auto* pConverter = m_pLibrary ? m_pLibrary->stemConverter() : nullptr;
+    const TrackIdList trackIds = getTrackIds();
+    if (!pConverter || trackIds.isEmpty()) {
+        return;
+    }
+    mixxx::stemconverter::DlgStemConvert dialog(
+            parentWidget(), pConverter, m_pConfig, trackIds);
+    dialog.exec();
+}
+#endif
 
 void WTrackMenu::slotReanalyze() {
     clearBeats();

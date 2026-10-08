@@ -194,61 +194,159 @@ bool StemConverter::isRunning() const {
     return m_pProcess != nullptr;
 }
 
-QList<StemConverter::CrateWalkItem> StemConverter::walkCrates(
-        CrateId crateId, bool includeSubcrates) const {
+QList<CrateId> StemConverter::walkCrates(CrateId crateId, bool includeSubcrates) const {
     const CrateStorage& crates = m_pTrackCollectionManager->internalCollection()->crates();
-    QList<CrateWalkItem> items;
-    Crate crate;
-    if (!crates.readCrateById(crateId, &crate)) {
-        return items;
+    QList<CrateId> ids;
+    if (!crates.readCrateById(crateId)) {
+        return ids;
     }
     // Pre-order, so a parent always precedes its children. The storage layer
     // refuses parent cycles, so the recursion terminates.
-    std::function<void(CrateId, int, const QStringList&)> visit =
-            [&](CrateId id, int parentIndex, const QStringList& path) {
-                const int index = static_cast<int>(items.size());
-                items.append({id, parentIndex, path});
-                if (!includeSubcrates) {
-                    return;
-                }
-                QList<Crate> children;
-                CrateSelectResult childCrates = crates.selectChildCrates(id);
-                Crate child;
-                while (childCrates.populateNext(&child)) {
-                    children.append(child);
-                }
-                for (const Crate& c : std::as_const(children)) {
-                    visit(c.getId(), index, path + QStringList{c.getName()});
-                }
-            };
-    visit(crateId, -1, {crate.getName()});
-    return items;
+    std::function<void(CrateId)> visit = [&](CrateId id) {
+        ids.append(id);
+        if (!includeSubcrates) {
+            return;
+        }
+        QList<CrateId> children;
+        CrateSelectResult childCrates = crates.selectChildCrates(id);
+        Crate child;
+        while (childCrates.populateNext(&child)) {
+            children.append(child.getId());
+        }
+        for (const CrateId& childId : std::as_const(children)) {
+            visit(childId);
+        }
+    };
+    visit(crateId);
+    return ids;
 }
 
-StemConverter::Plan StemConverter::planCrate(CrateId crateId, bool includeSubcrates) const {
-    Plan plan;
-    const auto items = walkCrates(crateId, includeSubcrates);
-    plan.crates = static_cast<int>(items.size());
-    const TrackCollectionManager* pManager = m_pTrackCollectionManager;
-    QSet<TrackId> seen;
-    for (const auto& item : items) {
-        CrateTrackSelectResult tracks(
-                pManager->internalCollection()->crates().selectCrateTracksSorted(item.crateId));
+QList<CrateId> StemConverter::ancestry(CrateId crateId) const {
+    const CrateStorage& crates = m_pTrackCollectionManager->internalCollection()->crates();
+    QList<CrateId> chain;
+    Crate crate;
+    // The depth limit only guards against a cycle that slipped past the
+    // storage layer's checks.
+    for (CrateId id = crateId; id.isValid() && chain.size() < 64 &&
+            crates.readCrateById(id, &crate);
+            id = crate.getParentId()) {
+        chain.prepend(id);
+    }
+    return chain;
+}
+
+QStringList StemConverter::crateNamePath(CrateId crateId) const {
+    const CrateStorage& crates = m_pTrackCollectionManager->internalCollection()->crates();
+    QStringList names;
+    Crate crate;
+    for (const CrateId& id : ancestry(crateId)) {
+        if (crates.readCrateById(id, &crate)) {
+            names.append(crate.getName());
+        }
+    }
+    return names;
+}
+
+QList<CrateId> StemConverter::sourceCratesOf(TrackId trackId) const {
+    QList<CrateId> ids;
+    CrateTrackSelectResult crates(
+            m_pTrackCollectionManager->internalCollection()->crates().selectTrackCratesSorted(
+                    trackId));
+    while (crates.next()) {
+        if (!isInStemsTree(crates.crateId())) {
+            ids.append(crates.crateId());
+        }
+    }
+    return ids;
+}
+
+CrateId StemConverter::folderCrateOf(TrackId trackId) const {
+    // The deepest crate holding the track is the most specific place for its
+    // file; ties go to the alphabetically first path. This depends only on
+    // the track, so converting it alone or as part of any crate writes the
+    // same file, and the next conversion finds it up to date.
+    CrateId best;
+    int bestDepth = -1;
+    QString bestPath;
+    for (const CrateId& id : sourceCratesOf(trackId)) {
+        const QStringList path = crateNamePath(id);
+        const QString joined = path.join(QChar('/')).toLower();
+        const int depth = static_cast<int>(path.size());
+        if (depth > bestDepth || (depth == bestDepth && joined < bestPath)) {
+            best = id;
+            bestDepth = depth;
+            bestPath = joined;
+        }
+    }
+    return best;
+}
+
+QList<StemConverter::Request> StemConverter::requestsForCrate(
+        CrateId crateId, bool includeSubcrates) const {
+    QList<Request> requests;
+    QHash<TrackId, int> byTrack;
+    const CrateStorage& crates = m_pTrackCollectionManager->internalCollection()->crates();
+    for (const CrateId& id : walkCrates(crateId, includeSubcrates)) {
+        CrateTrackSelectResult tracks(crates.selectCrateTracksSorted(id));
         while (tracks.next()) {
-            const TrackId id = tracks.trackId();
-            if (seen.contains(id)) {
-                continue;
-            }
-            seen.insert(id);
-            const TrackPointer pTrack = pManager->getTrackById(id);
-            if (pTrack && pTrack->getType().startsWith(QStringLiteral("stem"))) {
-                ++plan.alreadyStems;
-            } else if (pTrack) {
-                ++plan.tracks;
+            const TrackId trackId = tracks.trackId();
+            if (const auto it = byTrack.constFind(trackId); it != byTrack.constEnd()) {
+                requests[*it].crates.append(id);
+            } else {
+                byTrack.insert(trackId, static_cast<int>(requests.size()));
+                requests.append({trackId, {id}});
             }
         }
     }
-    return plan;
+    return requests;
+}
+
+QList<StemConverter::Request> StemConverter::requestsForTracks(
+        const QList<TrackId>& trackIds) const {
+    QList<Request> requests;
+    QSet<TrackId> seen;
+    for (const TrackId& id : trackIds) {
+        if (id.isValid() && !seen.contains(id)) {
+            seen.insert(id);
+            requests.append({id, sourceCratesOf(id)});
+        }
+    }
+    return requests;
+}
+
+StemConverter::Plan StemConverter::plan(const QList<Request>& requests) const {
+    Plan result;
+    QSet<CrateId> crates;
+    for (const Request& request : requests) {
+        const TrackPointer pTrack = m_pTrackCollectionManager->getTrackById(request.trackId);
+        if (!pTrack) {
+            continue;
+        }
+        if (pTrack->getType().startsWith(QStringLiteral("stem"))) {
+            ++result.alreadyStems;
+            continue;
+        }
+        ++result.tracks;
+        for (const CrateId& id : request.crates) {
+            crates.insert(id);
+        }
+        if (request.crates.isEmpty()) {
+            ++result.withoutCrate;
+        }
+    }
+    result.crates = static_cast<int>(crates.size());
+    return result;
+}
+
+StemConverter::Plan StemConverter::planCrate(CrateId crateId, bool includeSubcrates) const {
+    Plan result = plan(requestsForCrate(crateId, includeSubcrates));
+    // Count the crates walked, including empty ones that only hold subcrates.
+    result.crates = static_cast<int>(walkCrates(crateId, includeSubcrates).size());
+    return result;
+}
+
+StemConverter::Plan StemConverter::planTracks(const QList<TrackId>& trackIds) const {
+    return plan(requestsForTracks(trackIds));
 }
 
 bool StemConverter::isInStemsTree(CrateId crateId) const {
@@ -306,26 +404,48 @@ CrateId StemConverter::mirrorCrate(CrateId sourceCrateId, CrateId mirrorParentId
     return id;
 }
 
+CrateId StemConverter::mirrorPath(
+        CrateId crateId, CrateId rootId, QHash<CrateId, CrateId>* pCache) {
+    // Mirror the whole chain from the top level down, so a subcrate lands
+    // under its parent's mirror however it was reached.
+    CrateId parent = rootId;
+    for (const CrateId& id : ancestry(crateId)) {
+        if (const auto it = pCache->constFind(id); it != pCache->constEnd()) {
+            parent = *it;
+            continue;
+        }
+        parent = mirrorCrate(id, parent);
+        pCache->insert(id, parent);
+    }
+    return parent;
+}
+
 int StemConverter::enqueueCrate(CrateId crateId, bool includeSubcrates) {
     if (isInStemsTree(crateId)) {
         emit message(tr("Crates under \"%1\" hold converted tracks already.")
                         .arg(QString::fromLatin1(kStemsRootCrateName)));
         return 0;
     }
-    const Settings settings = Settings::load(m_pConfig);
-    const auto items = walkCrates(crateId, includeSubcrates);
-    if (items.isEmpty()) {
+    // Empty subcrates are mirrored too, so the tree matches the source.
+    const CrateId rootId = stemsRootCrate(true);
+    QHash<CrateId, CrateId> mirrors;
+    for (const CrateId& id : walkCrates(crateId, includeSubcrates)) {
+        mirrorPath(id, rootId, &mirrors);
+    }
+    return enqueue(requestsForCrate(crateId, includeSubcrates), &mirrors);
+}
+
+int StemConverter::enqueueTracks(const QList<TrackId>& trackIds) {
+    QHash<CrateId, CrateId> mirrors;
+    return enqueue(requestsForTracks(trackIds), &mirrors);
+}
+
+int StemConverter::enqueue(const QList<Request>& requests, QHash<CrateId, CrateId>* pMirrors) {
+    if (requests.isEmpty()) {
         return 0;
     }
-
+    const Settings settings = Settings::load(m_pConfig);
     const CrateId rootId = stemsRootCrate(true);
-    QList<CrateId> mirrorIds;
-    mirrorIds.reserve(items.size());
-    for (const auto& item : items) {
-        const CrateId parent = item.parentIndex < 0 ? rootId : mirrorIds.at(item.parentIndex);
-        mirrorIds.append(mirrorCrate(item.crateId, parent));
-    }
-
     const TrackCollectionManager* pManager = m_pTrackCollectionManager;
     const auto outputKey = [](const QString& path) {
         return QDir::toNativeSeparators(QDir::cleanPath(path)).toLower();
@@ -342,54 +462,63 @@ int StemConverter::enqueueCrate(CrateId crateId, bool includeSubcrates) {
             entryByTrack.insert(entry.sourceId, index);
         }
     }
+
     const int first = static_cast<int>(m_entries.size());
-    for (int i = 0; i < items.size(); ++i) {
-        CrateTrackSelectResult tracks(
-                pManager->internalCollection()->crates().selectCrateTracksSorted(
-                        items.at(i).crateId));
-        while (tracks.next()) {
-            const TrackId id = tracks.trackId();
-            if (const auto it = entryByTrack.constFind(id); it != entryByTrack.constEnd()) {
-                // Same track in another subcrate: one conversion, many crates.
-                m_entries[*it].targetCrates.append(mirrorIds.at(i));
-                continue;
-            }
-            const TrackPointer pTrack = pManager->getTrackById(id);
-            if (!pTrack || pTrack->getType().startsWith(QStringLiteral("stem"))) {
-                continue;
-            }
-            TrackEntry entry;
-            entry.sourceId = id;
-            entry.sourcePath = pTrack->getLocation();
-            const QString artist = pTrack->getArtist();
-            const QString title = pTrack->getTitle();
-            entry.displayName = artist.isEmpty() || title.isEmpty()
-                    ? QFileInfo(entry.sourcePath).fileName()
-                    : artist + QStringLiteral(" - ") + title;
-
-            QDir dir(settings.outputRoot);
-            for (const QString& segment : items.at(i).pathSegments) {
-                dir.setPath(dir.filePath(sanitizeFileName(segment)));
-            }
-            const QString base = sanitizeFileName(QFileInfo(entry.sourcePath).completeBaseName());
-            // Two sources with the same file name in one crate get "name (2)".
-            QString output = dir.filePath(base + kStemExtension);
-            for (int n = 2; outputOwner.contains(outputKey(output)) &&
-                    outputOwner.value(outputKey(output)) != id;
-                    ++n) {
-                output = dir.filePath(QStringLiteral("%1 (%2)%3").arg(base).arg(n).arg(kStemExtension));
-            }
-            outputOwner.insert(outputKey(output), id);
-            entry.outputPath = QDir::toNativeSeparators(output);
-            entry.targetCrates.append(mirrorIds.at(i));
-
-            entryByTrack.insert(id, static_cast<int>(m_entries.size()));
-            m_pending.append(static_cast<int>(m_entries.size()));
-            m_entries.append(entry);
+    for (const Request& request : requests) {
+        // Tracks in no crate go straight into the "Stems" crate.
+        QList<CrateId> targets;
+        for (const CrateId& id : request.crates) {
+            targets.append(mirrorPath(id, rootId, pMirrors));
         }
+        if (targets.isEmpty()) {
+            targets.append(rootId);
+        }
+
+        if (const auto it = entryByTrack.constFind(request.trackId);
+                it != entryByTrack.constEnd()) {
+            for (const CrateId& target : std::as_const(targets)) {
+                if (!m_entries[*it].targetCrates.contains(target)) {
+                    m_entries[*it].targetCrates.append(target);
+                }
+            }
+            continue;
+        }
+        const TrackPointer pTrack = pManager->getTrackById(request.trackId);
+        if (!pTrack || pTrack->getType().startsWith(QStringLiteral("stem"))) {
+            continue;
+        }
+        TrackEntry entry;
+        entry.sourceId = request.trackId;
+        entry.sourcePath = pTrack->getLocation();
+        const QString artist = pTrack->getArtist();
+        const QString title = pTrack->getTitle();
+        entry.displayName = artist.isEmpty() || title.isEmpty()
+                ? QFileInfo(entry.sourcePath).fileName()
+                : artist + QStringLiteral(" - ") + title;
+
+        // Folders mirror the crate path of the track's most specific crate.
+        QDir dir(settings.outputRoot);
+        for (const QString& segment : crateNamePath(folderCrateOf(request.trackId))) {
+            dir.setPath(dir.filePath(sanitizeFileName(segment)));
+        }
+        const QString base = sanitizeFileName(QFileInfo(entry.sourcePath).completeBaseName());
+        // Two sources with the same file name in one folder get "name (2)".
+        QString output = dir.filePath(base + kStemExtension);
+        for (int n = 2; outputOwner.contains(outputKey(output)) &&
+                outputOwner.value(outputKey(output)) != request.trackId;
+                ++n) {
+            output = dir.filePath(QStringLiteral("%1 (%2)%3").arg(base).arg(n).arg(kStemExtension));
+        }
+        outputOwner.insert(outputKey(output), request.trackId);
+        entry.outputPath = QDir::toNativeSeparators(output);
+        entry.targetCrates = targets;
+
+        entryByTrack.insert(request.trackId, static_cast<int>(m_entries.size()));
+        m_pending.append(static_cast<int>(m_entries.size()));
+        m_entries.append(entry);
     }
     const int added = static_cast<int>(m_entries.size()) - first;
-    kLogger.info() << "Queued" << added << "tracks from" << items.size() << "crates";
+    kLogger.info() << "Queued" << added << "of" << requests.size() << "tracks";
     if (added > 0) {
         emit entriesAdded(first, added);
         startNextBatch();

@@ -4,6 +4,7 @@
 
 #include "library/trackset/crate/crateid.h"
 #include "preferences/usersettings.h"
+#include "track/trackid.h"
 
 class QCheckBox;
 class QComboBox;
@@ -17,6 +18,8 @@ namespace mixxx::stemconverter {
 class StemConverter;
 
 /// "Convert to Stems": what to convert, with which preset, to where.
+/// Opened for a crate (with or without its subcrates) or for a selection of
+/// tracks.
 class DlgStemConvert : public QDialog {
     Q_OBJECT
   public:
@@ -25,6 +28,10 @@ class DlgStemConvert : public QDialog {
             UserSettingsPointer pConfig,
             CrateId crateId,
             const QString& crateName);
+    DlgStemConvert(QWidget* pParent,
+            StemConverter* pConverter,
+            UserSettingsPointer pConfig,
+            const QList<TrackId>& trackIds);
 
     void accept() override;
 
@@ -34,9 +41,15 @@ class DlgStemConvert : public QDialog {
     void slotReloadPresets();
 
   private:
+    void setUp(const QString& heading);
+    bool isCrate() const {
+        return m_crateId.isValid();
+    }
+
     StemConverter* const m_pConverter;
     const UserSettingsPointer m_pConfig;
     const CrateId m_crateId;
+    const QList<TrackId> m_trackIds;
 
     QLabel* m_pSummary;
     QCheckBox* m_pIncludeSubcrates;

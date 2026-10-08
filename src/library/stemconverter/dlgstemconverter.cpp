@@ -68,20 +68,38 @@ DlgStemConvert::DlgStemConvert(QWidget* pParent,
           m_pConverter(pConverter),
           m_pConfig(std::move(pConfig)),
           m_crateId(crateId) {
+    setUp(tr("Separate every track in <b>%1</b> into drums, bass, other and vocals, "
+             "and file the results under the <b>%2</b> crate, in the same crate "
+             "structure.")
+                    .arg(crateName.toHtmlEscaped(),
+                            QString::fromLatin1(StemConverter::kStemsRootCrateName)));
+}
+
+DlgStemConvert::DlgStemConvert(QWidget* pParent,
+        StemConverter* pConverter,
+        UserSettingsPointer pConfig,
+        const QList<TrackId>& trackIds)
+        : QDialog(pParent),
+          m_pConverter(pConverter),
+          m_pConfig(std::move(pConfig)),
+          m_trackIds(trackIds) {
+    setUp(tr("Separate the selected tracks into drums, bass, other and vocals. Each "
+             "result goes under the <b>%1</b> crate, into a mirror of every crate the "
+             "track is in, parent crates included.")
+                    .arg(QString::fromLatin1(StemConverter::kStemsRootCrateName)));
+}
+
+void DlgStemConvert::setUp(const QString& heading) {
     setWindowTitle(tr("Convert to Stems"));
     const Settings settings = Settings::load(m_pConfig);
 
-    auto* pHeading = new QLabel(tr("Separate every track in <b>%1</b> into drums, bass, "
-                                   "other and vocals, and file the results under the "
-                                   "<b>%2</b> crate.")
-                                        .arg(crateName.toHtmlEscaped(),
-                                                QString::fromLatin1(
-                                                        StemConverter::kStemsRootCrateName)));
+    auto* pHeading = new QLabel(heading);
     pHeading->setWordWrap(true);
 
     m_pSummary = new QLabel;
     m_pIncludeSubcrates = new QCheckBox(tr("Include subcrates"));
     m_pIncludeSubcrates->setChecked(true);
+    m_pIncludeSubcrates->setVisible(isCrate());
 
     m_pPreset = new QComboBox;
     m_pPresetDescription = new QLabel;
@@ -189,9 +207,16 @@ void DlgStemConvert::slotUpdatePresetDescription() {
 }
 
 void DlgStemConvert::slotUpdateSummary() {
-    const auto plan = m_pConverter->planCrate(m_crateId, m_pIncludeSubcrates->isChecked());
+    const auto plan = isCrate()
+            ? m_pConverter->planCrate(m_crateId, m_pIncludeSubcrates->isChecked())
+            : m_pConverter->planTracks(m_trackIds);
     QString text = tr("%n track(s)", "", plan.tracks) + QStringLiteral(" · ") +
             tr("%n crate(s)", "", plan.crates);
+    if (plan.withoutCrate > 0) {
+        text += QStringLiteral(" · ") +
+                tr("%n in no crate, filed directly under %1", "", plan.withoutCrate)
+                        .arg(QString::fromLatin1(StemConverter::kStemsRootCrateName));
+    }
     if (plan.alreadyStems > 0) {
         text += QStringLiteral(" · ") +
                 tr("%n stem file(s) left out", "", plan.alreadyStems);
@@ -209,7 +234,10 @@ void DlgStemConvert::accept() {
     settings.pauseWhilePlaying = m_pPauseWhilePlaying->isChecked();
     settings.save(m_pConfig);
 
-    if (m_pConverter->enqueueCrate(m_crateId, m_pIncludeSubcrates->isChecked()) > 0) {
+    const int queued = isCrate()
+            ? m_pConverter->enqueueCrate(m_crateId, m_pIncludeSubcrates->isChecked())
+            : m_pConverter->enqueueTracks(m_trackIds);
+    if (queued > 0) {
         DlgStemConversionStatus::showFor(parentWidget(), m_pConverter, m_pConfig);
     }
     QDialog::accept();

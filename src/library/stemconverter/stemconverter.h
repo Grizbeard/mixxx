@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QFile>
+#include <QHash>
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
@@ -81,12 +82,19 @@ class StemConverter : public QObject {
         int tracks = 0;
         int crates = 0;
         int alreadyStems = 0; // tracks that are stem files themselves
+        int withoutCrate = 0; // go straight into the "Stems" crate
     };
     Plan planCrate(CrateId crateId, bool includeSubcrates) const;
+    Plan planTracks(const QList<TrackId>& trackIds) const;
 
     /// Queue the crate's tracks (and its subcrates' tracks), creating the
     /// mirrored crates right away. Returns the number of tracks queued.
     int enqueueCrate(CrateId crateId, bool includeSubcrates);
+
+    /// Queue individual tracks. Each is filed under the mirror of every crate
+    /// it is in, with the crates' full parent chain mirrored too; a track in
+    /// no crate goes into the "Stems" crate itself.
+    int enqueueTracks(const QList<TrackId>& trackIds);
 
     /// True for the "Stems" crate and anything below it, which are outputs.
     bool isInStemsTree(CrateId crateId) const;
@@ -123,15 +131,30 @@ class StemConverter : public QObject {
     void slotPollDecks();
 
   private:
-    struct CrateWalkItem {
-        CrateId crateId;
-        int parentIndex;          // into the walk; -1 for the converted crate
-        QStringList pathSegments; // from the converted crate down, inclusive
+    /// One track to convert, and the source crates to file the result under.
+    struct Request {
+        TrackId trackId;
+        QList<CrateId> crates;
     };
-    QList<CrateWalkItem> walkCrates(CrateId crateId, bool includeSubcrates) const;
+    QList<Request> requestsForCrate(CrateId crateId, bool includeSubcrates) const;
+    QList<Request> requestsForTracks(const QList<TrackId>& trackIds) const;
+    Plan plan(const QList<Request>& requests) const;
+    int enqueue(const QList<Request>& requests, QHash<CrateId, CrateId>* pMirrors);
+
+    /// The crate and its subcrates, parents before children.
+    QList<CrateId> walkCrates(CrateId crateId, bool includeSubcrates) const;
+    /// Top-level crate first, crateId last.
+    QList<CrateId> ancestry(CrateId crateId) const;
+    QStringList crateNamePath(CrateId crateId) const;
+    /// Crates holding the track, outside the "Stems" tree.
+    QList<CrateId> sourceCratesOf(TrackId trackId) const;
+    /// The crate whose path names the track's output folder.
+    CrateId folderCrateOf(TrackId trackId) const;
 
     CrateId stemsRootCrate(bool create);
     CrateId mirrorCrate(CrateId sourceCrateId, CrateId mirrorParentId);
+    /// The mirror of crateId, creating mirrors for its whole parent chain.
+    CrateId mirrorPath(CrateId crateId, CrateId rootId, QHash<CrateId, CrateId>* pCache);
 
     void startNextBatch();
     void handleEvent(const QJsonObject& event);

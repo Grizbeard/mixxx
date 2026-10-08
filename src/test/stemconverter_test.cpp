@@ -183,4 +183,63 @@ TEST_F(StemConverterTest, ConvertsNestedCrateIntoMirroredStemsTree) {
     EXPECT_EQ(tracksOf(houseMirror).size(), 1);
 }
 
+TEST_F(StemConverterTest, ConvertsTracksIntoTheirCratesMirrors) {
+    configure();
+
+    const TrackPointer pNested = getOrAddTrackByLocation(copyFixture(QStringLiteral("n.wav")));
+    const TrackPointer pLoose = getOrAddTrackByLocation(copyFixture(QStringLiteral("l.wav")));
+    const TrackPointer pSub = getOrAddTrackByLocation(copyFixture(QStringLiteral("s.wav")));
+    ASSERT_TRUE(pNested && pLoose && pSub);
+    // House > 4am holds pNested; Deep (top level) holds pSub, and so does
+    // House > 4am > Late, which is deeper and therefore names its folder.
+    const CrateId house = makeCrate(QStringLiteral("House"), CrateId(), pSub);
+    const CrateId fourAm = makeCrate(QStringLiteral("4am"), house, pNested);
+    const CrateId late = makeCrate(QStringLiteral("Late"), fourAm, pSub);
+    const CrateId deep = makeCrate(QStringLiteral("Deep"), CrateId(), pSub);
+    ASSERT_TRUE(internalCollection()->removeCrateTracks(house, {pSub->getId()}));
+
+    StemConverter converter(trackCollectionManager(), config());
+    const auto plan = converter.planTracks({pNested->getId(), pLoose->getId(), pSub->getId()});
+    EXPECT_EQ(plan.tracks, 3);
+    EXPECT_EQ(plan.withoutCrate, 1);
+
+    ASSERT_EQ(converter.enqueueTracks({pNested->getId(), pLoose->getId(), pSub->getId()}), 3);
+    runToCompletion(&converter);
+    for (const TrackEntry& entry : converter.entries()) {
+        EXPECT_EQ(entry.state, TrackState::Done) << entry.detail.toStdString();
+    }
+
+    Crate root;
+    ASSERT_TRUE(internalCollection()->crates().readCrateByName(QStringLiteral("Stems"), &root));
+    // The nested track brings its crate's parent along: Stems > House > 4am.
+    const CrateId houseMirror = childNamed(root.getId(), QStringLiteral("House (Stems)"));
+    const CrateId fourAmMirror = childNamed(houseMirror, QStringLiteral("4am (Stems)"));
+    const CrateId lateMirror = childNamed(fourAmMirror, QStringLiteral("Late (Stems)"));
+    const CrateId deepMirror = childNamed(root.getId(), QStringLiteral("Deep (Stems)"));
+    ASSERT_TRUE(fourAmMirror.isValid() && lateMirror.isValid() && deepMirror.isValid());
+    EXPECT_TRUE(tracksOf(houseMirror).isEmpty());
+    EXPECT_EQ(tracksOf(fourAmMirror).size(), 1);
+    // pSub is in both of its crates' mirrors, from one conversion.
+    EXPECT_EQ(tracksOf(lateMirror), tracksOf(deepMirror));
+    // The loose track sits in the Stems crate itself.
+    EXPECT_EQ(tracksOf(root.getId()).size(), 1);
+
+    const auto& entries = converter.entries();
+    EXPECT_TRUE(entries.at(0).outputPath.endsWith(
+            QDir::toNativeSeparators(QStringLiteral("Stems/House/4am/n.stem.mp4"))));
+    EXPECT_TRUE(entries.at(1).outputPath.endsWith(
+            QDir::toNativeSeparators(QStringLiteral("Stems/l.stem.mp4"))));
+    EXPECT_TRUE(entries.at(2).outputPath.endsWith(
+            QDir::toNativeSeparators(QStringLiteral("Stems/House/4am/Late/s.stem.mp4"))));
+
+    // Converting the subcrate on its own reuses the same mirrors and files.
+    ASSERT_EQ(converter.enqueueCrate(fourAm, true), 2);
+    runToCompletion(&converter);
+    for (int i = 3; i < 5; ++i) {
+        EXPECT_EQ(entries.at(i).state, TrackState::Skipped) << entries.at(i).detail.toStdString();
+    }
+    EXPECT_FALSE(childNamed(root.getId(), QStringLiteral("4am (Stems)")).isValid());
+    EXPECT_EQ(tracksOf(fourAmMirror).size(), 1);
+}
+
 } // namespace
