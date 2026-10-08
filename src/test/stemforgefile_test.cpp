@@ -2,7 +2,9 @@
 
 #include <QProcessEnvironment>
 #include <cmath>
+#include <iostream>
 
+#include "library/stemconverter/stemtrackimporter.h"
 #include "sources/soundsourceproxy.h"
 #include "sources/soundsourcestem.h"
 #include "test/mixxxtest.h"
@@ -100,6 +102,23 @@ TEST_F(StemforgeFileTest, StereoMixIsSumOfStems) {
     }
     EXPECT_GT(peakSignal, 0.01) << "test window is silent";
     EXPECT_LT(peakError, 1e-5);
+}
+
+// With STEMFORGE_TEST_SOURCE also set to the file it was made from: the
+// offset that cues and the beat grid are shifted by on import must be
+// measurable. It is printed, since a non-zero value means Mixxx's decoder
+// and stemforge's (ffmpeg) disagree on the source's start, e.g. MP3 delay.
+TEST_F(StemforgeFileTest, OffsetAgainstSourceIsMeasurable) {
+    const QString sourcePath = QProcessEnvironment::systemEnvironment().value(
+            QStringLiteral("STEMFORGE_TEST_SOURCE"));
+    if (sourcePath.isEmpty()) {
+        GTEST_SKIP() << "STEMFORGE_TEST_SOURCE not set";
+    }
+    const TrackPointer pSource(Track::newTemporary(sourcePath));
+    const TrackPointer pStem(Track::newTemporary(testFile()));
+    const auto offset = stemconverter::measureOffset(pSource, pStem);
+    ASSERT_TRUE(offset.has_value());
+    std::cout << "[ OFFSET   ] " << *offset << " frames" << std::endl;
 }
 
 } // namespace

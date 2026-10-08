@@ -29,6 +29,9 @@ class PlaylistFeature;
 class RecordingManager;
 class SidebarModel;
 class TrackCollectionManager;
+namespace mixxx::stemconverter {
+class StemConverter;
+}
 class WSearchLineEdit;
 class WLibrarySidebar;
 class WLibrary;
@@ -61,6 +64,13 @@ class Library: public QObject {
     }
 
     TrackCollectionManager* trackCollectionManager() const;
+
+#ifdef __STEM__
+    /// Converts crates into .stem.mp4 files with stemforge.
+    mixxx::stemconverter::StemConverter* stemConverter() const {
+        return m_pStemConverter;
+    }
+#endif
 
     TrackAnalysisScheduler::Pointer createTrackAnalysisScheduler(
             int numWorkerThreads,
@@ -189,6 +199,9 @@ class Library: public QObject {
     MixxxLibraryFeature* m_pMixxxLibraryFeature;
     PlaylistFeature* m_pPlaylistFeature;
     CrateFeature* m_pCrateFeature;
+#ifdef __STEM__
+    mixxx::stemconverter::StemConverter* m_pStemConverter;
+#endif
     AnalysisFeature* m_pAnalysisFeature;
     BrowseFeature* m_pBrowseFeature;
     QFont m_trackTableFont;

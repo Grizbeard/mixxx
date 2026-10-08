@@ -15,6 +15,10 @@
 #include "library/library_prefs.h"
 #include "library/parser.h"
 #include "library/parsercsv.h"
+#ifdef __STEM__
+#include "library/stemconverter/dlgstemconverter.h"
+#include "library/stemconverter/stemconverter.h"
+#endif
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackset/crate/cratefeaturehelper.h"
@@ -115,6 +119,19 @@ void CrateFeature::initActions() {
             &QAction::changed,
             this,
             &CrateFeature::slotAutoDjTrackSourceChanged);
+
+#ifdef __STEM__
+    m_pConvertToStemsAction = make_parented<QAction>(tr("Convert to Stems..."), this);
+    connect(m_pConvertToStemsAction.get(),
+            &QAction::triggered,
+            this,
+            &CrateFeature::slotConvertCrateToStems);
+    m_pStemConversionStatusAction = make_parented<QAction>(tr("Stem Conversion Status"), this);
+    connect(m_pStemConversionStatusAction.get(),
+            &QAction::triggered,
+            this,
+            &CrateFeature::slotShowStemConversion);
+#endif
 
     m_pAnalyzeCrateAction = make_parented<QAction>(tr("Analyze entire Crate"), this);
     connect(m_pAnalyzeCrateAction.get(),
@@ -393,6 +410,10 @@ void CrateFeature::onRightClick(const QPoint& globalPos) {
     menu.addSeparator();
     menu.addAction(m_pExportAllCratesAction.get());
 #endif
+#ifdef __STEM__
+    menu.addSeparator();
+    menu.addAction(m_pStemConversionStatusAction.get());
+#endif
     menu.exec(globalPos);
 }
 
@@ -432,6 +453,18 @@ void CrateFeature::onRightClickChild(
     menu.addAction(m_pAutoDjTrackSourceAction.get());
     menu.addSeparator();
     menu.addAction(m_pAnalyzeCrateAction.get());
+#ifdef __STEM__
+    {
+        const auto* pConverter = m_pLibrary->stemConverter();
+        // The "Stems" tree holds converted tracks; converting it again
+        // would only make stems of stems.
+        m_pConvertToStemsAction->setEnabled(pConverter && !pConverter->isInStemsTree(crateId));
+        menu.addAction(m_pConvertToStemsAction.get());
+        if (pConverter && !pConverter->entries().isEmpty()) {
+            menu.addAction(m_pStemConversionStatusAction.get());
+        }
+    }
+#endif
     menu.addSeparator();
     menu.addAction(m_pImportPlaylistAction.get());
     menu.addAction(m_pExportPlaylistAction.get());
@@ -1061,6 +1094,27 @@ void CrateFeature::slotAnalyzeCrate() {
         }
     }
 }
+
+#ifdef __STEM__
+void CrateFeature::slotConvertCrateToStems() {
+    const CrateId crateId = crateIdFromIndex(m_lastRightClickedIndex);
+    Crate crate;
+    auto* pConverter = m_pLibrary->stemConverter();
+    if (!pConverter || !m_pTrackCollection->crates().readCrateById(crateId, &crate)) {
+        return;
+    }
+    mixxx::stemconverter::DlgStemConvert dialog(
+            m_pSidebarWidget, pConverter, m_pConfig, crateId, crate.getName());
+    dialog.exec();
+}
+
+void CrateFeature::slotShowStemConversion() {
+    if (auto* pConverter = m_pLibrary->stemConverter()) {
+        mixxx::stemconverter::DlgStemConversionStatus::showFor(
+                m_pSidebarWidget, pConverter, m_pConfig);
+    }
+}
+#endif
 
 void CrateFeature::slotExportPlaylist() {
     CrateId crateId = crateIdFromIndex(m_lastRightClickedIndex);

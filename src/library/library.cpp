@@ -28,6 +28,9 @@
 #include "library/trackcollectionmanager.h"
 #include "library/trackmodel.h"
 #include "library/trackset/crate/cratefeature.h"
+#ifdef __STEM__
+#include "library/stemconverter/stemconverter.h"
+#endif
 #include "library/trackset/playlistfeature.h"
 #include "library/trackset/setlogfeature.h"
 #include "library/traktor/traktorfeature.h"
@@ -73,6 +76,10 @@ Library::Library(
           m_pMixxxLibraryFeature(nullptr),
           m_pPlaylistFeature(nullptr),
           m_pCrateFeature(nullptr),
+#ifdef __STEM__
+          m_pStemConverter(new mixxx::stemconverter::StemConverter(
+                  pTrackCollectionManager, m_pConfig, this)),
+#endif
           m_pAnalysisFeature(nullptr) {
     qRegisterMetaType<LibraryRemovalType>("LibraryRemovalType");
 
