@@ -8,6 +8,7 @@
 #include <QProcess>
 #include <QTimer>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "library/trackset/crate/crateid.h"
@@ -60,6 +61,15 @@ struct TrackEntry {
     QList<CrateId> targetCrates;
     TrackState state = TrackState::Queued;
     QString detail;
+
+    double durationSeconds = 0;
+    /// 0..1 while running, from stemforge's progress events.
+    double progress = 0;
+    /// stemforge's estimate for the rest of this track; negative if unknown.
+    double etaSeconds = -1;
+    qint64 startedMs = 0;
+    /// Wall time stemforge reported for the finished track.
+    double seconds = 0;
 };
 
 /// Converts crates of tracks into .stem.mp4 files with stemforge, one
@@ -103,6 +113,15 @@ class StemConverter : public QObject {
         return m_entries;
     }
     bool isRunning() const;
+
+    struct Progress {
+        int finished = 0;     // converted or already up to date
+        int notConverted = 0; // failed or cancelled
+        int total = 0;
+        double fraction = 0; // of all queued audio, by duration
+        std::optional<double> etaSeconds;
+    };
+    Progress progress() const;
     bool isPaused() const {
         return m_userPaused || m_autoPaused;
     }
@@ -168,7 +187,9 @@ class StemConverter : public QObject {
     QList<TrackEntry> m_entries;
     QList<int> m_pending; // entry indices not yet handed to a process
     QList<int> m_batch;   // entry index for each track of the running job
-    int m_runningTrack = -1;
+    /// The current run: from when the converter last started from idle.
+    qint64 m_runStartedMs = 0;
+    int m_runFirstEntry = 0;
 
     QProcess* m_pProcess = nullptr;
     QByteArray m_stdoutBuffer;

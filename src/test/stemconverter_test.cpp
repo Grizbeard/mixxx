@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
+#include <algorithm>
 
 #include "library/stemconverter/stemconverter.h"
 #include "library/trackset/crate/crate.h"
@@ -133,6 +134,19 @@ TEST_F(StemConverterTest, ConvertsNestedCrateIntoMirroredStemsTree) {
     EXPECT_EQ(plan.tracks, 2);
     EXPECT_EQ(plan.crates, 2);
 
+    // Progress must move through the middle of a track, never backwards.
+    QList<double> progressSeen;
+    QObject::connect(&converter, &StemConverter::entryChanged, [&](int index) {
+        const TrackEntry& entry = converter.entries().at(index);
+        if (index == 0 && entry.state == TrackState::Running) {
+            progressSeen.append(entry.progress);
+        }
+    });
+    bool etaSeen = false;
+    QObject::connect(&converter, &StemConverter::entryChanged, [&](int) {
+        etaSeen = etaSeen || converter.progress().etaSeconds.has_value();
+    });
+
     ASSERT_EQ(converter.enqueueCrate(house, true), 2);
     runToCompletion(&converter);
     for (const TrackEntry& entry : converter.entries()) {
@@ -140,6 +154,16 @@ TEST_F(StemConverterTest, ConvertsNestedCrateIntoMirroredStemsTree) {
                                                  << entry.detail.toStdString();
         EXPECT_TRUE(QFileInfo::exists(entry.outputPath)) << entry.outputPath.toStdString();
     }
+    ASSERT_FALSE(progressSeen.isEmpty());
+    EXPECT_TRUE(std::is_sorted(progressSeen.begin(), progressSeen.end()));
+    EXPECT_TRUE(std::any_of(progressSeen.begin(), progressSeen.end(), [](double p) {
+        return p > 0.05 && p < 0.95;
+    }));
+    EXPECT_TRUE(etaSeen);
+    const auto overall = converter.progress();
+    EXPECT_EQ(overall.finished, 2);
+    EXPECT_DOUBLE_EQ(overall.fraction, 1.0);
+    EXPECT_FALSE(overall.etaSeconds.has_value());
 
     // Stems ▸ House (Stems) ▸ 4am (Stems), one converted track in each.
     Crate root;

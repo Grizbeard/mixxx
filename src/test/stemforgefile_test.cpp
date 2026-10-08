@@ -48,7 +48,8 @@ TEST_F(StemforgeFileTest, OpensAsFourNamedStems) {
     const auto stemInfo = pTrack->getStemInfo();
     ASSERT_EQ(stemInfo.size(), 4);
     EXPECT_EQ(stemInfo.at(0).getLabel(), QStringLiteral("Drums"));
-    EXPECT_EQ(stemInfo.at(1).getLabel(), QStringLiteral("Bass"));
+    // "Bass (in Other)" when the preset leaves bass in the Other stem.
+    EXPECT_TRUE(stemInfo.at(1).getLabel().startsWith(QStringLiteral("Bass")));
     EXPECT_EQ(stemInfo.at(2).getLabel(), QStringLiteral("Other"));
     EXPECT_EQ(stemInfo.at(3).getLabel(), QStringLiteral("Vocals"));
 }

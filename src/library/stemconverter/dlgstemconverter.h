@@ -10,7 +10,9 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
+class QProgressBar;
 class QPushButton;
+class QTimer;
 class QTreeWidget;
 
 namespace mixxx::stemconverter {
@@ -82,6 +84,8 @@ class DlgStemConversionStatus : public QDialog {
     const UserSettingsPointer m_pConfig;
     QTreeWidget* m_pTracks;
     QLabel* m_pHeadline;
+    QProgressBar* m_pProgress;
+    QTimer* m_pRefreshTimer;
     QPushButton* m_pPauseResume;
     QPushButton* m_pCancel;
 };

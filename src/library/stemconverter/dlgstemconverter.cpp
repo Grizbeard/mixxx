@@ -15,7 +15,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPointer>
+#include <QProgressBar>
 #include <QPushButton>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -42,6 +44,19 @@ QWidget* pathRow(QLineEdit* pEdit, QPushButton* pBrowse) {
     pLayout->addWidget(pEdit, 1);
     pLayout->addWidget(pBrowse);
     return pRow;
+}
+
+QString formatDuration(double seconds) {
+    const int total = static_cast<int>(seconds + 0.5);
+    if (total < 60) {
+        return QObject::tr("less than a minute");
+    }
+    const int hours = total / 3600;
+    const int minutes = (total % 3600 + 30) / 60;
+    if (hours > 0) {
+        return QObject::tr("%1 h %2 min").arg(hours).arg(minutes);
+    }
+    return QObject::tr("%n min", "", minutes);
 }
 
 QString presetDescription(const QString& path) {
@@ -254,6 +269,9 @@ DlgStemConversionStatus::DlgStemConversionStatus(
     setAttribute(Qt::WA_DeleteOnClose, false);
 
     m_pHeadline = new QLabel;
+    m_pProgress = new QProgressBar;
+    m_pProgress->setRange(0, 1000);
+    m_pProgress->setTextVisible(true);
     m_pTracks = new QTreeWidget;
     m_pTracks->setColumnCount(kColumnCount);
     m_pTracks->setHeaderLabels({tr("Track"), tr("Status"), tr("Details"), tr("Output")});
@@ -281,6 +299,7 @@ DlgStemConversionStatus::DlgStemConversionStatus(
 
     auto* pLayout = new QVBoxLayout(this);
     pLayout->addWidget(m_pHeadline);
+    pLayout->addWidget(m_pProgress);
     pLayout->addWidget(m_pTracks, 1);
     pLayout->addLayout(pButtons);
     resize(1000, 480);
@@ -304,6 +323,12 @@ DlgStemConversionStatus::DlgStemConversionStatus(
     connect(m_pConverter, &StemConverter::entriesAdded, this, &DlgStemConversionStatus::slotEntriesAdded);
     connect(m_pConverter, &StemConverter::entryChanged, this, &DlgStemConversionStatus::slotEntryChanged);
     connect(m_pConverter, &StemConverter::stateChanged, this, &DlgStemConversionStatus::slotStateChanged);
+
+    // The time remaining moves with the clock, not only with events.
+    m_pRefreshTimer = new QTimer(this);
+    m_pRefreshTimer->setInterval(1000);
+    connect(m_pRefreshTimer, &QTimer::timeout, this, &DlgStemConversionStatus::slotStateChanged);
+    m_pRefreshTimer->start();
 
     slotEntriesAdded(0, static_cast<int>(m_pConverter->entries().size()));
     slotStateChanged();
@@ -337,7 +362,11 @@ void DlgStemConversionStatus::slotEntryChanged(int index) {
     const TrackEntry& entry = m_pConverter->entries().at(index);
     pItem->setText(kColumnTrack, entry.displayName);
     pItem->setToolTip(kColumnTrack, entry.sourcePath);
-    pItem->setText(kColumnStatus, trackStateLabel(entry.state));
+    pItem->setText(kColumnStatus,
+            entry.state == TrackState::Running
+                    ? QStringLiteral("%1 %2%").arg(trackStateLabel(entry.state))
+                              .arg(static_cast<int>(entry.progress * 100))
+                    : trackStateLabel(entry.state));
     pItem->setText(kColumnDetails, entry.detail);
     pItem->setToolTip(kColumnDetails, entry.detail);
     if (entry.state == TrackState::Running) {
@@ -347,31 +376,22 @@ void DlgStemConversionStatus::slotEntryChanged(int index) {
 }
 
 void DlgStemConversionStatus::slotStateChanged() {
-    int finished = 0;
-    int failed = 0;
-    const auto& entries = m_pConverter->entries();
-    for (const TrackEntry& entry : entries) {
-        switch (entry.state) {
-        case TrackState::Done:
-        case TrackState::Skipped:
-            ++finished;
-            break;
-        case TrackState::Failed:
-        case TrackState::Cancelled:
-            ++failed;
-            break;
-        default:
-            break;
+    const auto progress = m_pConverter->progress();
+    QString headline = tr("%1 of %2 tracks converted").arg(progress.finished).arg(progress.total);
+    if (progress.notConverted > 0) {
+        headline += QStringLiteral(" · ") + tr("%n not converted", "", progress.notConverted);
+    }
+    if (m_pConverter->isRunning()) {
+        if (m_pConverter->isPaused()) {
+            headline += QStringLiteral(" · ") + tr("paused after the current track");
+        } else if (progress.etaSeconds) {
+            headline += QStringLiteral(" · ") +
+                    tr("about %1 left").arg(formatDuration(*progress.etaSeconds));
         }
     }
-    QString headline = tr("%1 of %2 tracks converted").arg(finished).arg(entries.size());
-    if (failed > 0) {
-        headline += QStringLiteral(" · ") + tr("%n not converted", "", failed);
-    }
-    if (m_pConverter->isRunning() && m_pConverter->isPaused()) {
-        headline += QStringLiteral(" · ") + tr("paused after the current track");
-    }
     m_pHeadline->setText(headline);
+    m_pProgress->setValue(static_cast<int>(progress.fraction * 1000));
+    m_pProgress->setFormat(QStringLiteral("%1%").arg(static_cast<int>(progress.fraction * 100)));
     m_pPauseResume->setText(m_pConverter->isUserPaused() ? tr("Resume") : tr("Pause"));
     m_pPauseResume->setEnabled(m_pConverter->isRunning());
     m_pCancel->setEnabled(m_pConverter->isRunning());

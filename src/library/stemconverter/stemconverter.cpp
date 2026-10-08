@@ -107,7 +107,9 @@ Settings Settings::load(const UserSettingsPointer& pConfig) {
     if (!presets.contains(s.presetPath)) {
         s.presetPath.clear();
         for (const QString& path : presets) {
-            if (QFileInfo(path).baseName() == QStringLiteral("quality-4gb")) {
+            // Benchmarked on trance/techno: as good as the RoFormer presets
+            // there, at a ninth of the time (docs/02-stem-converter.md).
+            if (QFileInfo(path).baseName() == QStringLiteral("electronic")) {
                 s.presetPath = path;
             }
         }
@@ -490,6 +492,7 @@ int StemConverter::enqueue(const QList<Request>& requests, QHash<CrateId, CrateI
         TrackEntry entry;
         entry.sourceId = request.trackId;
         entry.sourcePath = pTrack->getLocation();
+        entry.durationSeconds = pTrack->getDuration();
         const QString artist = pTrack->getArtist();
         const QString title = pTrack->getTitle();
         entry.displayName = artist.isEmpty() || title.isEmpty()
@@ -552,6 +555,10 @@ void StemConverter::startNextBatch() {
     QJsonArray tracks;
     m_batch = m_pending;
     m_pending.clear();
+    if (m_runStartedMs == 0) {
+        m_runStartedMs = QDateTime::currentMSecsSinceEpoch();
+        m_runFirstEntry = m_batch.first();
+    }
     for (int index : std::as_const(m_batch)) {
         const TrackEntry& entry = m_entries.at(index);
         tracks.append(QJsonObject{
@@ -588,7 +595,6 @@ void StemConverter::startNextBatch() {
     connect(m_pProcess, &QProcess::readyReadStandardError, this, &StemConverter::slotReadStderr);
     connect(m_pProcess, &QProcess::finished, this, &StemConverter::slotFinished);
     m_stdoutBuffer.clear();
-    m_runningTrack = -1;
     m_autoPaused = false;
     kLogger.info() << "Starting" << settings.executable << "for" << m_batch.size() << "tracks";
     m_pProcess->start(settings.executable, {QStringLiteral("run"), jobPath, QStringLiteral("--control")});
@@ -631,19 +637,36 @@ void StemConverter::slotReadStderr() {
 
 void StemConverter::handleEvent(const QJsonObject& event) {
     const QString type = event.value(QStringLiteral("ev")).toString();
+    // Events name the track by its position in the job ("track"); the job's
+    // "id" is our entry index. Map through the batch, since progress events
+    // carry only the position. With one track finalising while the next
+    // separates, events for two tracks interleave.
     const auto entryIndex = [&]() -> int {
+        const int position = event.value(QStringLiteral("track")).toInt(-1);
+        if (position >= 0 && position < m_batch.size()) {
+            return m_batch.at(position);
+        }
         const int index = event.value(QStringLiteral("id")).toInt(-1);
         return index >= 0 && index < m_entries.size() ? index : -1;
     };
+    const int index = entryIndex();
 
-    if (type == QStringLiteral("track_start")) {
-        m_runningTrack = entryIndex();
-        if (m_runningTrack >= 0) {
-            setState(m_runningTrack, TrackState::Running, tr("Starting"));
+    if (type == QStringLiteral("progress")) {
+        if (index >= 0 && m_entries.at(index).state == TrackState::Running) {
+            TrackEntry& entry = m_entries[index];
+            entry.progress = event.value(QStringLiteral("fraction")).toDouble();
+            entry.etaSeconds = event.value(QStringLiteral("eta_s")).toDouble(-1);
+            emit entryChanged(index);
+        }
+    } else if (type == QStringLiteral("track_start")) {
+        if (index >= 0) {
+            m_entries[index].progress = 0;
+            m_entries[index].startedMs = QDateTime::currentMSecsSinceEpoch();
+            setState(index, TrackState::Running, tr("Starting"));
         }
     } else if (type == QStringLiteral("stage")) {
-        if (m_runningTrack >= 0) {
-            setState(m_runningTrack,
+        if (index >= 0) {
+            setState(index,
                     TrackState::Running,
                     tr("Separating %1 (%2/%3)")
                             .arg(event.value(QStringLiteral("take"))
@@ -653,28 +676,110 @@ void StemConverter::handleEvent(const QJsonObject& event) {
                             .arg(event.value(QStringLiteral("stage")).toInt() + 1)
                             .arg(event.value(QStringLiteral("stages")).toInt()));
         }
+    } else if (type == QStringLiteral("finalize")) {
+        if (index >= 0) {
+            setState(index, TrackState::Running, tr("Writing the stem file"));
+        }
     } else if (type == QStringLiteral("fallback")) {
-        if (m_runningTrack >= 0) {
-            setState(m_runningTrack,
+        if (index >= 0) {
+            setState(index,
                     TrackState::Running,
                     tr("Out of GPU memory, retrying: %1")
                             .arg(event.value(QStringLiteral("to")).toString()));
         }
     } else if (type == QStringLiteral("track_done") || type == QStringLiteral("track_skipped")) {
-        const int index = entryIndex();
         if (index >= 0) {
+            m_entries[index].progress = 1;
+            m_entries[index].seconds = event.value(QStringLiteral("seconds")).toDouble();
             importConverted(index, event);
         }
-        m_runningTrack = -1;
     } else if (type == QStringLiteral("track_error")) {
-        const int index = entryIndex();
         if (index >= 0) {
             setState(index, TrackState::Failed, event.value(QStringLiteral("message")).toString());
         }
-        m_runningTrack = -1;
     } else if (type == QStringLiteral("paused") || type == QStringLiteral("resumed")) {
         emit stateChanged();
     }
+}
+
+StemConverter::Progress StemConverter::progress() const {
+    Progress result;
+    double totalAudio = 0;
+    double doneAudio = 0;
+    double remainingAudio = 0;
+    // Wall-clock throughput of the converted (not skipped) tracks so far.
+    double workedAudio = 0;
+    double knownDuration = 0;
+    int knownCount = 0;
+    for (const TrackEntry& entry : m_entries) {
+        if (entry.durationSeconds > 0) {
+            knownDuration += entry.durationSeconds;
+            ++knownCount;
+        }
+    }
+    const double fallbackDuration = knownCount > 0 ? knownDuration / knownCount : 300.0;
+    for (int i = 0; i < m_entries.size(); ++i) {
+        const TrackEntry& entry = m_entries.at(i);
+        const bool thisRun = i >= m_runFirstEntry;
+        const double duration = entry.durationSeconds > 0 ? entry.durationSeconds : fallbackDuration;
+        double completion = 0;
+        switch (entry.state) {
+        case TrackState::Queued:
+            break;
+        case TrackState::Running:
+            completion = entry.progress;
+            workedAudio += thisRun ? completion * duration : 0;
+            break;
+        case TrackState::Done:
+            completion = 1;
+            workedAudio += thisRun ? duration : 0;
+            ++result.finished;
+            break;
+        case TrackState::Skipped:
+            completion = 1;
+            ++result.finished;
+            break;
+        case TrackState::Failed:
+        case TrackState::Cancelled:
+            completion = 1;
+            ++result.notConverted;
+            break;
+        }
+        totalAudio += duration;
+        doneAudio += completion * duration;
+        if (entry.state == TrackState::Queued || entry.state == TrackState::Running) {
+            remainingAudio += (1 - completion) * duration;
+        }
+    }
+    result.total = static_cast<int>(m_entries.size());
+    result.fraction = totalAudio > 0 ? doneAudio / totalAudio : 0;
+
+    // Estimate from what this run has actually achieved, once there is
+    // enough of it; before that, from stemforge's per-track estimate.
+    if (m_runStartedMs > 0 && remainingAudio > 0) {
+        const double elapsed = (QDateTime::currentMSecsSinceEpoch() - m_runStartedMs) / 1000.0;
+        if (workedAudio >= 0.25 * fallbackDuration && elapsed > 0) {
+            result.etaSeconds = remainingAudio * elapsed / workedAudio;
+        } else {
+            // The running track's own estimate, and the same pace for the
+            // tracks after it.
+            const qint64 now = QDateTime::currentMSecsSinceEpoch();
+            for (const TrackEntry& entry : m_entries) {
+                if (entry.state != TrackState::Running || entry.etaSeconds < 0 ||
+                        entry.startedMs <= 0) {
+                    continue;
+                }
+                const double duration = entry.durationSeconds > 0
+                        ? entry.durationSeconds
+                        : fallbackDuration;
+                const double trackSeconds = (now - entry.startedMs) / 1000.0 + entry.etaSeconds;
+                const double after = remainingAudio - (1 - entry.progress) * duration;
+                result.etaSeconds = entry.etaSeconds + std::max(0.0, after) * trackSeconds / duration;
+                break;
+            }
+        }
+    }
+    return result;
 }
 
 void StemConverter::importConverted(int entryIndex, const QJsonObject& event) {
@@ -744,12 +849,14 @@ void StemConverter::slotFinished(int exitCode, QProcess::ExitStatus exitStatus) 
     }
     kLogger.info() << "stemforge finished, exit code" << exitCode;
     m_batch.clear();
-    m_runningTrack = -1;
     m_log.close();
     m_pProcess->deleteLater();
     m_pProcess = nullptr;
     m_deckPollTimer.stop();
     m_autoPaused = false;
+    if (m_pending.isEmpty()) {
+        m_runStartedMs = 0;
+    }
     emit stateChanged();
     startNextBatch();
 }
