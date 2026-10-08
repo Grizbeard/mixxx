@@ -90,16 +90,16 @@ class StemConverterTest : public LibraryTest {
         ASSERT_FALSE(pConverter->isRunning()) << "stemforge did not finish in time";
     }
 
-    void configure() {
+    void configure(const QString& presetName = QStringLiteral("fast")) {
         Settings settings = Settings::load(config());
         settings.executable = stemforgeExe();
         settings.outputRoot = QDir(m_tempDir.path()).filePath(QStringLiteral("Stems"));
         for (const QString& preset : presetFiles(settings.executable, config())) {
-            if (QFileInfo(preset).baseName() == QStringLiteral("fast")) {
+            if (QFileInfo(preset).baseName() == presetName) {
                 settings.presetPath = preset;
             }
         }
-        ASSERT_FALSE(settings.presetPath.isEmpty()) << "fast preset not found";
+        ASSERT_FALSE(settings.presetPath.isEmpty()) << presetName.toStdString() << " not found";
         settings.pauseWhilePlaying = false;
         settings.save(config());
     }
@@ -208,7 +208,9 @@ TEST_F(StemConverterTest, ConvertsNestedCrateIntoMirroredStemsTree) {
 }
 
 TEST_F(StemConverterTest, ConvertsTracksIntoTheirCratesMirrors) {
-    configure();
+    // Electronic leaves bass in Other: a silent stem whose level is -inf dB,
+    // which once made stemforge's report unreadable (non-JSON "-Infinity").
+    configure(QStringLiteral("electronic"));
 
     const TrackPointer pNested = getOrAddTrackByLocation(copyFixture(QStringLiteral("n.wav")));
     const TrackPointer pLoose = getOrAddTrackByLocation(copyFixture(QStringLiteral("l.wav")));

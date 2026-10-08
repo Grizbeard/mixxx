@@ -847,11 +847,16 @@ void StemConverter::slotFinished(int exitCode, QProcess::ExitStatus exitStatus) 
     for (int index : std::as_const(m_batch)) {
         const TrackState state = m_entries.at(index).state;
         if (state == TrackState::Queued || state == TrackState::Running) {
-            setState(index,
-                    TrackState::Failed,
-                    exitStatus == QProcess::CrashExit
-                            ? tr("stemforge stopped unexpectedly")
-                            : tr("stemforge exited (code %1)").arg(exitCode));
+            QString reason;
+            if (exitStatus == QProcess::CrashExit) {
+                reason = tr("stemforge stopped unexpectedly");
+            } else if (exitCode == 0) {
+                reason = tr("stemforge finished without a readable report for this "
+                            "track; see the job log");
+            } else {
+                reason = tr("stemforge exited (code %1)").arg(exitCode);
+            }
+            setState(index, TrackState::Failed, reason);
         }
     }
     kLogger.info() << "stemforge finished, exit code" << exitCode;
