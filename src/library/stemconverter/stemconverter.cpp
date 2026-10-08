@@ -680,6 +680,13 @@ void StemConverter::handleEvent(const QJsonObject& event) {
         if (index >= 0) {
             setState(index, TrackState::Running, tr("Writing the stem file"));
         }
+    } else if (type == QStringLiteral("copy_retry")) {
+        if (index >= 0) {
+            setState(index,
+                    TrackState::Running,
+                    tr("Output drive not responding, retrying (%1)")
+                            .arg(event.value(QStringLiteral("attempt")).toInt()));
+        }
     } else if (type == QStringLiteral("fallback")) {
         if (index >= 0) {
             setState(index,
