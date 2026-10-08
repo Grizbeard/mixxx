@@ -2822,6 +2822,7 @@ if(BUILD_TESTING)
       src-mixxx-test
       ${src-mixxx-test}
       src/test/stemtest.cpp
+      src/test/stemforgefile_test.cpp
       src/test/steminfotest.cpp
       src/test/stemcontrolobjecttest.cpp
     )
