@@ -132,6 +132,11 @@ class StemConverter : public QObject {
 
     static constexpr const char* kStemsRootCrateName = "Stems";
 
+    /// Start stemforge and load the configured preset's models now, so the
+    /// first conversion does not wait for torch, CUDA and model loading.
+    /// Called when the Convert dialog opens.
+    void prewarm();
+
   public slots:
     void pause();
     void resume();
@@ -175,7 +180,10 @@ class StemConverter : public QObject {
     /// The mirror of crateId, creating mirrors for its whole parent chain.
     CrateId mirrorPath(CrateId crateId, CrateId rootId, QHash<CrateId, CrateId>* pCache);
 
+    bool ensureServer(const Settings& settings);
     void startNextBatch();
+    /// The running job ended; tracks it did not report on fail with `reason`.
+    void finishBatch(const QString& reasonForUnreported);
     void handleEvent(const QJsonObject& event);
     void importConverted(int entryIndex, const QJsonObject& event);
     void setState(int entryIndex, TrackState state, const QString& detail = QString());
@@ -191,7 +199,10 @@ class StemConverter : public QObject {
     qint64 m_runStartedMs = 0;
     int m_runFirstEntry = 0;
 
+    /// A long-lived `stemforge serve`, fed one job at a time.
     QProcess* m_pProcess = nullptr;
+    QString m_serverExecutable;
+    bool m_jobActive = false;
     QByteArray m_stdoutBuffer;
     QFile m_log;
 

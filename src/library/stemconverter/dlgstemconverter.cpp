@@ -194,6 +194,8 @@ void DlgStemConvert::setUp(const QString& heading) {
 
     slotReloadPresets();
     slotUpdateSummary();
+    // Load the models while the dialog is being read.
+    m_pConverter->prewarm();
 }
 
 void DlgStemConvert::slotReloadPresets() {

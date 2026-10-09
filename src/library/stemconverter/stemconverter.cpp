@@ -44,6 +44,8 @@ const ConfigKey kPauseWhilePlayingKey(kConfigGroup, QStringLiteral("PauseWhilePl
 
 const QString kMirrorSuffix = QStringLiteral(" (Stems)");
 const QString kStemExtension = QStringLiteral(".stem.mp4");
+// How long an idle stemforge server keeps its models loaded.
+constexpr int kServerIdleExitSeconds = 300;
 constexpr int kDeckPollIntervalMs = 1000;
 
 QString defaultOutputRoot() {
@@ -193,7 +195,7 @@ StemConverter::~StemConverter() {
 }
 
 bool StemConverter::isRunning() const {
-    return m_pProcess != nullptr;
+    return m_jobActive;
 }
 
 QList<CrateId> StemConverter::walkCrates(CrateId crateId, bool includeSubcrates) const {
@@ -529,28 +531,83 @@ int StemConverter::enqueue(const QList<Request>& requests, QHash<CrateId, CrateI
     return added;
 }
 
+bool StemConverter::ensureServer(const Settings& settings) {
+    if (m_pProcess && m_pProcess->state() != QProcess::NotRunning &&
+            m_serverExecutable == settings.executable) {
+        return true;
+    }
+    if (m_pProcess) {
+        // A different stemforge was chosen; replace the running one.
+        m_pProcess->disconnect(this);
+        m_pProcess->kill();
+        m_pProcess->waitForFinished(3000);
+        m_pProcess->deleteLater();
+        m_pProcess = nullptr;
+    }
+    if (!QFileInfo::exists(settings.executable)) {
+        emit message(tr("stemforge was not found at %1.").arg(settings.executable));
+        return false;
+    }
+    const QDir dir(stemforgeDir(m_pConfig));
+    dir.mkpath(QStringLiteral("logs"));
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+    m_log.close();
+    m_log.setFileName(dir.filePath(QStringLiteral("logs/stemforge-%1.log").arg(stamp)));
+    m_log.open(QIODevice::WriteOnly | QIODevice::Text);
+
+    m_pProcess = new QProcess(this);
+#ifdef Q_OS_WIN
+    m_pProcess->setCreateProcessArgumentsModifier(
+            [](QProcess::CreateProcessArguments* pArgs) {
+                pArgs->flags |= BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW;
+            });
+#endif
+    connect(m_pProcess, &QProcess::readyReadStandardOutput, this, &StemConverter::slotReadStdout);
+    connect(m_pProcess, &QProcess::readyReadStandardError, this, &StemConverter::slotReadStderr);
+    connect(m_pProcess, &QProcess::finished, this, &StemConverter::slotFinished);
+    m_stdoutBuffer.clear();
+    m_serverExecutable = settings.executable;
+    // The server keeps torch, CUDA and the models loaded between jobs, and
+    // leaves on its own after a few idle minutes so it does not hold VRAM
+    // through a set.
+    QStringList args{QStringLiteral("serve"),
+            QStringLiteral("--idle-exit"),
+            QString::number(kServerIdleExitSeconds)};
+    if (!settings.presetPath.isEmpty()) {
+        args << QStringLiteral("--preload") << settings.presetPath;
+    }
+    kLogger.info() << "Starting" << settings.executable << args;
+    m_pProcess->start(settings.executable, args);
+    return true;
+}
+
+void StemConverter::prewarm() {
+    if (!m_jobActive) {
+        ensureServer(Settings::load(m_pConfig));
+    }
+}
+
 void StemConverter::startNextBatch() {
-    if (m_pProcess || m_pending.isEmpty()) {
+    if (m_jobActive || m_pending.isEmpty()) {
         return;
     }
     const Settings settings = Settings::load(m_pConfig);
-    if (!QFileInfo::exists(settings.executable)) {
-        emit message(tr("stemforge was not found at %1.").arg(settings.executable));
+    if (settings.presetPath.isEmpty()) {
+        emit message(tr("No stemforge preset found."));
+        return;
+    }
+    if (!ensureServer(settings)) {
         for (int index : std::as_const(m_pending)) {
             setState(index, TrackState::Failed, tr("stemforge not found"));
         }
         m_pending.clear();
         return;
     }
-    if (settings.presetPath.isEmpty()) {
-        emit message(tr("No stemforge preset found."));
-        return;
-    }
 
     const QDir dir(stemforgeDir(m_pConfig));
     dir.mkpath(QStringLiteral("jobs"));
-    dir.mkpath(QStringLiteral("logs"));
-    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+    const QString stamp = QDateTime::currentDateTime().toString(
+            QStringLiteral("yyyyMMdd-HHmmss-zzz"));
 
     QJsonArray tracks;
     m_batch = m_pending;
@@ -577,32 +634,39 @@ void StemConverter::startNextBatch() {
     if (!jobFile.open(QIODevice::WriteOnly) ||
             jobFile.write(QJsonDocument(job).toJson()) < 0) {
         emit message(tr("Cannot write the job file %1.").arg(jobPath));
+        for (int index : std::as_const(m_batch)) {
+            setState(index, TrackState::Failed, tr("Cannot write the job file"));
+        }
+        m_batch.clear();
         return;
     }
     jobFile.close();
 
-    m_log.setFileName(dir.filePath(QStringLiteral("logs/job-%1.log").arg(stamp)));
-    m_log.open(QIODevice::WriteOnly | QIODevice::Text);
-
-    m_pProcess = new QProcess(this);
-#ifdef Q_OS_WIN
-    m_pProcess->setCreateProcessArgumentsModifier(
-            [](QProcess::CreateProcessArguments* pArgs) {
-                pArgs->flags |= BELOW_NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW;
-            });
-#endif
-    connect(m_pProcess, &QProcess::readyReadStandardOutput, this, &StemConverter::slotReadStdout);
-    connect(m_pProcess, &QProcess::readyReadStandardError, this, &StemConverter::slotReadStderr);
-    connect(m_pProcess, &QProcess::finished, this, &StemConverter::slotFinished);
-    m_stdoutBuffer.clear();
+    m_jobActive = true;
     m_autoPaused = false;
-    kLogger.info() << "Starting" << settings.executable << "for" << m_batch.size() << "tracks";
-    m_pProcess->start(settings.executable, {QStringLiteral("run"), jobPath, QStringLiteral("--control")});
-    if (m_userPaused) {
-        sendCommand("pause");
-    }
+    kLogger.info() << "Sending job" << jobPath << "with" << m_batch.size() << "tracks";
+    sendCommand(m_userPaused ? QByteArrayLiteral("pause") : QByteArrayLiteral("resume"));
+    sendCommand("run " + QDir::toNativeSeparators(jobPath).toUtf8());
     m_deckPollTimer.start();
     emit stateChanged();
+}
+
+void StemConverter::finishBatch(const QString& reasonForUnreported) {
+    for (int index : std::as_const(m_batch)) {
+        const TrackState state = m_entries.at(index).state;
+        if (state == TrackState::Queued || state == TrackState::Running) {
+            setState(index, TrackState::Failed, reasonForUnreported);
+        }
+    }
+    m_batch.clear();
+    m_jobActive = false;
+    m_deckPollTimer.stop();
+    m_autoPaused = false;
+    if (m_pending.isEmpty()) {
+        m_runStartedMs = 0;
+    }
+    emit stateChanged();
+    startNextBatch();
 }
 
 void StemConverter::slotReadStdout() {
@@ -704,6 +768,12 @@ void StemConverter::handleEvent(const QJsonObject& event) {
         if (index >= 0) {
             setState(index, TrackState::Failed, event.value(QStringLiteral("message")).toString());
         }
+    } else if (type == QStringLiteral("job_done") || type == QStringLiteral("job_cancelled")) {
+        finishBatch(tr("stemforge finished without a readable report for this track; "
+                       "see the log"));
+    } else if (type == QStringLiteral("job_error")) {
+        finishBatch(tr("stemforge could not read the job: %1")
+                        .arg(event.value(QStringLiteral("message")).toString()));
     } else if (type == QStringLiteral("paused") || type == QStringLiteral("resumed")) {
         emit stateChanged();
     }
@@ -844,33 +914,18 @@ void StemConverter::importConverted(int entryIndex, const QJsonObject& event) {
 
 void StemConverter::slotFinished(int exitCode, QProcess::ExitStatus exitStatus) {
     slotReadStdout();
-    for (int index : std::as_const(m_batch)) {
-        const TrackState state = m_entries.at(index).state;
-        if (state == TrackState::Queued || state == TrackState::Running) {
-            QString reason;
-            if (exitStatus == QProcess::CrashExit) {
-                reason = tr("stemforge stopped unexpectedly");
-            } else if (exitCode == 0) {
-                reason = tr("stemforge finished without a readable report for this "
-                            "track; see the job log");
-            } else {
-                reason = tr("stemforge exited (code %1)").arg(exitCode);
-            }
-            setState(index, TrackState::Failed, reason);
-        }
-    }
-    kLogger.info() << "stemforge finished, exit code" << exitCode;
-    m_batch.clear();
-    m_log.close();
+    kLogger.info() << "stemforge exited, code" << exitCode;
     m_pProcess->deleteLater();
     m_pProcess = nullptr;
-    m_deckPollTimer.stop();
-    m_autoPaused = false;
-    if (m_pending.isEmpty()) {
-        m_runStartedMs = 0;
+    m_serverExecutable.clear();
+    m_log.close();
+    if (m_jobActive) {
+        finishBatch(exitStatus == QProcess::CrashExit
+                        ? tr("stemforge stopped unexpectedly")
+                        : tr("stemforge exited (code %1)").arg(exitCode));
+    } else {
+        emit stateChanged();
     }
-    emit stateChanged();
-    startNextBatch();
 }
 
 void StemConverter::sendCommand(const QByteArray& command) {
@@ -904,7 +959,7 @@ void StemConverter::cancel() {
         setState(index, TrackState::Cancelled);
     }
     m_pending.clear();
-    if (m_pProcess) {
+    if (m_jobActive && m_pProcess) {
         for (int index : std::as_const(m_batch)) {
             const TrackState state = m_entries.at(index).state;
             if (state == TrackState::Queued || state == TrackState::Running) {
@@ -912,7 +967,8 @@ void StemConverter::cancel() {
             }
         }
         // The running track would otherwise finish first, which can take
-        // minutes; its partial output is written to a temp folder only.
+        // a while; its partial output is in a temp folder only. The server
+        // restarts with the next conversion.
         m_pProcess->kill();
     }
 }
