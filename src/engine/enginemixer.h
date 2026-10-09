@@ -27,6 +27,7 @@ class EngineVuMeter;
 class ControlPotmeter;
 class ControlPushButton;
 class EngineSideChain;
+class EngineSpatialOutput;
 class EffectsManager;
 class EngineEffectsManager;
 class EngineSync;
@@ -315,6 +316,8 @@ class EngineMixer : public QObject, public AudioSource {
 
     std::unique_ptr<EngineVuMeter> m_pVumeter;
     std::unique_ptr<EngineSideChain> m_pEngineSideChain;
+    /// The multichannel speaker output of the spatial build.
+    std::unique_ptr<EngineSpatialOutput> m_pSpatialOutput;
 
     std::unique_ptr<ControlPotmeter> m_pCrossfader;
     std::unique_ptr<ControlPotmeter> m_pHeadMix;

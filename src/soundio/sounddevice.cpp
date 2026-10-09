@@ -1,5 +1,7 @@
 #include "soundio/sounddevice.h"
 
+#include <algorithm>
+
 #include "soundio/soundmanagerconfig.h"
 #include "soundio/soundmanagerutil.h"
 #include "soundmanagerconfig.h"
@@ -113,8 +115,11 @@ void SoundDevice::composeOutputBuffer(CSAMPLE* outputBuffer,
             const int iChannelBase = outChans.getChannelBase();
 
             const CSAMPLE* pAudioOutputBuffer = out.getBuffer();
-            // advanced to offset; pAudioOutputBuffer is always stereo
-            pAudioOutputBuffer = &pAudioOutputBuffer[framesReadOffset*2];
+            // Advance to the offset. Sources are stereo for mono and stereo
+            // outputs (mono is downmixed below) and interleaved with the
+            // output's own channel count for wider ones (Spatial).
+            const int iSourceChannels = std::max(iChannelCount, 2);
+            pAudioOutputBuffer = &pAudioOutputBuffer[framesReadOffset * iSourceChannels];
             if (iChannelCount == 1) {
                 // All AudioOutputs are stereo as of Mixxx 1.12.0. If we have a mono
                 // output then we need to downsample.

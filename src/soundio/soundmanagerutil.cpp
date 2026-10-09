@@ -97,6 +97,8 @@ QString AudioPath::getStringFromType(AudioPathType type) {
         return QStringLiteral("Auxiliary");
     case AudioPathType::RecordBroadcast:
         return QStringLiteral("Record/Broadcast");
+    case AudioPathType::Spatial:
+        return QStringLiteral("Spatial");
     case AudioPathType::Invalid:
         // this shouldn't happen but g++ complains if I don't
         // handle this -- bkgood
@@ -156,6 +158,9 @@ QString AudioPath::getTrStringFromType(AudioPathType type, unsigned char index) 
     case AudioPathType::RecordBroadcast:
         //: Audio path indetifier
         return QObject::tr("Record/Broadcast");
+    case AudioPathType::Spatial:
+        //: Audio path identifier: the multichannel speaker output
+        return QObject::tr("Spatial");
     }
     //: Audio path
     return QObject::tr("Unknown path type %1").arg(static_cast<int>(type));
@@ -183,6 +188,8 @@ AudioPathType AudioPath::getTypeFromString(QString string) {
         return AudioPathType::Auxiliary;
     } else if (string == AudioPath::getStringFromType(AudioPathType::RecordBroadcast).toLower()) {
         return AudioPathType::RecordBroadcast;
+    } else if (string == AudioPath::getStringFromType(AudioPathType::Spatial).toLower()) {
+        return AudioPathType::Spatial;
     } else {
         return AudioPathType::Invalid;
     }
@@ -218,6 +225,9 @@ mixxx::audio::ChannelCount AudioPath::minChannelsForType(AudioPathType type) {
     switch (type) {
     case AudioPathType::VinylControl:
         return mixxx::audio::ChannelCount::stereo();
+    case AudioPathType::Spatial:
+        // The smallest ring: four speakers, no LF feed.
+        return mixxx::audio::ChannelCount(4);
     default:
         return mixxx::audio::ChannelCount::mono();
     }
@@ -225,7 +235,10 @@ mixxx::audio::ChannelCount AudioPath::minChannelsForType(AudioPathType type) {
 
 // static
 mixxx::audio::ChannelCount AudioPath::maxChannelsForType(AudioPathType type) {
-    Q_UNUSED(type);
+    if (type == AudioPathType::Spatial) {
+        // Six speakers, LF, and one spare (EngineSpatialOutput::kMaxChannels).
+        return mixxx::audio::ChannelCount(8);
+    }
     return mixxx::audio::ChannelCount::stereo();
 }
 
@@ -284,6 +297,7 @@ QList<AudioPathType> AudioOutput::getSupportedTypes() {
             AudioPathType::Bus,
             AudioPathType::Deck,
             AudioPathType::RecordBroadcast,
+            AudioPathType::Spatial,
     };
 }
 

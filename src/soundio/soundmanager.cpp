@@ -431,7 +431,8 @@ SoundDeviceStatus SoundManager::setupDevices() {
                 if (out.getType() == AudioPathType::Main) {
                     pNewMainClockRef = pDevice;
                 } else if ((out.getType() == AudioPathType::Deck ||
-                                   out.getType() == AudioPathType::Bus) &&
+                                   out.getType() == AudioPathType::Bus ||
+                                   out.getType() == AudioPathType::Spatial) &&
                         !pNewMainClockRef) {
                     pNewMainClockRef = pDevice;
                 }

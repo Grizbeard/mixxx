@@ -20,6 +20,7 @@
 #include "engine/enginexfader.h"
 #include "engine/sidechain/enginesidechain.h"
 #include "engine/sync/enginesync.h"
+#include "engine/spatial/enginespatialoutput.h"
 #include "mixer/playermanager.h"
 #include "moc_enginemixer.cpp"
 #include "preferences/configobject.h"
@@ -100,6 +101,7 @@ EngineMixer::EngineMixer(UserSettingsPointer pConfig,
                           ? std::make_unique<EngineSideChain>(
                                     pConfig, m_sidechainMix.data())
                           : nullptr),
+          m_pSpatialOutput(std::make_unique<EngineSpatialOutput>()),
           m_pCrossfader(std::make_unique<ControlPotmeter>(
                   ConfigKey(group, "crossfader"), -1., 1.)),
           m_pHeadMix(std::make_unique<ControlPotmeter>(
@@ -369,7 +371,9 @@ void EngineMixer::process(const std::size_t bufferSize) {
     }
     // Trace t("EngineMixer::process");
 
-    bool mainEnabled = m_pMainEnabled->toBool();
+    // The Spatial output can carry the main mix (passthrough), so it needs
+    // the main mix computed even when no Main output is assigned.
+    bool mainEnabled = m_pMainEnabled->toBool() || m_pSpatialOutput->isConnected();
     bool boothEnabled = m_pBoothEnabled->toBool();
     bool headphoneEnabled = m_pHeadphoneEnabled->toBool();
 
@@ -793,6 +797,10 @@ void EngineMixer::process(const std::size_t bufferSize) {
         m_pHeadDelay->process(m_head.data(), bufferSize);
     }
 
+    m_pSpatialOutput->process(mainEnabled ? m_main.data() : nullptr,
+            bufferSize / mixxx::kEngineChannelOutputCount,
+            m_sampleRate);
+
     // We're close to the end of the callback. Wake up the engine worker
     // scheduler so that it runs the workers.
     m_pWorkerScheduler->runWorkers();
@@ -1074,6 +1082,11 @@ void EngineMixer::registerNonEngineChannelSoundIO(gsl::not_null<SoundManager*> p
                                           0,
                                           mixxx::audio::ChannelCount::stereo()),
             this);
+    pSoundManager->registerOutput(AudioOutput(AudioPathType::Spatial,
+                                          0,
+                                          mixxx::audio::ChannelCount(
+                                                  EngineSpatialOutput::kMaxChannels)),
+            m_pSpatialOutput.get());
 }
 
 bool EngineMixer::sidechainMixRequired() const {

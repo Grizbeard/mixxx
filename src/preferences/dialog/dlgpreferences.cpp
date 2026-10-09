@@ -32,6 +32,7 @@
 #include "preferences/dialog/dlgprefeffects.h"
 #include "preferences/dialog/dlgprefinterface.h"
 #include "preferences/dialog/dlgprefmixer.h"
+#include "preferences/dialog/dlgprefspatial.h"
 #include "preferences/dialog/dlgprefwaveform.h"
 
 #ifdef __BROADCAST__
@@ -189,6 +190,12 @@ DlgPreferences::DlgPreferences(
                           new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Mixer"),
             "ic_preferences_crossfader.svg");
+
+    addPageWidget(PreferencesPage(
+                          new DlgPrefSpatial(this, m_pConfig),
+                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+            tr("Spatial Audio"),
+            "ic_preferences_soundhardware.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefEffects(this, m_pConfig, pEffectsManager),

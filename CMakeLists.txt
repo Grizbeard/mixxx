@@ -1317,6 +1317,7 @@ add_library(
   src/engine/sidechain/enginenetworkstream.cpp
   src/engine/sidechain/enginerecord.cpp
   src/engine/sidechain/enginesidechain.cpp
+  src/engine/spatial/enginespatialoutput.cpp
   src/engine/sidechain/networkinputstreamworker.cpp
   src/engine/sidechain/networkoutputstreamworker.cpp
   src/engine/sync/enginesync.cpp
@@ -1505,6 +1506,7 @@ add_library(
   src/preferences/dialog/dlgprefreplaygain.cpp
   src/preferences/dialog/dlgprefreplaygaindlg.ui
   src/preferences/dialog/dlgprefsound.cpp
+  src/preferences/dialog/dlgprefspatial.cpp
   src/preferences/dialog/dlgprefsounddlg.ui
   src/preferences/dialog/dlgprefsounditem.cpp
   src/preferences/dialog/dlgprefsounditem.ui
@@ -2750,6 +2752,7 @@ if(BUILD_TESTING)
     src/test/enginebuffertest.cpp
     src/test/enginefilterbiquadtest.cpp
     src/test/enginemixertest.cpp
+    src/test/enginespatialoutput_test.cpp
     src/test/enginemicrophonetest.cpp
     src/test/enginesynctest.cpp
     src/test/fileinfo_test.cpp

@@ -67,6 +67,9 @@ public:
       Microphone,
       Auxiliary,
       RecordBroadcast,
+      /// Multichannel output of the spatial build: speakers, then LF.
+      /// Up to EngineSpatialOutput::kMaxChannels channels.
+      Spatial,
       Invalid, // if this isn't last bad things will happen -bkgood
   };
   AudioPath(unsigned char channelBase, mixxx::audio::ChannelCount channels);
