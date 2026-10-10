@@ -12,6 +12,7 @@
 #include "moc_enginedeck.cpp"
 #include "track/track.h"
 #include "util/assert.h"
+#include "util/defs.h"
 #include "util/sample.h"
 
 EngineDeck::EngineDeck(
@@ -121,6 +122,19 @@ void EngineDeck::addStemHandle(const ChannelHandleAndGroup& stemHandleGroup) {
     if (m_pEffectsManager != nullptr) {
         m_pEffectsManager->registerInputChannel(stemHandleGroup);
     }
+    // Allocate here rather than on the first stem track in the callback.
+    const auto stemBufferSize = static_cast<SINT>(kMaxEngineSamples * mixxx::kMaxSupportedStems);
+    if (m_stemBuffer.size() < stemBufferSize) {
+        m_stemBuffer = mixxx::SampleBuffer(stemBufferSize);
+    }
+}
+
+void EngineDeck::addSpatialHandle(const ChannelHandleAndGroup& handleGroup) {
+    VERIFY_OR_DEBUG_ASSERT(m_spatialHandles.size() < kSpatialStems) {
+        return;
+    }
+    m_spatialStems[m_spatialHandles.size()] = mixxx::SampleBuffer(kMaxEngineSamples);
+    m_spatialHandles.push_back(handleGroup);
 }
 
 void EngineDeck::processStem(CSAMPLE* pOut, const std::size_t bufferSize) {
@@ -193,6 +207,21 @@ void EngineDeck::processStem(CSAMPLE* pOut, const std::size_t bufferSize) {
                 chOffset);
     }
 
+    // Spatial tap: Drums, Instruments (bass + other), Vocals.
+    if (m_spatialTapEnabled && m_spatialHandles.size() == kSpatialStems &&
+            stemCount == mixxx::kMaxSupportedStems) {
+        const int stereo = mixxx::audio::ChannelCount::stereo();
+        SampleUtil::copyOneStereoFromMulti(
+                m_spatialStems[0].data(), pIn, numFrames, chCount, 0);
+        SampleUtil::copyOneStereoFromMulti(
+                m_spatialStems[1].data(), pIn, numFrames, chCount, stereo);
+        SampleUtil::copyOneStereoFromMulti(pOut, pIn, numFrames, chCount, 2 * stereo);
+        SampleUtil::add(m_spatialStems[1].data(), pOut, bufferSize);
+        SampleUtil::copyOneStereoFromMulti(
+                m_spatialStems[2].data(), pIn, numFrames, chCount, 3 * stereo);
+        m_spatialStemsValid = true;
+    }
+
     // Mixxx all the stem tracks together
     SampleUtil::mixMultichannelToStereo(pOut, pIn, numFrames, chCount);
 }
@@ -220,6 +249,9 @@ void EngineDeck::cloneStemState(const EngineDeck* deckToClone) {
 #endif
 
 void EngineDeck::process(CSAMPLE* pOut, const std::size_t bufferSize) {
+#ifdef __STEM__
+    m_spatialStemsValid = false;
+#endif
     // Feed the incoming audio through if passthrough is active
     const CSAMPLE* sampleBuffer = m_sampleBuffer; // save pointer on stack
     if (isPassthroughActive() && sampleBuffer) {
@@ -262,6 +294,22 @@ void EngineDeck::process(CSAMPLE* pOut, const std::size_t bufferSize) {
                 bufferSize,
                 mixxx::audio::SampleRate::fromDouble(m_sampleRate.get()));
     }
+
+#ifdef __STEM__
+    // The spatial stems get the same pregain and their own deck EQ.
+    if (m_spatialStemsValid) {
+        for (int i = 0; i < kSpatialStems; ++i) {
+            m_pPregain->applyLastGain(m_spatialStems[i].data(), bufferSize);
+            if (pEngineEffectsManager != nullptr) {
+                pEngineEffectsManager->processPreFaderInPlace(m_spatialHandles[i].handle(),
+                        m_pEffectsManager->getMainHandle(),
+                        m_spatialStems[i].data(),
+                        bufferSize,
+                        mixxx::audio::SampleRate::fromDouble(m_sampleRate.get()));
+            }
+        }
+    }
+#endif
 
     // Update VU meter
     m_vuMeter.process(pOut, bufferSize);

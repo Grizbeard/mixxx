@@ -164,6 +164,22 @@ void EffectsManager::addStem(const ChannelHandleAndGroup& stemHandleGroup) {
     }
 }
 
+void EffectsManager::addSpatialInput(const ChannelHandleAndGroup& deckHandleGroup,
+        const ChannelHandleAndGroup& spatialHandleGroup) {
+    // Registered so engine effects allocate its state up front, but without
+    // enable buttons: it follows the deck.
+    m_registeredInputChannels.insert(spatialHandleGroup);
+    if (auto pChain = m_equalizerEffectChains.value(deckHandleGroup.name())) {
+        pChain->addInputChannelMirror(deckHandleGroup, spatialHandleGroup);
+    }
+    if (auto pChain = m_quickEffectChains.value(deckHandleGroup.name())) {
+        pChain->addInputChannelMirror(deckHandleGroup, spatialHandleGroup);
+    }
+    for (const auto& pChain : std::as_const(m_standardEffectChains)) {
+        pChain->addInputChannelMirror(deckHandleGroup, spatialHandleGroup);
+    }
+}
+
 void EffectsManager::resetStemQuickFxKnob(const ChannelHandleAndGroup& stemHandleGroup) {
     VERIFY_OR_DEBUG_ASSERT(m_quickStemEffectChains.contains(stemHandleGroup.name())) {
         return;

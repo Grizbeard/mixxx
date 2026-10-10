@@ -28,6 +28,7 @@ class ControlPotmeter;
 class ControlPushButton;
 class EngineSideChain;
 class EngineSpatialOutput;
+class EngineDeck;
 class EffectsManager;
 class EngineEffectsManager;
 class EngineSync;
@@ -103,6 +104,9 @@ class EngineMixer : public QObject, public AudioSource {
 
     // These are really only exposed for tests to use.
     std::span<const CSAMPLE> getMainBuffer() const;
+    EngineSpatialOutput* getSpatialOutput() const {
+        return m_pSpatialOutput.get();
+    }
     std::span<const CSAMPLE> getBoothBuffer() const;
     std::span<const CSAMPLE> getHeadphoneBuffer() const;
     std::span<const CSAMPLE> getOutputBusBuffer(unsigned int i) const;
@@ -127,6 +131,11 @@ class EngineMixer : public QObject, public AudioSource {
         std::unique_ptr<ControlPushButton> m_pMuteControl;
         GroupFeatureState m_features;
         int m_index;
+        // Primary decks: the deck and its 0-based number for the spatial
+        // renderer, and the fader gain last applied to its spatial stems.
+        EngineDeck* m_pSpatialDeck = nullptr;
+        int m_spatialDeckIndex = -1;
+        std::array<CSAMPLE_GAIN, 3> m_spatialGain{};
     };
 
     struct GainCache {
@@ -261,6 +270,9 @@ class EngineMixer : public QObject, public AudioSource {
     // m_activeTalkoverChannels with each channel that is active for the
     // respective output.
     void processChannels(std::size_t bufferSize);
+    /// Feeds the spatial bus: each deck stem through the deck's fader and
+    /// post-fader effects, everything else to the front pair.
+    void processSpatial(std::size_t bufferSize);
 
     ChannelHandleFactoryPointer m_pChannelHandleFactory;
     void applyMainEffects(std::size_t bufferSize);

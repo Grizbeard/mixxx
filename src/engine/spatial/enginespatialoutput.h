@@ -1,9 +1,13 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <memory>
+#include <vector>
 
 #include "audio/types.h"
+#include "engine/spatial/spatialdsp.h"
+#include "engine/spatial/spatialsource.h"
 #include "soundio/soundmanagerutil.h"
 #include "util/samplebuffer.h"
 #include "util/types.h"
@@ -11,33 +15,57 @@
 class ControlObject;
 class ControlPotmeter;
 class ControlPushButton;
+struct GroupFeatureState;
 
-/// The multichannel "Spatial" output: one interleaved buffer for a group of
-/// up to kMaxChannels sound-card channels. The speakers come first, then the
-/// LF (sub) feed when it is enabled; any further channels stay silent.
+namespace mixxx::spatial {
+class SpatialAutopan;
+class SpatialDelay;
+class SpatialReverb;
+} // namespace mixxx::spatial
+
+/// The multichannel "Spatial" output and the spatial mix bus feeding it.
 ///
-/// Phase 1 of the spatial build (docs/01-engine-audit.md): this produces
-/// silence, a speaker test signal for one channel at a time, and optionally a
-/// passthrough of the main mix to the front pair (speakers 1 and 2) plus a
-/// low-passed mono LF feed, so a room can be checked and played through
-/// before the spatial renderer exists.
+/// Each callback EngineMixer starts the bus (beginCallback), adds every deck
+/// stem as a post-fader stereo source (addSource), adds anything without a
+/// position (samplers, mics, aux) to the front pair (addFront), then calls
+/// process(), which runs the Spatial FX unit, the master gain, the LF
+/// crossover, per-speaker trims and delays and the limiter, and writes the
+/// interleaved output: speakers first, then the LF feed.
+///
+/// Phase 1 diagnostics remain: a speaker test signal (which mutes the
+/// program while it plays) and a main-mix passthrough that replaces the
+/// spatial mix with the stereo main on the front pair.
 ///
 /// Controls, group [Spatial]:
-///   channel_count     read-only: channels of the connected output, 0 if none
-///   channel_base      read-only: its first sound-card channel (0-based)
+///   channel_count, channel_base  read-only: the connected output group
 ///   speaker_count     4-6 speakers on the ring (persisted)
+///   layout_custom     0 = default angles for the count, 1 = speaker_N_azimuth
+///   speaker_N_azimuth / _gain_db / _delay_ms   N = 1..6 (persisted)
 ///   lf_enabled        the channel after the speakers carries LF (persisted)
-///   lf_crossover_hz   LF low-pass corner for the passthrough (persisted)
-///   test_channel      -1 = off, else the channel (0-based) playing the test
-///   test_signal       0 = pink noise, 1 = sine
-///   test_frequency    sine frequency in Hz
-///   test_level_db     test level in dBFS (persisted), clamped to -60..-6
-///   main_passthrough  play the main mix on speakers 1-2 and LF (persisted)
+///   lf_crossover_hz   LR4 crossover, 40-200 Hz (persisted)
+///   mains_highpass    high-pass the speakers at the crossover (persisted)
+///   lf_gain_db, lf_delay_ms, lf_invert   LF trims (persisted)
+///   limiter_enabled, limiter_ceiling_db  linked output limiter (persisted)
+///   limiter_reduction_db   read-only: current gain reduction
+///   vu_meter_N        read-only: peak of output channel N (1-based)
+///   beat              read-only: the spatial clock, in beats
+///   test_channel, test_signal, test_frequency, test_level_db,
+///   main_passthrough  as in phase 1
 class EngineSpatialOutput : public AudioSource {
   public:
     static constexpr int kMaxChannels = 8;
-    static constexpr int kMinSpeakers = 4;
-    static constexpr int kMaxSpeakers = 6;
+    static constexpr int kMinSpeakers = mixxx::spatial::kMinSpeakers;
+    static constexpr int kMaxSpeakers = mixxx::spatial::kMaxSpeakers;
+    static constexpr int kMaxDecks = 4;
+    /// Drums, Instruments, Vocals.
+    static constexpr int kSlots = 3;
+    static constexpr int kAutopanUnits = 2;
+    static constexpr double kMaxAlignmentSeconds = 0.03;
+
+    /// The control group of a source: deck 0-based, slot 0 drums
+    /// ([ChannelN_Stem1]), 1 instruments ([ChannelN_Stem2]), 2 vocals
+    /// ([ChannelN_Stem4]).
+    static QString sourceGroup(int deck, int slot);
 
     EngineSpatialOutput();
     ~EngineSpatialOutput() override;
@@ -49,27 +77,44 @@ class EngineSpatialOutput : public AudioSource {
     bool isConnected() const {
         return m_channels.load(std::memory_order_relaxed) > 0;
     }
+    /// Connected and rendering the spatial mix (not the passthrough).
+    bool isRendering() const;
+
+    /// Engine thread: start a callback. `pTempo` holds the tempo source's
+    /// beat length and phase; without it the clock runs at `fallbackBpm`.
+    void beginCallback(std::size_t frames,
+            mixxx::audio::SampleRate sampleRate,
+            const GroupFeatureState* pTempo,
+            double fallbackBpm);
+    /// Engine thread: a post-fader stereo source of `frames` frames.
+    void addSource(int deck, int slot, const CSAMPLE* pStereo);
+    /// Engine thread: stereo content without a position, on the front pair.
+    void addFront(const CSAMPLE* pStereo);
+    /// Engine thread: the master gain, ramped from the previous callback.
+    void setMainGain(CSAMPLE_GAIN gain) {
+        m_mainGain = gain;
+    }
 
     /// Engine thread, once per callback, after the main mix is complete.
     /// pMain is the interleaved stereo main mix of `frames` frames.
     void process(const CSAMPLE* pMain, std::size_t frames, mixxx::audio::SampleRate sampleRate);
 
   private:
-    /// Second-order Butterworth low-pass; two in series give the
-    /// Linkwitz-Riley 4th order used for the LF feed.
-    struct Biquad {
-        double b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0;
-        double z1 = 0, z2 = 0;
-        void setLowPass(double frequency, double sampleRate);
-        double process(double x) {
-            const double y = b0 * x + z1;
-            z1 = b1 * x - a1 * y + z2;
-            z2 = b2 * x - a2 * y;
-            return y;
-        }
+    struct Limiter {
+        std::vector<float> delay; // interleaved lookahead, kMaxChannels wide
+        std::vector<float> windowValue;
+        std::vector<int> windowIndex;
+        int head = 0;
+        int tail = 0;
+        int position = 0;
+        float gain = 1;
     };
 
     CSAMPLE nextTestSample(double sampleRate);
+    void updateLayout();
+    void updateFilters(double sampleRate);
+    void renderBus(std::size_t frames, int speakers, int lfChannel, int channels);
+    void runLimiter(CSAMPLE* pOut, std::size_t frames, int channels, double sampleRate);
 
     mixxx::SampleBuffer m_buffer;
     std::atomic<int> m_channels{0};
@@ -77,23 +122,67 @@ class EngineSpatialOutput : public AudioSource {
     std::unique_ptr<ControlObject> m_pChannelCount;
     std::unique_ptr<ControlObject> m_pChannelBase;
     std::unique_ptr<ControlPotmeter> m_pSpeakerCount;
+    std::unique_ptr<ControlPushButton> m_pLayoutCustom;
+    std::array<std::unique_ptr<ControlPotmeter>, kMaxSpeakers> m_pSpeakerAzimuth;
+    std::array<std::unique_ptr<ControlPotmeter>, kMaxSpeakers> m_pSpeakerGainDb;
+    std::array<std::unique_ptr<ControlPotmeter>, kMaxSpeakers> m_pSpeakerDelayMs;
     std::unique_ptr<ControlPushButton> m_pLfEnabled;
     std::unique_ptr<ControlPotmeter> m_pLfCrossover;
+    std::unique_ptr<ControlPushButton> m_pMainsHighpass;
+    std::unique_ptr<ControlPotmeter> m_pLfGainDb;
+    std::unique_ptr<ControlPotmeter> m_pLfDelayMs;
+    std::unique_ptr<ControlPushButton> m_pLfInvert;
+    std::unique_ptr<ControlPushButton> m_pLimiterEnabled;
+    std::unique_ptr<ControlPotmeter> m_pLimiterCeilingDb;
+    std::unique_ptr<ControlObject> m_pLimiterReduction;
+    std::array<std::unique_ptr<ControlObject>, kMaxChannels> m_pVuMeter;
+    std::unique_ptr<ControlObject> m_pBeat;
     std::unique_ptr<ControlObject> m_pTestChannel;
     std::unique_ptr<ControlPushButton> m_pTestSignal;
     std::unique_ptr<ControlPotmeter> m_pTestFrequency;
     std::unique_ptr<ControlPotmeter> m_pTestLevelDb;
     std::unique_ptr<ControlPushButton> m_pMainPassthrough;
 
+    std::vector<std::unique_ptr<mixxx::spatial::SpatialSource>> m_sources;
+    std::array<std::unique_ptr<mixxx::spatial::SpatialAutopan>, kAutopanUnits> m_autopans;
+    std::array<const mixxx::spatial::SpatialAutopan*, kAutopanUnits> m_autopanPointers{};
+    std::unique_ptr<mixxx::spatial::SpatialDelay> m_pDelay;
+    std::unique_ptr<mixxx::spatial::SpatialReverb> m_pReverb;
+
     // Engine-thread state.
+    mixxx::spatial::SpeakerLayout m_layout;
+    std::array<double, kMaxSpeakers> m_layoutAzimuths{};
+    int m_layoutCount = 0;
+    mixxx::spatial::SpatialClock m_clock;
+    bool m_begun = false;
+    std::size_t m_frames = 0;
+    double m_sampleRate = 0;
+    std::vector<bool> m_rendered;
+    // Planar bus: speakers, LF, stereo send, reverb input.
+    std::array<std::vector<float>, kMaxSpeakers> m_bus;
+    std::vector<float> m_lf;
+    std::vector<float> m_sendLeft;
+    std::vector<float> m_sendRight;
+    std::vector<float> m_reverbIn;
+    CSAMPLE_GAIN m_mainGain = 1;
+    CSAMPLE_GAIN m_mainGainOld = 1;
+
+    std::array<mixxx::spatial::LinkwitzRiley4, kMaxSpeakers> m_highPass;
+    mixxx::spatial::LinkwitzRiley4 m_lowPass;
+    std::array<mixxx::spatial::DelayLine, kMaxSpeakers + 1> m_alignment;
+    std::array<float, kMaxSpeakers + 1> m_trimGain{};
+    Limiter m_limiter;
+    std::array<float, kMaxChannels> m_vuPeak{};
+
     int m_testActiveChannel = -1; // channel the test is fading on
     CSAMPLE_GAIN m_testGain = 0;  // current test gain, ramped per callback
     double m_sinePhase = 0;
     uint32_t m_noiseState = 0x12345678u;
     double m_pink[7] = {};
-    Biquad m_testLowPass[2];   // LF test signal: band-limited like a sub feed
-    Biquad m_passLowPass[2];   // passthrough LF feed
+    mixxx::spatial::LinkwitzRiley4 m_testLowPass; // LF test: band-limited like a sub feed
+    mixxx::spatial::LinkwitzRiley4 m_passLowPass; // passthrough LF feed
     double m_filterRate = 0;
     double m_filterCrossover = 0;
-    CSAMPLE_GAIN m_passGain = 0; // passthrough fade
+    CSAMPLE_GAIN m_passGain = 0;    // passthrough fade
+    CSAMPLE_GAIN m_programGain = 0; // spatial mix fade (off during tests)
 };

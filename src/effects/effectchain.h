@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QList>
+#include <QMultiHash>
 #include <QObject>
 #include <memory>
 
@@ -50,6 +51,13 @@ class EffectChain : public QObject {
     const QSet<ChannelHandleAndGroup>& getActiveChannels() const {
         return m_enabledInputChannels;
     }
+
+    /// Makes `mirror` follow `source`: whenever the chain is enabled or
+    /// disabled for `source`, it is for `mirror` too. The mirror gets no
+    /// enable button of its own. Used for the spatial stems, which run the
+    /// deck's effects on each stem separately.
+    void addInputChannelMirror(const ChannelHandleAndGroup& source,
+            const ChannelHandleAndGroup& mirror);
 
     double getSuperParameter() const;
     void setSuperParameter(double value, bool force = false);
@@ -161,6 +169,7 @@ class EffectChain : public QObject {
     SignalProcessingStage m_signalProcessingStage;
     QHash<ChannelHandleAndGroup, std::shared_ptr<ControlPushButton>> m_channelEnableButtons;
     QSet<ChannelHandleAndGroup> m_enabledInputChannels;
+    QMultiHash<ChannelHandleAndGroup, ChannelHandleAndGroup> m_inputMirrors;
     EngineEffectChain* m_pEngineEffectChain;
 
     DISALLOW_COPY_AND_ASSIGN(EffectChain);

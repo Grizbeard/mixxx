@@ -28,6 +28,11 @@ class EffectsManager {
     void setup();
     void addDeck(const ChannelHandleAndGroup& deckHandleGroup);
     void addStem(const ChannelHandleAndGroup& stemHandleGroup);
+    /// Registers a spatial stem input of a deck. It runs the deck's EQ,
+    /// QuickEffect and effect units, enabled whenever they are for the deck,
+    /// with its own effect state. Call after addDeck(deck).
+    void addSpatialInput(const ChannelHandleAndGroup& deckHandleGroup,
+            const ChannelHandleAndGroup& spatialHandleGroup);
     void resetStemQuickFxKnob(const ChannelHandleAndGroup& stemHandleGroup);
 
     void loadDefaultEqsAndQuickEffects();

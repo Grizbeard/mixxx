@@ -423,9 +423,20 @@ void EffectChain::slotPresetListVisibleChanged(bool visible) {
     m_pControlShowPresetList->setAndConfirm(visible ? 1.0 : 0.0);
 }
 
+void EffectChain::addInputChannelMirror(const ChannelHandleAndGroup& source,
+        const ChannelHandleAndGroup& mirror) {
+    m_inputMirrors.insert(source, mirror);
+    if (m_enabledInputChannels.contains(source)) {
+        enableForInputChannel(mirror);
+    }
+}
+
 void EffectChain::enableForInputChannel(const ChannelHandleAndGroup& handleGroup) {
     if (m_enabledInputChannels.contains(handleGroup)) {
         return;
+    }
+    for (auto [it, end] = m_inputMirrors.equal_range(handleGroup); it != end; ++it) {
+        enableForInputChannel(it.value());
     }
 
     EffectsRequest* request = new EffectsRequest();
@@ -448,6 +459,9 @@ void EffectChain::enableForInputChannel(const ChannelHandleAndGroup& handleGroup
 void EffectChain::disableForInputChannel(const ChannelHandleAndGroup& handleGroup) {
     if (!m_enabledInputChannels.remove(handleGroup)) {
         return;
+    }
+    for (auto [it, end] = m_inputMirrors.equal_range(handleGroup); it != end; ++it) {
+        disableForInputChannel(it.value());
     }
 
     EffectsRequest* request = new EffectsRequest();

@@ -27,12 +27,19 @@ class EnginePregain : public EngineObject {
 
     void collectFeatures(GroupFeatureState* pGroupFeatures) const override;
 
+    /// Applies the same gain (and ramp) as the last process() call to
+    /// another buffer of the same size, e.g. the deck's spatial stems.
+    void applyLastGain(CSAMPLE* pInOut, const std::size_t bufferSize) const;
+
   private:
     double m_dSpeed;
     double m_dOldSpeed;
     double m_dNonScratchSpeed;
     bool m_scratching;
     CSAMPLE_GAIN m_fPrevGain;
+    CSAMPLE_GAIN m_lastStartGain = 1;
+    CSAMPLE_GAIN m_lastEndGain = 1;
+    bool m_lastThroughZero = false;
     ControlAudioTaperPot* m_pPotmeterPregain;
     ControlObject* m_pTotalGain;
     ControlObject* m_pCOReplayGain;

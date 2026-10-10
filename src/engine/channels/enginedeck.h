@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QScopedPointer>
+#include <array>
 
 #include "engine/channels/enginechannel.h"
 #include "preferences/usersettings.h"
@@ -72,6 +73,32 @@ class EngineDeck : public EngineChannel, public AudioDestination {
     void cloneStemState(const EngineDeck* deckToClone);
     void addStemHandle(const ChannelHandleAndGroup& stemHandleGroup);
     static QString getGroupForStem(QStringView deckGroup, int stemIdx);
+
+    /// Spatial tap: the deck's stems as separate stereo buffers for the
+    /// spatial renderer, Drums / Instruments (stems 2 + 3) / Vocals, after
+    /// stem gain and stem FX, then pregain and the deck EQ (the EQ runs on
+    /// each through its own mirrored effect input, see
+    /// EffectsManager::addSpatialInput). The fader and post-fader effects
+    /// are applied in EngineMixer.
+    static constexpr int kSpatialStems = 3;
+    void addSpatialHandle(const ChannelHandleAndGroup& handleGroup);
+    int spatialHandleCount() const {
+        return static_cast<int>(m_spatialHandles.size());
+    }
+    const ChannelHandle& spatialHandle(int index) const {
+        return m_spatialHandles[index].handle();
+    }
+    /// Engine thread, before process(): whether to produce spatial stems.
+    void setSpatialTapEnabled(bool enabled) {
+        m_spatialTapEnabled = enabled;
+    }
+    /// True when the last process() produced spatial stems.
+    bool hasSpatialStems() const {
+        return m_spatialStemsValid;
+    }
+    CSAMPLE* spatialStem(int index) {
+        return m_spatialStems[index].data();
+    }
 #endif
 
   signals:
@@ -104,6 +131,11 @@ class EngineDeck : public EngineChannel, public AudioDestination {
     std::vector<std::unique_ptr<ControlPotmeter>> m_stemGain;
     std::vector<std::unique_ptr<ControlPushButton>> m_stemMute;
     bool m_stemClonedState;
+
+    std::vector<ChannelHandleAndGroup> m_spatialHandles;
+    std::array<mixxx::SampleBuffer, kSpatialStems> m_spatialStems;
+    bool m_spatialTapEnabled = false;
+    bool m_spatialStemsValid = false;
 #endif
 
     // Begin vinyl passthrough fields

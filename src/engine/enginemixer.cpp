@@ -11,6 +11,7 @@
 #include "effects/effectsmanager.h"
 #include "engine/channelmixer.h"
 #include "engine/channels/enginechannel.h"
+#include "engine/channels/enginedeck.h"
 #include "engine/effects/engineeffectsmanager.h"
 #include "engine/enginebuffer.h"
 #include "engine/enginedelay.h"
@@ -386,6 +387,17 @@ void EngineMixer::process(const std::size_t bufferSize) {
         m_pEngineEffectsManager->onCallbackStart();
     }
 
+    // Decks split their stems out for the spatial renderer only while it runs.
+    const bool spatialRendering = m_pSpatialOutput->isRendering();
+    for (const auto& pChannelInfo : m_channels) {
+        if (pChannelInfo->m_pSpatialDeck) {
+            pChannelInfo->m_pSpatialDeck->setSpatialTapEnabled(spatialRendering);
+            if (!spatialRendering) {
+                pChannelInfo->m_spatialGain.fill(0);
+            }
+        }
+    }
+
     // Prepare all channels for output
     processChannels(bufferSize);
 
@@ -506,6 +518,10 @@ void EngineMixer::process(const std::size_t bufferSize) {
                 bufferSize,
                 m_sampleRate,
                 m_pEngineEffectsManager);
+    }
+
+    if (spatialRendering) {
+        processSpatial(bufferSize);
     }
 
     // Process crossfader orientation bus channel effects
@@ -806,6 +822,84 @@ void EngineMixer::process(const std::size_t bufferSize) {
     m_pWorkerScheduler->runWorkers();
 }
 
+void EngineMixer::processSpatial(std::size_t bufferSize) {
+    const std::size_t frames = bufferSize / mixxx::kEngineChannelOutputCount;
+
+    // Tempo source for auto-pan and synced FX: the sync leader if it plays,
+    // else the loudest playing deck, else any deck with a beat grid.
+    const EngineChannel* pLeader = m_pEngineSync->getLeaderChannel();
+    const ChannelInfo* pTempo = nullptr;
+    int tempoRank = 0;
+    CSAMPLE_GAIN tempoGain = -1;
+    for (int o = EngineChannel::LEFT; o <= EngineChannel::RIGHT; o++) {
+        for (const ChannelInfo* pChannelInfo : std::as_const(m_activeBusChannels[o])) {
+            if (!pChannelInfo->m_pSpatialDeck || !pChannelInfo->m_features.beat_length ||
+                    !pChannelInfo->m_features.beat_fraction_buffer_end) {
+                continue;
+            }
+            EngineBuffer* pBuffer = pChannelInfo->m_pChannel->getEngineBuffer();
+            const bool playing = pBuffer && pBuffer->getSpeed() != 0;
+            const CSAMPLE_GAIN gain = m_channelMainGainCache[pChannelInfo->m_index].m_gain;
+            int rank = 1;
+            if (playing) {
+                rank = pChannelInfo->m_pChannel.get() == pLeader ? 3 : 2;
+            }
+            if (rank > tempoRank || (rank == tempoRank && gain > tempoGain)) {
+                pTempo = pChannelInfo;
+                tempoRank = rank;
+                tempoGain = gain;
+            }
+        }
+    }
+    m_pSpatialOutput->beginCallback(
+            frames, m_sampleRate, pTempo ? &pTempo->m_features : nullptr, 0);
+
+    for (int o = EngineChannel::LEFT; o <= EngineChannel::RIGHT; o++) {
+        for (ChannelInfo* pChannelInfo : std::as_const(m_activeBusChannels[o])) {
+            EngineDeck* pDeck = pChannelInfo->m_pSpatialDeck;
+            const int deckIndex = pChannelInfo->m_spatialDeckIndex;
+            if (!pDeck || deckIndex < 0 || deckIndex >= EngineSpatialOutput::kMaxDecks) {
+                // Samplers, microphones, aux: post-fader, onto the front pair.
+                m_pSpatialOutput->addFront(pChannelInfo->m_pBuffer.data());
+                continue;
+            }
+            if (!pDeck->hasSpatialStems()) {
+                // A stereo track: the whole deck as the Instruments source.
+                m_pSpatialOutput->addSource(deckIndex, 1, pChannelInfo->m_pBuffer.data());
+                continue;
+            }
+            // The same fader x crossfader gain the bus mix just used, then
+            // the deck's post-fader effects on each stem with its own state:
+            // tails ring out after the fader closes, as on the stereo mix.
+            const CSAMPLE_GAIN newGain = m_channelMainGainCache[pChannelInfo->m_index].m_gain;
+            const bool fadeout = !pChannelInfo->m_pChannel->isActive();
+            for (int i = 0; i < EngineDeck::kSpatialStems; ++i) {
+                CSAMPLE* pStem = pDeck->spatialStem(i);
+                if (m_pEngineEffectsManager) {
+                    m_pEngineEffectsManager->processPostFaderInPlace(pDeck->spatialHandle(i),
+                            m_mainHandle.handle(),
+                            pStem,
+                            bufferSize,
+                            m_sampleRate,
+                            pChannelInfo->m_features,
+                            pChannelInfo->m_spatialGain[i],
+                            newGain,
+                            fadeout);
+                } else {
+                    SampleUtil::applyRampingGain(
+                            pStem, pChannelInfo->m_spatialGain[i], newGain, bufferSize);
+                }
+                pChannelInfo->m_spatialGain[i] = newGain;
+                m_pSpatialOutput->addSource(deckIndex, i, pStem);
+            }
+        }
+    }
+    if (!m_activeTalkoverChannels.isEmpty()) {
+        m_pSpatialOutput->addFront(m_talkover.data());
+    }
+    m_pSpatialOutput->setMainGain(static_cast<CSAMPLE_GAIN>(m_pMainGain->get()));
+}
+
 void EngineMixer::applyMainEffects(std::size_t bufferSize) {
     // Apply main effects
     if (m_pEngineEffectsManager) {
@@ -877,6 +971,16 @@ void EngineMixer::addChannel(std::unique_ptr<EngineChannel> pChannel) {
     pChannelInfo->m_pBuffer = mixxx::SampleBuffer(kMaxEngineSamples);
     pChannelInfo->m_pBuffer.clear();
     EngineBuffer* pBuffer = pChannelInfo->m_pChannel->getEngineBuffer();
+    if (auto* pDeck = dynamic_cast<EngineDeck*>(pChannelInfo->m_pChannel.get());
+            pDeck && pDeck->isPrimaryDeck()) {
+        // "[ChannelN]" is deck N.
+        bool ok = false;
+        const int number = QStringView(group).mid(8, group.size() - 9).toInt(&ok);
+        if (ok && group.startsWith(QLatin1String("[Channel")) && number >= 1) {
+            pChannelInfo->m_pSpatialDeck = pDeck;
+            pChannelInfo->m_spatialDeckIndex = number - 1;
+        }
+    }
     m_channels.append(std::move(pChannelInfo));
     constexpr GainCache gainCacheDefault = {0, false};
     m_channelHeadphoneGainCache.append(gainCacheDefault);

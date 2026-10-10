@@ -146,6 +146,9 @@ void EnginePregain::process(CSAMPLE* pInOut, const std::size_t bufferSize) {
     }
     totalGain *= static_cast<CSAMPLE_GAIN>(speedGain);
 
+    m_lastStartGain = m_fPrevGain;
+    m_lastEndGain = totalGain;
+    m_lastThroughZero = (m_dSpeed * m_dOldSpeed < 0) && m_scratching;
     if ((m_dSpeed * m_dOldSpeed < 0) && m_scratching) {
         // direction changed, go though zero if scratching
         SampleUtil::applyRampingGain(&pInOut[0], m_fPrevGain, 0, bufferSize / 2);
@@ -160,6 +163,17 @@ void EnginePregain::process(CSAMPLE* pInOut, const std::size_t bufferSize) {
         SampleUtil::applyGain(pInOut, totalGain, bufferSize);
     }
     m_fPrevGain = totalGain;
+}
+
+void EnginePregain::applyLastGain(CSAMPLE* pInOut, const std::size_t bufferSize) const {
+    if (m_lastThroughZero) {
+        SampleUtil::applyRampingGain(&pInOut[0], m_lastStartGain, 0, bufferSize / 2);
+        SampleUtil::applyRampingGain(&pInOut[bufferSize / 2], 0, m_lastEndGain, bufferSize / 2);
+    } else if (m_lastStartGain != m_lastEndGain) {
+        SampleUtil::applyRampingGain(pInOut, m_lastStartGain, m_lastEndGain, bufferSize);
+    } else {
+        SampleUtil::applyGain(pInOut, m_lastEndGain, bufferSize);
+    }
 }
 
 void EnginePregain::collectFeatures(GroupFeatureState* pGroupFeatures) const {

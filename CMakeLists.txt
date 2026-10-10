@@ -1318,6 +1318,12 @@ add_library(
   src/engine/sidechain/enginerecord.cpp
   src/engine/sidechain/enginesidechain.cpp
   src/engine/spatial/enginespatialoutput.cpp
+  src/engine/spatial/spatialautopan.cpp
+  src/engine/spatial/spatialdelay.cpp
+  src/engine/spatial/spatialdsp.cpp
+  src/engine/spatial/spatialmath.cpp
+  src/engine/spatial/spatialreverb.cpp
+  src/engine/spatial/spatialsource.cpp
   src/engine/sidechain/networkinputstreamworker.cpp
   src/engine/sidechain/networkoutputstreamworker.cpp
   src/engine/sync/enginesync.cpp
@@ -2753,6 +2759,8 @@ if(BUILD_TESTING)
     src/test/enginefilterbiquadtest.cpp
     src/test/enginemixertest.cpp
     src/test/enginespatialoutput_test.cpp
+    src/test/spatialnull_test.cpp
+    src/test/spatialrenderer_test.cpp
     src/test/enginemicrophonetest.cpp
     src/test/enginesynctest.cpp
     src/test/fileinfo_test.cpp

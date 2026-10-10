@@ -394,6 +394,14 @@ void PlayerManager::addDeckInner() {
         pDeck->getEngineDeck()->addStemHandle(stemHandleGroup);
         m_pEffectsManager->addStem(stemHandleGroup);
     }
+    // Spatial stems (Drums, Instruments, Vocals) with their own copy of the
+    // deck's EQ, QuickEffect and effect units.
+    for (int i = 0; i < EngineDeck::kSpatialStems; i++) {
+        ChannelHandleAndGroup spatialHandleGroup = m_pEngine->registerChannelGroup(
+                QStringLiteral("[Channel%1_Spatial%2]").arg(deckIndex + 1).arg(i + 1));
+        pDeck->getEngineDeck()->addSpatialHandle(spatialHandleGroup);
+        m_pEffectsManager->addSpatialInput(handleGroup, spatialHandleGroup);
+    }
 #endif
 
     // Setup EQ ControlProxies used for resetting EQs on track load
