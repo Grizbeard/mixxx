@@ -61,14 +61,9 @@ void SpatialDelay::process(const float* pSendLeft,
         float* pToReverb) {
     const float enabledTarget = m_pEnabled->toBool() ? 1.0f : 0.0f;
     if (enabledTarget == 0 && m_enabledGain == 0) {
-        if (!m_idle) {
-            // Faded out: forget the old echoes so re-enabling starts clean.
-            m_line.clear();
-            m_idle = true;
-        }
+        m_idle = true;
         return;
     }
-    m_idle = false;
     const int speakerCount = layout.count();
 
     // Echo time.
@@ -80,6 +75,14 @@ void SpatialDelay::process(const float* pSendLeft,
     const double targetDelay = std::clamp(echoSeconds * sampleRate,
             1.0,
             static_cast<double>(m_line.capacity() - 4));
+    if (m_idle) {
+        // Re-enabled: forget the old echoes in the span about to be read
+        // (not the whole 8 s line, which would be too slow for the callback).
+        m_line.clearRecent(static_cast<int>(std::max(targetDelay, m_delaySamples)) + 8);
+        m_toneFilter.y = 0;
+        m_lowCutFilter.y = 0;
+        m_idle = false;
+    }
     if (m_delaySamples <= 0) {
         m_delaySamples = targetDelay;
     }

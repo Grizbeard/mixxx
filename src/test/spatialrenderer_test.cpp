@@ -267,8 +267,8 @@ class SpatialBusTest : public MixxxTest {
 };
 
 TEST_F(SpatialBusTest, ByDefaultAStemIsTheOriginalStereoOnTheFrontPair) {
-    // Default: pan 0, width 60°, which on the 6-speaker ring is exactly the
-    // front pair at ±30°.
+    // Default: pan 0, width 60Ãƒâ€šÃ‚Â°, which on the 6-speaker ring is exactly the
+    // front pair at Ãƒâ€šÃ‚Â±30Ãƒâ€šÃ‚Â°.
     const auto input = sines(1000, 1500, 0.5);
     const auto out = run(10, 0, input);
     std::vector<CSAMPLE> expected(2 * kFrames);
@@ -302,7 +302,7 @@ TEST_F(SpatialBusTest, FrontIsExactWhereverTheStemWas) {
 }
 
 TEST_F(SpatialBusTest, PanningAPointSourceKeepsItsLevel) {
-    // Width 0 at 90°: speaker 3 alone carries L + R, trimmed 3 dB.
+    // Width 0 at 90Ãƒâ€šÃ‚Â°: speaker 3 alone carries L + R, trimmed 3 dB.
     set("[Channel1_Stem1]", "spatial_azimuth", 90);
     set("[Channel1_Stem1]", "spatial_width", 0);
     const auto out = run(5, 0, sines(440, 440, 0.5));
@@ -496,6 +496,20 @@ TEST_F(SpatialFxTest, EchoesArriveOnTheBeatAndStepAroundTheShape) {
             EXPECT_NEAR(level / previous, 0.5, 0.05) << "feedback";
         }
         previous = level;
+    }
+}
+
+TEST_F(SpatialFxTest, ReEnablingTheDelayForgetsOldEchoes) {
+    SpatialDelay delay;
+    configureDelay(1);
+    set("[SpatialDelay]", "feedback", 0.9);
+    runDelay(delay, 60, burstAt(1000)); // echoes ringing
+    set("[SpatialDelay]", "enabled", 0);
+    runDelay(delay, 10, [](int) { return 0.0f; }); // fades out
+    set("[SpatialDelay]", "enabled", 1);
+    const auto out = runDelay(delay, 200, [](int) { return 0.0f; });
+    for (int i = 0; i < 4; ++i) {
+        EXPECT_EQ(rmsOf(out[i]), 0) << "speaker " << i + 1;
     }
 }
 

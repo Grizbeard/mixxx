@@ -79,6 +79,8 @@ class DelayLine {
   public:
     void allocate(int minimumLength);
     void clear();
+    /// Zeroes the last `samples` writes only: cheap enough for the callback.
+    void clearRecent(int samples);
     int capacity() const {
         return m_mask + 1;
     }

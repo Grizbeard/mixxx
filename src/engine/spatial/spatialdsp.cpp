@@ -46,6 +46,13 @@ void DelayLine::clear() {
     std::fill(m_buffer.begin(), m_buffer.end(), 0.0f);
 }
 
+void DelayLine::clearRecent(int samples) {
+    samples = std::min(samples, capacity());
+    for (int i = 1; i <= samples; ++i) {
+        m_buffer[(m_write - i) & m_mask] = 0.0f;
+    }
+}
+
 void SpatialClock::advance(double frames,
         double sampleRate,
         std::optional<double> beatLength,
