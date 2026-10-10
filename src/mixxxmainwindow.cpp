@@ -27,7 +27,10 @@
 #include "coreservices.h"
 #include "defs_urls.h"
 #include "dialog/dlgabout.h"
+#include <QTimer>
+
 #include "dialog/dlgdevelopertools.h"
+#include "spatial/spatialwindow.h"
 #include "dialog/dlgkeywheel.h"
 #include "moc_mixxxmainwindow.cpp"
 #include "preferences/dialog/dlgpreferences.h"
@@ -109,6 +112,7 @@ MixxxMainWindow::MixxxMainWindow(std::shared_ptr<mixxx::CoreServices> pCoreServi
 #endif
           m_inRebootMixxxView(false),
           m_pDeveloperToolsDlg(nullptr),
+          m_pSpatialWindow(nullptr),
           m_pPrefDlg(nullptr),
           m_toolTipsCfg(mixxx::preferences::Tooltips::On) {
     DEBUG_ASSERT(pCoreServices);
@@ -349,6 +353,11 @@ void MixxxMainWindow::initialize() {
     // Connect signals to the menubar. Should be done before emit skinLoaded.
     connectMenuBar();
 
+    // Reopen the spatial mixer if it was open when Mixxx last quit.
+    if (m_pCoreServices->getSettings()->getValue(ConfigKey("[SpatialWindow]", "open"), false)) {
+        QTimer::singleShot(500, this, [this]() { slotSpatialWindow(true); });
+    }
+
     QWidget* oldWidget = m_pCentralWidget;
 
     tryParseAndSetDefaultStyleSheet();
@@ -467,6 +476,10 @@ void MixxxMainWindow::initialize() {
 MixxxMainWindow::~MixxxMainWindow() {
     Timer t("~MixxxMainWindow");
     t.start();
+
+    // Without a closeEvent, so it reopens next start if it is open now.
+    delete m_pSpatialWindow;
+    m_pSpatialWindow = nullptr;
 
     // Save the current window state (position, maximized, etc)
     // Note(ronso0): Unfortunately saveGeometry() also stores the fullscreen state.
@@ -900,6 +913,15 @@ void MixxxMainWindow::connectMenuBar() {
             &MixxxMainWindow::slotDeveloperTools,
             Qt::UniqueConnection);
 
+    connect(m_pMenuBar,
+            &WMainMenuBar::toggleSpatialWindow,
+            this,
+            &MixxxMainWindow::slotSpatialWindow,
+            Qt::UniqueConnection);
+    if (m_pSpatialWindow) {
+        m_pMenuBar->onSpatialWindowVisibilityChanged(m_pSpatialWindow->isVisible());
+    }
+
     if (m_pCoreServices->getRecordingManager()) {
         connect(m_pCoreServices->getRecordingManager().get(),
                 &RecordingManager::isRecording,
@@ -1087,6 +1109,38 @@ void MixxxMainWindow::slotDeveloperTools(bool visible) {
         m_pDeveloperToolsDlg->activateWindow();
     } else {
         emit closeDeveloperToolsDlgChecked(0);
+    }
+}
+
+void MixxxMainWindow::slotSpatialWindow(bool visible) {
+    if (!visible) {
+        if (m_pSpatialWindow) {
+            m_pSpatialWindow->close();
+        }
+        return;
+    }
+    if (!m_pSpatialWindow) {
+        m_pSpatialWindow = new SpatialWindow(m_pCoreServices->getSettings(),
+                m_pCoreServices->getKeyboardEventFilter().get(),
+                this);
+        connect(m_pSpatialWindow,
+                &SpatialWindow::visibilityChanged,
+                this,
+                [this](bool shown) {
+                    if (m_pMenuBar) {
+                        m_pMenuBar->onSpatialWindowVisibilityChanged(shown);
+                    }
+                });
+        connect(m_pSpatialWindow,
+                &SpatialWindow::preferencesRequested,
+                this,
+                &MixxxMainWindow::slotOptionsPreferences);
+    }
+    if (m_pSpatialWindow->isVisible()) {
+        m_pSpatialWindow->raise();
+        m_pSpatialWindow->activateWindow();
+    } else {
+        m_pSpatialWindow->showRestored();
     }
 }
 

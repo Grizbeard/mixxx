@@ -50,6 +50,7 @@ class WMainMenuBar : public QMenuBar {
     void onNewSkinLoaded();
     void onDeveloperToolsHidden();
     void onDeveloperToolsShown();
+    void onSpatialWindowVisibilityChanged(bool visible);
     void onFullScreenStateChange(bool fullscreen);
     void onVinylControlDeckEnabledStateChange(int deck, bool enabled);
     void onNumberOfDecksChanged(int decks);
@@ -72,6 +73,7 @@ class WMainMenuBar : public QMenuBar {
     void showKeywheel(bool visible);
     void showPreferences();
     void toggleDeveloperTools(bool toggle);
+    void toggleSpatialWindow(bool toggle);
     void toggleFullScreen(bool toggle);
     void toggleKeyboardShortcuts(bool toggle);
     void toggleBroadcasting(bool toggle);
@@ -85,6 +87,7 @@ class WMainMenuBar : public QMenuBar {
     void internalFullScreenStateChange(bool fullscreen);
     void internalLibraryScanActive(bool active);
     void internalDeveloperToolsStateChange(bool visible);
+    void internalSpatialWindowStateChange(bool visible);
     void internalKeywheelStateChanged(int state);
     void internalOnNewSkinLoaded();
     void internalOnNewSkinAboutToLoad();

@@ -11,6 +11,7 @@
 
 class ControlObject;
 class DlgDeveloperTools;
+class SpatialWindow;
 class DlgPreferences;
 class DlgKeywheel;
 class GuiTick;
@@ -73,6 +74,8 @@ class MixxxMainWindow : public QMainWindow {
     /// open the developer tools dialog.
     void slotDeveloperTools(bool enable);
     void slotDeveloperToolsClosed();
+    /// show or hide the spatial mixer window.
+    void slotSpatialWindow(bool visible);
 
     void slotUpdateWindowTitle(TrackPointer pTrack);
 
@@ -148,6 +151,7 @@ class MixxxMainWindow : public QMainWindow {
     bool m_inRebootMixxxView;
 
     DlgDeveloperTools* m_pDeveloperToolsDlg;
+    SpatialWindow* m_pSpatialWindow;
 
     DlgPreferences* m_pPrefDlg;
     parented_ptr<DlgKeywheel> m_pKeywheel;

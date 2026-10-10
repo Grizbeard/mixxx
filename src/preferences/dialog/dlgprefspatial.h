@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QTimer>
+#include <functional>
 #include <memory>
 
 #include "preferences/dialog/dlgpreferencepage.h"
@@ -13,6 +14,7 @@ class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QGridLayout;
+class QGroupBox;
 class QLabel;
 class QPushButton;
 class QSpinBox;
@@ -43,6 +45,15 @@ class DlgPrefSpatial : public DlgPreferencePage {
     void slotWalkStep();
 
   private:
+    QGroupBox* createAlignmentGroup();
+    QDoubleSpinBox* bindSpinBox(const QString& key,
+            double min,
+            double max,
+            double step,
+            int decimals,
+            const QString& suffix);
+    QCheckBox* bindCheckBox(const QString& key, const QString& text);
+    void refreshAlignment();
     void stopTest();
     QString roleOfChannel(int channel) const;
 
@@ -58,6 +69,9 @@ class DlgPrefSpatial : public DlgPreferencePage {
     std::unique_ptr<ControlProxy> m_pTestFrequency;
     std::unique_ptr<ControlProxy> m_pTestLevelDb;
     std::unique_ptr<ControlProxy> m_pMainPassthrough;
+    std::unique_ptr<ControlProxy> m_pLayoutCustom;
+    QList<QList<QWidget*>> m_speakerRows; // name, angle, trim, delay
+    QList<std::function<void()>> m_alignmentRefresh;
 
     QLabel* m_pStatus;
     QSpinBox* m_pSpeakers;

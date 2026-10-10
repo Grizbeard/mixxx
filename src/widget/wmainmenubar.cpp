@@ -380,6 +380,24 @@ void WMainMenuBar::initialize() {
 
     pViewMenu->addSeparator();
 
+    QString spatialTitle = tr("&Spatial Mixer");
+    QString spatialText = tr("Open the spatial mixer window: the speaker ring, stem positions, "
+                             "auto-pan and the Spatial FX unit. Made for a touch screen.");
+    auto* pViewSpatial = new QAction(spatialTitle, this);
+    pViewSpatial->setCheckable(true);
+    pViewSpatial->setShortcut(safeKeySequence(m_pKbdConfig->getValue(
+            ConfigKey("[KeyboardShortcuts]", "ViewMenu_ShowSpatialMixer"),
+            QStringLiteral("Ctrl+Shift+S"))));
+    pViewSpatial->setShortcutContext(Qt::ApplicationShortcut);
+    pViewSpatial->setStatusTip(spatialText);
+    pViewSpatial->setWhatsThis(buildWhatsThis(spatialTitle, spatialText));
+    connect(pViewSpatial, &QAction::triggered, this, &WMainMenuBar::toggleSpatialWindow);
+    connect(this,
+            &WMainMenuBar::internalSpatialWindowStateChange,
+            pViewSpatial,
+            &QAction::setChecked);
+    pViewMenu->addAction(pViewSpatial);
+
     QString fullScreenTitle = tr("&Full Screen");
     QString fullScreenText = tr("Display Mixxx using the full screen");
     auto* pViewFullScreen = new QAction(fullScreenTitle, this);
@@ -798,6 +816,10 @@ void WMainMenuBar::onBroadcastingStateChange(bool broadcasting) {
 
 void WMainMenuBar::onDeveloperToolsShown() {
     emit internalDeveloperToolsStateChange(true);
+}
+
+void WMainMenuBar::onSpatialWindowVisibilityChanged(bool visible) {
+    emit internalSpatialWindowStateChange(visible);
 }
 
 void WMainMenuBar::onDeveloperToolsHidden() {

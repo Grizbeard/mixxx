@@ -1513,6 +1513,10 @@ add_library(
   src/preferences/dialog/dlgprefreplaygaindlg.ui
   src/preferences/dialog/dlgprefsound.cpp
   src/preferences/dialog/dlgprefspatial.cpp
+  src/spatial/spatialfield.cpp
+  src/spatial/spatialpanels.cpp
+  src/spatial/spatialwidgets.cpp
+  src/spatial/spatialwindow.cpp
   src/preferences/dialog/dlgprefsounddlg.ui
   src/preferences/dialog/dlgprefsounditem.cpp
   src/preferences/dialog/dlgprefsounditem.ui
@@ -2761,6 +2765,7 @@ if(BUILD_TESTING)
     src/test/enginespatialoutput_test.cpp
     src/test/spatialnull_test.cpp
     src/test/spatialrenderer_test.cpp
+    src/test/spatialwindow_test.cpp
     src/test/enginemicrophonetest.cpp
     src/test/enginesynctest.cpp
     src/test/fileinfo_test.cpp
