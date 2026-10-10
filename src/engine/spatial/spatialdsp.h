@@ -167,7 +167,10 @@ struct MotionState {
     Point positionAt(double t, double offset = 0) const {
         const double cycle = waveCycleSteps(wave, pointCount());
         const double steps = stepsStart + (stepsEnd - stepsStart) * t + offset * cycle;
-        const Point p = shapeAt(shape, wavePosition(wave, steps, pointCount(), reverse));
+        // Random keeps going instead of wrapping (and has no direction).
+        const Point p = shape == Shape::Random
+                ? shapeAt(shape, wavePathPosition(wave, steps))
+                : shapeAt(shape, wavePosition(wave, steps, pointCount(), reverse));
         return {p.x * size, p.y * size};
     }
 };

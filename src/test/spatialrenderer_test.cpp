@@ -179,6 +179,31 @@ TEST(SpatialMathTest, WavesMoveBetweenPointsAsSpecified) {
     EXPECT_EQ(wavePosition(Wave::Square, 2.0, 4, true), 2);
 }
 
+TEST(SpatialMathTest, RandomJumpsFarAndIsTheSameEveryTime) {
+    for (std::int64_t k = -50; k < 2000; ++k) {
+        const double a = randomAzimuth(k);
+        EXPECT_EQ(a, randomAzimuth(k)) << "deterministic";
+        EXPECT_GE(std::abs(wrapDegrees(a - randomAzimuth(k - 1))), kRandomMinJump - 1e-9)
+                << "step " << k;
+        EXPECT_NEAR(radiusOf(shapeAt(Shape::Random, static_cast<double>(k))), 1, 1e-9);
+    }
+    // Between points it moves round the ring the short way.
+    const double from = randomAzimuth(10);
+    const double to = randomAzimuth(11);
+    EXPECT_NEAR(wrapDegrees(azimuthOf(shapeAt(Shape::Random, 10.5)) -
+                        (from + wrapDegrees(to - from) / 2)),
+            0,
+            1e-6);
+    // Many points: the whole ring gets used.
+    int quadrants[4] = {};
+    for (std::int64_t k = 0; k < 400; ++k) {
+        ++quadrants[static_cast<int>((randomAzimuth(k) + 180) / 90) % 4];
+    }
+    for (int q : quadrants) {
+        EXPECT_GT(q, 60);
+    }
+}
+
 TEST(SpatialMathTest, ClockLocksToTheSourcePhase) {
     SpatialClock clock;
     for (int c = 1; c <= 100; ++c) {
@@ -470,7 +495,7 @@ class SpatialFxTest : public MixxxTest {
         set("[SpatialDelay]", "tone", 1);
         set("[SpatialDelay]", "lowcut", 20);
         set("[SpatialDelay]", "shape", static_cast<double>(Shape::Corners));
-        set("[SpatialDelay]", "wave", static_cast<double>(Wave::Square));
+        set("[SpatialDelay]", "direction", 0);
         set("[SpatialDelay]", "poly", 0);
         set("[SpatialDelay]", "gate", 0);
     }
@@ -483,14 +508,15 @@ class SpatialFxTest : public MixxxTest {
 TEST_F(SpatialFxTest, EchoesArriveOnTheBeatAndStepAroundTheShape) {
     SpatialDelay delay;
     configureDelay(1);
-    // A burst a quarter beat in; echo k lands k beats later on corner k.
+    // A burst a quarter beat in; echo k lands k beats later on corner k
+    // (echo 1 on the first corner).
     const int start = kFramesPerBeat / 4;
-    const auto out = runDelay(delay, 4 * 50 + 10, burstAt(start));
+    const auto out = runDelay(delay, 5 * 50 + 10, burstAt(start));
     double previous = 0;
-    for (int k = 1; k <= 3; ++k) {
+    for (int k = 1; k <= 4; ++k) {
         const std::size_t at = start + k * kFramesPerBeat;
         const auto [speaker, level] = loudest(out, at - 10, at + 200);
-        EXPECT_EQ(speaker, k % 4) << "echo " << k;
+        EXPECT_EQ(speaker, (k - 1) % 4) << "echo " << k;
         EXPECT_LT(rmsOf(out[speaker], at - 400, at - 10), level * 0.01) << "echo " << k << " early";
         if (k > 1) {
             EXPECT_NEAR(level / previous, 0.5, 0.05) << "feedback";
@@ -526,7 +552,44 @@ TEST_F(SpatialFxTest, PolyrhythmPlacesEchoesAgainstTheShape) {
         const std::size_t at = start + k * kFramesPerBeat / 2;
         speakers.push_back(loudest(out, at - 10, at + 200).first);
     }
-    EXPECT_EQ(speakers, (std::vector<int>{0, 1, 1, 2}));
+    // Echo k on point floor((k - 1) x 1/2 beat / 1 beat).
+    EXPECT_EQ(speakers, (std::vector<int>{0, 0, 1, 1}));
+}
+
+TEST_F(SpatialFxTest, AnEchoStaysOnItsPointAcrossTheBeat) {
+    SpatialDelay delay;
+    configureDelay(1);
+    set("[SpatialDelay]", "feedback", 0);
+    // A 0.3-beat tone starting just before a beat: its echo straddles the
+    // next beat, yet must stay on one speaker from start to end.
+    const int start = static_cast<int>(0.85 * kFramesPerBeat);
+    const int length = static_cast<int>(0.3 * kFramesPerBeat);
+    const auto out = runDelay(delay, 3 * 50, [=](int f) {
+        return f >= start && f < start + length
+                ? static_cast<float>(0.3 * std::sin(2 * M_PI * 500 * f / kRate))
+                : 0.0f;
+    });
+    const std::size_t from = start + kFramesPerBeat + 200;
+    const std::size_t to = start + kFramesPerBeat + length - 200;
+    EXPECT_GT(rmsOf(out[0], from, to), 0.15);
+    for (int i = 1; i < 4; ++i) {
+        EXPECT_LT(rmsOf(out[i], from, to), 1e-6) << "speaker " << i + 1;
+    }
+}
+
+TEST(SpatialDelayPatternTest, EchoesMapToPointsAndCycles) {
+    // Without poly: echo k on point k - 1, a cycle per trip round the shape.
+    EXPECT_EQ(SpatialDelay::pointOfEcho(0, 4, 0.75, 0), 0);
+    EXPECT_EQ(SpatialDelay::pointOfEcho(5, 4, 0.75, 0), 1);
+    EXPECT_EQ(SpatialDelay::echoesPerCycle(5, 0.75, 0), 5);
+    // Dotted 1/8 echoes over a 1-beat, 4-point shape: points 0 0 1 2 3 3 4..
+    std::vector<int> points;
+    for (int tap = 0; tap < 6; ++tap) {
+        points.push_back(SpatialDelay::pointOfEcho(tap, 4, 0.75, 1));
+    }
+    EXPECT_EQ(points, (std::vector<int>{0, 0, 1, 2, 3, 3}));
+    // 16 echoes x 0.75 = 12 beats = 3 trips round 4 points.
+    EXPECT_EQ(SpatialDelay::echoesPerCycle(4, 0.75, 1), 16);
 }
 
 TEST_F(SpatialFxTest, TheGateChopsTheEchoesOnTheGrid) {

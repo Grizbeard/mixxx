@@ -177,6 +177,57 @@ void SpeakerLayout::gains(double azimuth, double spread, float* pGains) const {
     }
 }
 
+namespace {
+
+/// splitmix64: a well-mixed hash of the step number.
+std::uint64_t mix(std::uint64_t x) {
+    x += 0x9e3779b97f4a7c15ull;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
+    return x ^ (x >> 31);
+}
+
+double rawRandomAzimuth(std::int64_t k) {
+    return 360.0 * static_cast<double>(mix(static_cast<std::uint64_t>(k)) >> 11) * 0x1.0p-53;
+}
+
+bool farFrom(double azimuth, double other) {
+    return std::abs(wrapDegrees(azimuth - other)) >= kRandomMinJump;
+}
+
+constexpr std::int64_t kRandomBlock = 16;
+
+} // namespace
+
+double randomAzimuth(std::int64_t k) {
+    // Every 16th point is a free random anchor; the points after it follow
+    // one by one, each moved to the far side if it lands too near the last,
+    // and the block's last point also keeps clear of the next anchor. So the
+    // rule holds at every step, and any point costs at most 16 hashes.
+    const std::int64_t block = (k >= 0 ? k : k - (kRandomBlock - 1)) / kRandomBlock;
+    const std::int64_t first = block * kRandomBlock;
+    double azimuth = rawRandomAzimuth(first);
+    for (std::int64_t j = first + 1; j <= k; ++j) {
+        const double raw = rawRandomAzimuth(j);
+        if (j - first < kRandomBlock - 1) {
+            azimuth = farFrom(raw, azimuth) ? raw : raw + 180;
+            continue;
+        }
+        // At least 60° of the ring is clear of both neighbours, so one of
+        // twelve 30° steps lands in it.
+        const double next = rawRandomAzimuth(first + kRandomBlock);
+        double candidate = raw;
+        for (int t = 0; t < 12; ++t) {
+            candidate = raw + 30.0 * t;
+            if (farFrom(candidate, azimuth) && farFrom(candidate, next)) {
+                break;
+            }
+        }
+        azimuth = candidate;
+    }
+    return wrapDegrees(azimuth);
+}
+
 int shapePointCount(Shape shape) {
     switch (shape) {
     case Shape::Orbit:
@@ -190,6 +241,8 @@ int shapePointCount(Shape shape) {
         return 5;
     case Shape::Star7:
         return 7;
+    case Shape::Random:
+        return 8;
     }
     return 4;
 }
@@ -220,6 +273,14 @@ Point shapeAt(Shape shape, double position) {
     case Shape::Star7:
         // {7/3}: the sharper heptagram.
         return starAt(7, 4, std::cos(3 * kPi / 7), position);
+    case Shape::Random: {
+        // Around the ring the short way from point k to point k + 1.
+        const double floorPos = std::floor(position);
+        const auto k = static_cast<std::int64_t>(floorPos);
+        const double from = randomAzimuth(k);
+        const double to = randomAzimuth(k + 1);
+        return pointAtAzimuth(from + wrapDegrees(to - from) * (position - floorPos));
+    }
     }
     return {};
 }
@@ -232,27 +293,26 @@ int waveCycleSteps(Wave wave, int pointCount) {
     return pointCount;
 }
 
-double wavePosition(Wave wave, double steps, int pointCount, bool reverse) {
+double wavePathPosition(Wave wave, double steps) {
     const double step = std::floor(steps);
     const double phase = steps - step;
-    double position = step;
     switch (wave) {
     case Wave::Square:
-        position = step;
-        break;
+        return step;
     case Wave::Sine:
-        position = step + (1 - std::cos(kPi * phase)) / 2;
-        break;
+        return step + (1 - std::cos(kPi * phase)) / 2;
     case Wave::Triangle:
-        position = step + phase;
-        break;
+        return step + phase;
     case Wave::Saw:
-        position = 2 * step + phase;
-        break;
+        return 2 * step + phase;
     case Wave::ReverseSaw:
-        position = 2 * step + 1 - phase;
-        break;
+        return 2 * step + 1 - phase;
     }
+    return step;
+}
+
+double wavePosition(Wave wave, double steps, int pointCount, bool reverse) {
+    double position = wavePathPosition(wave, steps);
     if (reverse) {
         position = -position;
     }

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstdint>
 
 /// Geometry for the spatial renderer: the speaker ring, the panner, and the
 /// motion shapes and waves shared by auto-pan and the spatial delay.
@@ -101,8 +102,9 @@ enum class Shape {
     Corners = 3,   // the 4 corners (±45°, ±135°) along straight lines
     Star5 = 4,     // 5-point hypotrochoid star
     Star7 = 5,     // 7-point hypotrochoid star
+    Random = 6,    // a new random spot on the ring every step, never near the last
 };
-constexpr int kShapeCount = 6;
+constexpr int kShapeCount = 7;
 
 /// How motion travels between two points within one step.
 enum class Wave {
@@ -114,18 +116,29 @@ enum class Wave {
 };
 constexpr int kWaveCount = 5;
 
+/// Points in one cycle of the shape. Random never repeats; it counts 8 so
+/// cycles, offsets and the delay's echo pattern have a length.
 int shapePointCount(Shape shape);
 
 /// The path at `position` in point units: integer positions are the points,
-/// fractions lie on the path between them. Wraps to 0..pointCount.
+/// fractions lie on the path between them. Wraps to 0..pointCount, except
+/// Random, whose sequence goes on (point k is the same for every caller).
 Point shapeAt(Shape shape, double position);
+
+/// The Random shape's k-th point: an azimuth at least kRandomMinJump from
+/// the one before, the same for every k on every call.
+double randomAzimuth(std::int64_t k);
+constexpr double kRandomMinJump = 75;
 
 /// Steps in one full cycle of the wave over the shape (the motion repeats
 /// after this many steps).
 int waveCycleSteps(Wave wave, int pointCount);
 
-/// Position along the path (point units) after `steps` steps.
-/// `reverse` runs the points in the opposite order.
+/// Position along the path (point units, not wrapped) after `steps` steps.
+double wavePathPosition(Wave wave, double steps);
+
+/// The same, wrapped to the shape's points; `reverse` runs the points in the
+/// opposite order.
 double wavePosition(Wave wave, double steps, int pointCount, bool reverse);
 
 /// Beat lengths offered for synced motion and echoes, in beats.

@@ -435,9 +435,9 @@ SpatialDelayPanel::SpatialDelayPanel(QWidget* pParent)
     time.append(m_pTimeMs);
     pLayout->addWidget(row(tr("ECHO"), time, this));
 
+    // Each echo sits on a point of the shape: no wave between them.
     QList<QWidget*> place = shapeButtons(group, kTeal);
-    place.append(waveButtons(group, kTeal));
-    place.append(toggle(group, "direction", tr("REV"), kTeal));
+    place.append(toggle(group, "direction", tr("REVERSE"), kTeal));
     auto* pSize = slider(group, "size", 0, 1, tr("SIZE"), kTeal);
     pSize->setMinimumWidth(110);
     place.append(pSize);

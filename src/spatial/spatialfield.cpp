@@ -73,7 +73,9 @@ SpatialField::SpatialField(int decks, QWidget* pParent)
         m_pAutopanSize[u] = makePoll(group, "size");
         m_pAutopanPosition[u] = makePoll(group, "position");
     }
-    m_pDelayPosition = makePoll("[SpatialDelay]", "position");
+    for (int k = 0; k < 8; ++k) {
+        m_pEchoLevel[k] = makePoll("[SpatialDelay]", QStringLiteral("point_level_%1").arg(k + 1));
+    }
     m_pDelayShape = makePoll("[SpatialDelay]", "shape");
     m_pDelaySize = makePoll("[SpatialDelay]", "size");
     m_pDelayEnabled = makePoll("[SpatialDelay]", "enabled");
@@ -179,8 +181,12 @@ void SpatialField::poll() {
         }
     }
     m_echoVisible = echo;
-    m_delayPosition = m_pDelayPosition->get();
-    out << echo << (echo ? m_delayPosition : 0.0);
+    out << echo;
+    for (int k = 0; k < 8; ++k) {
+        m_echoLevel[k] = echo ? std::round(m_pEchoLevel[k]->get() * 32) / 32 : 0.0;
+        out << m_echoLevel[k];
+    }
+    out << m_pDelayShape->get() << m_pDelaySize->get();
     for (int u = 0; u < 2; ++u) {
         out << m_pAutopanShape[u]->get() << m_pAutopanSize[u]->get();
     }
@@ -384,8 +390,20 @@ void SpatialField::paintPaths(QPainter& p) {
         }
         drawn.append(key);
         const auto shape = static_cast<Shape>(std::clamp(
-                static_cast<int>(std::lround(m_pAutopanShape[source.unit - 1]->get())), 0, 5));
+                static_cast<int>(std::lround(m_pAutopanShape[source.unit - 1]->get())),
+                0,
+                kShapeCount - 1));
         const double size = m_pAutopanSize[source.unit - 1]->get();
+        QColor color = deckColor(source.deck + 1);
+        color.setAlphaF(0.35);
+        if (shape == Shape::Random) {
+            // No fixed path: a dotted ring where it may land.
+            const double r = size * ringRadius();
+            p.setPen(QPen(color, 1.5, Qt::DotLine));
+            p.setBrush(Qt::NoBrush);
+            p.drawEllipse(QPointF(width() / 2.0, height() / 2.0), r, r);
+            continue;
+        }
         const int points = shapePointCount(shape);
         QPainterPath path;
         constexpr int kSamples = 240;
@@ -399,8 +417,6 @@ void SpatialField::paintPaths(QPainter& p) {
                 path.lineTo(screen);
             }
         }
-        QColor color = deckColor(source.deck + 1);
-        color.setAlphaF(0.35);
         p.setPen(QPen(color, 1.5, Qt::DashLine));
         p.setBrush(Qt::NoBrush);
         p.drawPath(path);
@@ -413,18 +429,31 @@ void SpatialField::paintPaths(QPainter& p) {
         }
     }
     if (m_echoVisible) {
-        const auto shape = static_cast<Shape>(
-                std::clamp(static_cast<int>(std::lround(m_pDelayShape->get())), 0, 5));
+        // The delay's points, numbered in echo order, lit by their echoes.
+        const auto shape = static_cast<Shape>(std::clamp(
+                static_cast<int>(std::lround(m_pDelayShape->get())), 0, kShapeCount - 1));
         const double size = m_pDelaySize->get();
-        const Point q = shapeAt(shape, m_delayPosition);
-        const QPointF at = toScreen(QPointF(q.x * size, q.y * size));
-        p.setPen(QPen(kPlayPos, 2));
-        p.setBrush(Qt::NoBrush);
-        p.drawEllipse(at, 12, 12);
+        const int points = std::min(shapePointCount(shape), 8);
         p.setFont(styleFont(9, true));
-        p.setPen(kPlayPos);
-        p.drawText(QRectF(at.x() - 20, at.y() + 13, 40, 12), Qt::AlignCenter,
-                QStringLiteral("ECHO"));
+        for (int k = 0; k < points; ++k) {
+            const Point q = shapeAt(shape, k);
+            const QPointF at = toScreen(QPointF(q.x * size, q.y * size));
+            const double level = std::clamp(m_echoLevel[k] * 2, 0.0, 1.0);
+            QColor ring = kPlayPos;
+            ring.setAlphaF(0.3 + 0.7 * level);
+            if (level > 0.02) {
+                QColor fill = kPlayPos;
+                fill.setAlphaF(0.45 * level);
+                p.setBrush(fill);
+            } else {
+                p.setBrush(Qt::NoBrush);
+            }
+            p.setPen(QPen(ring, 1.5));
+            p.drawEllipse(at, 10, 10);
+            p.setPen(ring);
+            p.drawText(QRectF(at.x() - 10, at.y() - 7, 20, 14), Qt::AlignCenter,
+                    QString::number(k + 1));
+        }
     }
 }
 

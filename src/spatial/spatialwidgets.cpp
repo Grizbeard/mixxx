@@ -481,6 +481,27 @@ void paintShape(QPainter& p, const QRectF& r, const QColor& color, int shape) {
     p.setBrush(Qt::NoBrush);
     p.drawEllipse(centre, radius, radius);
     const auto s = static_cast<Shape>(shape);
+    if (s == Shape::Random) {
+        // Random jumps across the ring between scattered points.
+        QPainterPath jumps;
+        for (int k = 0; k < 6; ++k) {
+            const Point q = pointAtAzimuth(randomAzimuth(k + 3));
+            if (k == 0) {
+                jumps.moveTo(toScreen(q));
+            } else {
+                jumps.lineTo(toScreen(q));
+            }
+        }
+        p.setPen(QPen(color, 1.4, Qt::DashLine));
+        p.drawPath(jumps);
+        p.setPen(Qt::NoPen);
+        p.setBrush(color);
+        for (int k = 0; k < 6; ++k) {
+            p.drawEllipse(toScreen(pointAtAzimuth(randomAzimuth(k + 3))), 2.6, 2.6);
+        }
+        p.restore();
+        return;
+    }
     const int points = shapePointCount(s);
     QPainterPath path;
     constexpr int kSamples = 160;
