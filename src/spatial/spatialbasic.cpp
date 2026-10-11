@@ -206,6 +206,8 @@ SpatialBasicAutopan::SpatialBasicAutopan(SpatialPresetBank* pBank, QWidget* pPar
     pLayout->addWidget(m_pReverse);
     // The controller's last button: play unit A or B with this column.
     m_pFocusButton = toggle(QStringLiteral("[Spatial]"), "autopan_focus", tr("A / B"), kGreen);
+    // Always lit, in the colour of the unit in focus.
+    m_pFocusButton->setAlwaysLit(true);
     pLayout->addWidget(m_pFocusButton);
     // Touch only: choose a preset for the unit the column is playing.
     auto* pPresets = new SpatialActionButton(tr("PRESETS"), nullptr, this);

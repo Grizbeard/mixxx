@@ -1,7 +1,9 @@
 #include "spatial/spatialpresets.h"
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileInfo>
+#include <QPointer>
 #include <QGridLayout>
 #include <QPainter>
 #include <QScreen>
@@ -462,7 +464,8 @@ SpatialPresetPopup::SpatialPresetPopup(SpatialPresetBank* pBank,
         std::function<void()> afterLoad,
         const QColor& accent,
         QWidget* pParent)
-        : QWidget(pParent, Qt::Popup) {
+        : QWidget(pParent, Qt::Popup),
+          m_pAnchor(pParent) {
     setAttribute(Qt::WA_DeleteOnClose);
     setAttribute(Qt::WA_AcceptTouchEvents);
     auto* pLayout = new QGridLayout(this);
@@ -488,11 +491,37 @@ SpatialPresetPopup::SpatialPresetPopup(SpatialPresetBank* pBank,
     }
 }
 
+namespace {
+// The pop-up's button toggles it. A tap outside a pop-up closes it before
+// the button sees the tap, so remember which button's pop-up just closed.
+QPointer<QWidget> s_pClosedAnchor;
+QElapsedTimer s_closedTimer;
+constexpr int kReopenGuardMs = 300;
+} // namespace
+
+void SpatialPresetPopup::hideEvent(QHideEvent* pEvent) {
+    s_pClosedAnchor = m_pAnchor;
+    s_closedTimer.start();
+    QWidget::hideEvent(pEvent);
+}
+
 void SpatialPresetPopup::open(SpatialPresetBank* pBank,
         const QString& group,
         std::function<void()> afterLoad,
         const QColor& accent,
         QWidget* pAnchor) {
+    if (s_pClosedAnchor == pAnchor && s_closedTimer.isValid() &&
+            s_closedTimer.elapsed() < kReopenGuardMs) {
+        // This tap just closed the pop-up: leave it closed.
+        s_pClosedAnchor = nullptr;
+        return;
+    }
+    for (QWidget* pChild : pAnchor->findChildren<SpatialPresetPopup*>(Qt::FindDirectChildrenOnly)) {
+        if (pChild->isVisible()) {
+            pChild->close();
+            return;
+        }
+    }
     auto* pPopup = new SpatialPresetPopup(pBank, group, std::move(afterLoad), accent, pAnchor);
     pPopup->adjustSize();
     // Above the button, right edges aligned, inside the screen.

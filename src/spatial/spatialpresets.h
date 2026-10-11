@@ -114,6 +114,7 @@ class SpatialPresetPopup : public QWidget {
 
   protected:
     void paintEvent(QPaintEvent* pEvent) override;
+    void hideEvent(QHideEvent* pEvent) override;
 
   private:
     SpatialPresetPopup(SpatialPresetBank* pBank,
@@ -121,6 +122,8 @@ class SpatialPresetPopup : public QWidget {
             std::function<void()> afterLoad,
             const QColor& accent,
             QWidget* pParent);
+
+    QWidget* const m_pAnchor;
 };
 
 /// The factory banks.

@@ -242,7 +242,15 @@ TEST_F(SpatialWindowTest, ThePresetPopupListsTheBankAndLoadsOnTap) {
         path.replace(QStringLiteral(".png"), QStringLiteral("_popup.png"));
         pPopup->grab().save(path);
     }
+    // The tap on the PRESETS button that closes the pop-up (Qt closes a
+    // pop-up on a press outside it) must not open it again.
     pPopup->close();
+    SpatialPresetPopup::open(&bank, QString(), nullptr, QColor(0x02, 0x83, 0x92), &anchor);
+    int open = 0;
+    for (QWidget* pWidget : QApplication::topLevelWidgets()) {
+        open += qobject_cast<SpatialPresetPopup*>(pWidget) && pWidget->isVisible() ? 1 : 0;
+    }
+    EXPECT_EQ(open, 0);
 }
 
 TEST_F(SpatialWindowTest, OlderDelayAndReverbPresetsMoveIntoTheFxList) {

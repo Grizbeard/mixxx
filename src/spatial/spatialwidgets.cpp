@@ -370,6 +370,9 @@ QSize SpatialButton::sizeHint() const {
 }
 
 bool SpatialButton::isActive() const {
+    if (m_alwaysLit) {
+        return true;
+    }
     switch (m_mode) {
     case Mode::Toggle:
         return m_pControl->get() > 0;

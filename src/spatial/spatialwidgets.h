@@ -127,6 +127,12 @@ class SpatialButton : public SpatialTouchWidget {
         m_text = text;
         update();
     }
+    /// Lit whatever the value: for switches between two states shown by
+    /// colour (auto-pan A green / B orange).
+    void setAlwaysLit(bool alwaysLit) {
+        m_alwaysLit = alwaysLit;
+        update();
+    }
     void setAccent(const QColor& accent);
     void setIcon(IconPainter painter);
     void setFontSize(int pixels);
@@ -157,6 +163,7 @@ class SpatialButton : public SpatialTouchWidget {
     IconPainter m_icon;
     int m_fontSize = 13;
     bool m_enabled = true;
+    bool m_alwaysLit = false;
 };
 
 /// A knob bound to a control, LateNight style: an arc ring that fills with
