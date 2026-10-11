@@ -8,6 +8,7 @@
 #include "control/controlpushbutton.h"
 #include "engine/effects/groupfeaturestate.h"
 #include "engine/spatial/spatialautopan.h"
+#include "engine/spatial/spatialbinaural.h"
 #include "engine/spatial/spatialcontrols.h"
 #include "engine/spatial/spatialdelay.h"
 #include "engine/spatial/spatialreverb.h"
@@ -66,8 +67,13 @@ EngineSpatialOutput::EngineSpatialOutput()
           m_pTestLevelDb(makePot(kGroup, "test_level_db", -60, -6, -30, true)),
           m_pMainPassthrough(std::make_unique<ControlPushButton>(
                   ConfigKey(kGroup, "main_passthrough"), true, 0.0)),
+          m_pHeadphoneSpatial(makeToggle(kGroup, "headphone_spatial", 0, true)),
+          m_pHeadphoneRoom(makePot(kGroup, "headphone_room", 0, 1, 0.3, true)),
+          m_pHeadphoneEq(makeToggle(kGroup, "headphone_eq", 1, true)),
           m_pDelay(std::make_unique<SpatialDelay>()),
           m_pReverb(std::make_unique<SpatialReverb>()),
+          m_pBinaural(std::make_unique<SpatialBinaural>()),
+          m_binaural(2 * kMaxEngineFrames),
           m_rendered(kMaxDecks * kSlots, false),
           m_lf(kMaxEngineFrames),
           m_sendLeft(kMaxEngineFrames),
@@ -130,7 +136,11 @@ void EngineSpatialOutput::onOutputDisconnected(const AudioOutput& output) {
 }
 
 bool EngineSpatialOutput::isRendering() const {
-    return isConnected() && !m_pMainPassthrough->toBool();
+    return (isConnected() || m_pHeadphoneSpatial->toBool()) && !m_pMainPassthrough->toBool();
+}
+
+bool EngineSpatialOutput::isHeadphoneMonitoring() const {
+    return m_pHeadphoneSpatial->toBool() && !m_pMainPassthrough->toBool();
 }
 
 void EngineSpatialOutput::updateLayout() {
@@ -313,6 +323,8 @@ void EngineSpatialOutput::renderBus(
         const CSAMPLE_GAIN gain = m_mainGainOld + gainStep * (f + 1);
         for (int i = 0; i < speakers; ++i) {
             double x = bus[i][f] * gain;
+            // Keep the full-range feed for headphone monitoring.
+            bus[i][f] = static_cast<float>(x);
             if (highPass) {
                 x = m_highPass[i].process(x);
             }
@@ -396,10 +408,14 @@ void EngineSpatialOutput::process(const CSAMPLE* pMain,
     for (std::size_t i = 0; i < m_sources.size(); ++i) {
         m_sources[i]->publish(m_rendered[i]);
     }
-    const int channels = m_channels.load(std::memory_order_relaxed);
-    if (channels <= 0 || frames == 0 || !sampleRate.isValid()) {
+    m_binauralValid = false;
+    const int connected = m_channels.load(std::memory_order_relaxed);
+    const bool headphones = isHeadphoneMonitoring();
+    if ((connected <= 0 && !headphones) || frames == 0 || !sampleRate.isValid()) {
         return;
     }
+    // Without a Spatial output, render a virtual ring for the headphones.
+    const int channels = connected > 0 ? connected : m_layout.count();
     frames = std::min<std::size_t>(frames, kMaxEngineFrames);
     CSAMPLE* pOut = m_buffer.data();
     std::fill(pOut, pOut + frames * channels, CSAMPLE_ZERO);
@@ -420,6 +436,20 @@ void EngineSpatialOutput::process(const CSAMPLE* pMain,
     const CSAMPLE_GAIN programTarget = (!testing && !passthrough) ? 1.0f : 0.0f;
     if (programTarget > 0 || m_programGain > 0) {
         renderBus(frames, speakers, lfChannel, channels);
+        if (headphones) {
+            std::array<const float*, kMaxSpeakers> feeds{};
+            for (int i = 0; i < kMaxSpeakers; ++i) {
+                feeds[i] = m_bus[i].data();
+            }
+            m_pBinaural->process(feeds,
+                    m_layout,
+                    static_cast<int>(frames),
+                    rate,
+                    m_pHeadphoneRoom->get(),
+                    m_pHeadphoneEq->toBool(),
+                    m_binaural.data());
+            m_binauralValid = true;
+        }
         runLimiter(pOut, frames, channels, rate);
         if (programTarget != m_programGain) {
             const CSAMPLE_GAIN step = (programTarget - m_programGain) / frames;

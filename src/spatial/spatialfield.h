@@ -86,7 +86,7 @@ class SpatialField : public QWidget {
     const int m_decks;
     std::vector<Source> m_sources;
     std::unique_ptr<PollingControlProxy> m_pSpeakerCount, m_pLayoutCustom, m_pChannelCount,
-            m_pLfEnabled, m_pDelayShape, m_pDelaySize, m_pDelayEnabled;
+            m_pLfEnabled, m_pDelayShape, m_pDelaySize, m_pDelayEnabled, m_pHeadphones;
     std::array<std::unique_ptr<PollingControlProxy>, 8> m_pEchoLevel;
     std::array<std::unique_ptr<PollingControlProxy>, 6> m_pSpeakerAzimuth;
     std::array<std::unique_ptr<PollingControlProxy>, 8> m_pVu;
@@ -100,6 +100,7 @@ class SpatialField : public QWidget {
     std::array<double, 8> m_vu{};
     bool m_lf = false;
     int m_channels = 0;
+    bool m_headphones = false;
     std::array<double, 8> m_echoLevel{};
     bool m_echoVisible = false;
     QByteArray m_lastState;

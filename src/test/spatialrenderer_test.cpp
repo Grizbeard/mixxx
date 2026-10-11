@@ -10,6 +10,7 @@
 #include "engine/effects/groupfeaturestate.h"
 #include "engine/spatial/enginespatialoutput.h"
 #include "engine/spatial/spatialautopan.h"
+#include "engine/spatial/spatialbinaural.h"
 #include "engine/spatial/spatialdelay.h"
 #include "engine/spatial/spatialdsp.h"
 #include "engine/spatial/spatialmath.h"
@@ -162,18 +163,19 @@ TEST(SpatialMathTest, WavesMoveBetweenPointsAsSpecified) {
     // Sine: eases, halfway at mid-step, slow near the points.
     EXPECT_NEAR(wavePosition(Wave::Sine, 1.5, 4, false), 1.5, 1e-12);
     EXPECT_LT(wavePosition(Wave::Sine, 1.1, 4, false) - 1, 0.05);
-    // Saw: step 0 ramps A->B, step 1 snaps to C and ramps C->D.
+    // Saw: glides half way A->B over the step, snaps to B on the next, at
+    // the same one point per step as the other waves.
     EXPECT_NEAR(wavePosition(Wave::Saw, 0.0, 4, false), 0, 1e-12);
-    EXPECT_NEAR(wavePosition(Wave::Saw, 0.999, 4, false), 0.999, 1e-12);
-    EXPECT_NEAR(wavePosition(Wave::Saw, 1.0, 4, false), 2, 1e-12);
-    EXPECT_NEAR(wavePosition(Wave::Saw, 1.5, 4, false), 2.5, 1e-12);
-    EXPECT_NEAR(wavePosition(Wave::Saw, 2.0, 4, false), 0, 1e-12) << "4 points: 2 steps a cycle";
-    EXPECT_EQ(waveCycleSteps(Wave::Saw, 4), 2);
-    EXPECT_EQ(waveCycleSteps(Wave::Saw, 5), 5);
-    // Reverse saw: starts at B and ramps back to A, then D back to C.
-    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 0.0, 4, false), 1, 1e-12);
-    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 0.75, 4, false), 0.25, 1e-12);
-    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 1.0, 4, false), 3, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::Saw, 0.5, 4, false), 0.25, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::Saw, 0.999, 4, false), 0.4995, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::Saw, 1.0, 4, false), 1, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::Saw, 4.0, 4, false), 0, 1e-12) << "a cycle per 4 steps";
+    EXPECT_EQ(waveCycleSteps(Wave::Saw, 4), 4);
+    // Reverse saw: glides half way back from A, then still jumps forward to B.
+    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 0.0, 4, false), 0, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 0.5, 4, false), 3.75, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 1.0, 4, false), 1, 1e-12);
+    EXPECT_NEAR(wavePosition(Wave::ReverseSaw, 1.5, 4, false), 0.75, 1e-12);
     // Reverse direction visits the points backwards.
     EXPECT_EQ(wavePosition(Wave::Square, 1.0, 4, true), 3);
     EXPECT_EQ(wavePosition(Wave::Square, 2.0, 4, true), 2);
@@ -727,6 +729,111 @@ TEST_F(SpatialFxTest, AutopanTripletsAndRetrigger) {
     set("[SpatialAutopan1]", "retrigger", 0);
     autopan.prepare(m_clock);
     EXPECT_NEAR(autopan.motion().stepsEnd, 0, 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Headphone monitoring.
+
+/// Renders one speaker's feed (a 2 kHz tone, or a click) through the
+/// binaural model; returns the left and right ears.
+std::array<std::vector<double>, 2> binauralOf(int speaker, bool click, double room = 0) {
+    SpatialBinaural binaural;
+    SpeakerLayout layout;
+    const auto azimuths = SpeakerLayout::defaultAzimuths(6);
+    layout.setSpeakers(6, azimuths.data());
+    std::array<std::vector<float>, kMaxSpeakers> feeds;
+    for (auto& feed : feeds) {
+        feed.assign(kFrames, 0.0f);
+    }
+    std::array<const float*, kMaxSpeakers> pointers{};
+    for (int i = 0; i < kMaxSpeakers; ++i) {
+        pointers[i] = feeds[i].data();
+    }
+    std::array<std::vector<double>, 2> ears;
+    std::vector<float> out(2 * kFrames);
+    for (int c = 0; c < 20; ++c) {
+        for (int f = 0; f < kFrames; ++f) {
+            const int n = c * kFrames + f;
+            feeds[speaker][f] = click ? (n == 1000 ? 1.0f : 0.0f)
+                                      : static_cast<float>(0.5 * std::sin(2 * M_PI * 2000 * n / kRate));
+        }
+        binaural.process(pointers, layout, kFrames, kRate, room, false, out.data());
+        for (int f = 0; f < kFrames; ++f) {
+            ears[0].push_back(out[2 * f]);
+            ears[1].push_back(out[2 * f + 1]);
+        }
+    }
+    return ears;
+}
+
+std::size_t peakIndex(const std::vector<double>& x) {
+    std::size_t best = 0;
+    for (std::size_t i = 1; i < x.size(); ++i) {
+        if (std::abs(x[i]) > std::abs(x[best])) {
+            best = i;
+        }
+    }
+    return best;
+}
+
+TEST(SpatialBinauralTest, ASourceOnTheRightReachesTheRightEarFirstAndLouder) {
+    // Speaker 3 is at 90°: right side.
+    const auto tone = binauralOf(2, false);
+    const double left = rmsOf(tone[0], 2 * kFrames);
+    const double right = rmsOf(tone[1], 2 * kFrames);
+    // A real head gives about 10 dB at 2 kHz from the side.
+    EXPECT_GT(20 * std::log10(right / left), 8) << "head shadow at 2 kHz";
+    const auto click = binauralOf(2, true);
+    const auto delay = static_cast<double>(peakIndex(click[0])) -
+            static_cast<double>(peakIndex(click[1]));
+    // Woodworth: (a / c) (1 + pi / 2) = 0.66 ms, about 31 samples.
+    EXPECT_NEAR(delay, 31, 3) << "interaural delay";
+}
+
+TEST(SpatialBinauralTest, TheFrontPairIsBalanced) {
+    // Speakers 1 and 2 (±30°) mirror each other between the ears.
+    const auto left = binauralOf(0, false);
+    const auto right = binauralOf(1, false);
+    EXPECT_NEAR(rmsOf(left[0], 2 * kFrames), rmsOf(right[1], 2 * kFrames), 1e-6);
+    EXPECT_NEAR(rmsOf(left[1], 2 * kFrames), rmsOf(right[0], 2 * kFrames), 1e-6);
+}
+
+TEST(SpatialBinauralTest, TheHd280CorrectionPeakHasItsGain) {
+    EqBiquad peak;
+    peak.set(EqBiquad::Type::Peak, 3946, 5.9, 1.82, kRate);
+    double sumIn = 0;
+    double sumOut = 0;
+    for (int n = 0; n < 48000; ++n) {
+        const double x = std::sin(2 * M_PI * 3946 * n / kRate);
+        const double y = peak.process(x);
+        if (n > 4800) {
+            sumIn += x * x;
+            sumOut += y * y;
+        }
+    }
+    EXPECT_NEAR(10 * std::log10(sumOut / sumIn), 5.9, 0.05);
+}
+
+TEST_F(SpatialBusTest, HeadphonesHearTheSpatialMixWithoutASpatialOutput) {
+    m_pOutput->onOutputDisconnected(*m_out);
+    set("[Spatial]", "headphone_spatial", 1);
+    ASSERT_TRUE(m_pOutput->isRendering());
+    std::vector<CSAMPLE> stereo(2 * kFrames);
+    double energy = 0;
+    for (int c = 0; c < 10; ++c) {
+        sines(500, 700, 0.5)(stereo.data(), c * kFrames);
+        m_pOutput->beginCallback(kFrames, mixxx::audio::SampleRate(48000), nullptr, 120);
+        m_pOutput->addSource(0, 0, stereo.data());
+        m_pOutput->process(nullptr, kFrames, mixxx::audio::SampleRate(48000));
+        const CSAMPLE* pBinaural = m_pOutput->binaural();
+        ASSERT_NE(pBinaural, nullptr);
+        for (int i = 0; i < 2 * kFrames; ++i) {
+            energy += pBinaural[i] * pBinaural[i];
+        }
+    }
+    EXPECT_GT(energy, 1);
+    set("[Spatial]", "headphone_spatial", 0);
+    EXPECT_FALSE(m_pOutput->isRendering());
 }
 
 } // namespace

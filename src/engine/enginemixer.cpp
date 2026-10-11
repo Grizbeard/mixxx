@@ -372,9 +372,11 @@ void EngineMixer::process(const std::size_t bufferSize) {
     }
     // Trace t("EngineMixer::process");
 
-    // The Spatial output can carry the main mix (passthrough), so it needs
+    // The Spatial output can carry the main mix (passthrough), and headphone
+    // monitoring replaces the main side of the headphone mix, so both need
     // the main mix computed even when no Main output is assigned.
-    bool mainEnabled = m_pMainEnabled->toBool() || m_pSpatialOutput->isConnected();
+    bool mainEnabled = m_pMainEnabled->toBool() || m_pSpatialOutput->isConnected() ||
+            m_pSpatialOutput->isHeadphoneMonitoring();
     bool boothEnabled = m_pBoothEnabled->toBool();
     bool headphoneEnabled = m_pHeadphoneEnabled->toBool();
 
@@ -521,7 +523,11 @@ void EngineMixer::process(const std::size_t bufferSize) {
     }
 
     if (spatialRendering) {
+        // Rendered here, before the headphone mix, which can use it.
         processSpatial(bufferSize);
+        m_pSpatialOutput->process(nullptr,
+                bufferSize / mixxx::kEngineChannelOutputCount,
+                m_sampleRate);
     }
 
     // Process crossfader orientation bus channel effects
@@ -813,9 +819,12 @@ void EngineMixer::process(const std::size_t bufferSize) {
         m_pHeadDelay->process(m_head.data(), bufferSize);
     }
 
-    m_pSpatialOutput->process(mainEnabled ? m_main.data() : nullptr,
-            bufferSize / mixxx::kEngineChannelOutputCount,
-            m_sampleRate);
+    if (!spatialRendering) {
+        // Silence, the speaker tests, or the stereo passthrough.
+        m_pSpatialOutput->process(mainEnabled ? m_main.data() : nullptr,
+                bufferSize / mixxx::kEngineChannelOutputCount,
+                m_sampleRate);
+    }
 
     // We're close to the end of the callback. Wake up the engine worker
     // scheduler so that it runs the workers.
@@ -919,10 +928,14 @@ void EngineMixer::applyMainEffects(std::size_t bufferSize) {
 void EngineMixer::processHeadphones(
         const CSAMPLE_GAIN mainMixGainInHeadphones,
         std::size_t bufferSize) {
-    // Add main mix to headphones
+    // Add main mix to headphones: with spatial monitoring, the spatial mix
+    // rendered for headphones takes the stereo main's place.
+    const CSAMPLE* pBinaural = m_pSpatialOutput->isHeadphoneMonitoring()
+            ? m_pSpatialOutput->binaural()
+            : nullptr;
     SampleUtil::addWithRampingGain(
             m_head.data(),
-            m_main.data(),
+            pBinaural ? pBinaural : m_main.data(),
             m_headphoneMainGainOld,
             mainMixGainInHeadphones,
             bufferSize);

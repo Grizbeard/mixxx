@@ -1,5 +1,6 @@
 #include "engine/spatial/spatialmath.h"
 
+#include <QtGlobal>
 #include <algorithm>
 #include <numeric>
 
@@ -286,10 +287,7 @@ Point shapeAt(Shape shape, double position) {
 }
 
 int waveCycleSteps(Wave wave, int pointCount) {
-    if (wave == Wave::Saw || wave == Wave::ReverseSaw) {
-        // Each step covers two points.
-        return pointCount % 2 == 0 ? pointCount / 2 : pointCount;
-    }
+    Q_UNUSED(wave);
     return pointCount;
 }
 
@@ -304,9 +302,11 @@ double wavePathPosition(Wave wave, double steps) {
     case Wave::Triangle:
         return step + phase;
     case Wave::Saw:
-        return 2 * step + phase;
+        // Half way towards the next point, then the jump onto it.
+        return step + 0.5 * phase;
     case Wave::ReverseSaw:
-        return 2 * step + 1 - phase;
+        // Half way back towards the previous point, then the jump forward.
+        return step - 0.5 * phase;
     }
     return step;
 }

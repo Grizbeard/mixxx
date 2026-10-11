@@ -19,6 +19,7 @@ struct GroupFeatureState;
 
 namespace mixxx::spatial {
 class SpatialAutopan;
+class SpatialBinaural;
 class SpatialDelay;
 class SpatialReverb;
 } // namespace mixxx::spatial
@@ -51,6 +52,12 @@ class SpatialReverb;
 ///   beat              read-only: the spatial clock, in beats
 ///   test_channel, test_signal, test_frequency, test_level_db,
 ///   main_passthrough  as in phase 1
+///   headphone_spatial  headphones hear the spatial mix, rendered binaurally,
+///                      in place of the stereo main (the cue/mix knob still
+///                      blends it with the cue); works without a Spatial
+///                      output assigned (persisted)
+///   headphone_room     early reflections for an outside-the-head image 0..1
+///   headphone_eq       Sennheiser HD 280 PRO correction (AutoEq) (persisted)
 class EngineSpatialOutput : public AudioSource {
   public:
     static constexpr int kMaxChannels = 8;
@@ -77,8 +84,16 @@ class EngineSpatialOutput : public AudioSource {
     bool isConnected() const {
         return m_channels.load(std::memory_order_relaxed) > 0;
     }
-    /// Connected and rendering the spatial mix (not the passthrough).
+    /// Rendering the spatial mix (not the passthrough): for a connected
+    /// Spatial output, headphone monitoring, or both.
     bool isRendering() const;
+    /// Headphones should hear the binaural spatial mix.
+    bool isHeadphoneMonitoring() const;
+    /// The binaural spatial mix of the last process(), interleaved stereo;
+    /// nullptr if none was rendered.
+    const CSAMPLE* binaural() const {
+        return m_binauralValid ? m_binaural.data() : nullptr;
+    }
 
     /// Engine thread: start a callback. `pTempo` holds the tempo source's
     /// beat length and phase; without it the clock runs at `fallbackBpm`.
@@ -142,12 +157,18 @@ class EngineSpatialOutput : public AudioSource {
     std::unique_ptr<ControlPotmeter> m_pTestFrequency;
     std::unique_ptr<ControlPotmeter> m_pTestLevelDb;
     std::unique_ptr<ControlPushButton> m_pMainPassthrough;
+    std::unique_ptr<ControlPushButton> m_pHeadphoneSpatial;
+    std::unique_ptr<ControlPotmeter> m_pHeadphoneRoom;
+    std::unique_ptr<ControlPushButton> m_pHeadphoneEq;
 
     std::vector<std::unique_ptr<mixxx::spatial::SpatialSource>> m_sources;
     std::array<std::unique_ptr<mixxx::spatial::SpatialAutopan>, kAutopanUnits> m_autopans;
     std::array<const mixxx::spatial::SpatialAutopan*, kAutopanUnits> m_autopanPointers{};
     std::unique_ptr<mixxx::spatial::SpatialDelay> m_pDelay;
     std::unique_ptr<mixxx::spatial::SpatialReverb> m_pReverb;
+    std::unique_ptr<mixxx::spatial::SpatialBinaural> m_pBinaural;
+    std::vector<float> m_binaural;
+    bool m_binauralValid = false;
 
     // Engine-thread state.
     mixxx::spatial::SpeakerLayout m_layout;

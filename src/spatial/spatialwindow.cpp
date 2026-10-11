@@ -42,6 +42,7 @@ class SpatialTopBar : public QWidget {
         m_pLf = makePoll(spatial, "lf_enabled");
         m_pLimiter = makePoll(spatial, "limiter_reduction_db");
         m_pPassthrough = makePoll(spatial, "main_passthrough");
+        m_pHeadphones = makePoll(spatial, "headphone_spatial");
         for (int c = 0; c < 8; ++c) {
             m_pVu[c] = makePoll(spatial, QStringLiteral("vu_meter_%1").arg(c + 1));
         }
@@ -50,6 +51,14 @@ class SpatialTopBar : public QWidget {
         pLayout->setContentsMargins(0, 6, 8, 6);
         pLayout->setSpacing(6);
         pLayout->addStretch(1);
+        // Hear the spatial mix in headphones (rendered binaurally).
+        auto* pPhones = new SpatialButton(QStringLiteral("[Spatial]"),
+                "headphone_spatial",
+                SpatialButton::Mode::Toggle,
+                tr("PHONES 3D"));
+        pPhones->setAccent(kPlayPos);
+        pPhones->setFixedWidth(130);
+        pLayout->addWidget(pPhones);
         auto* pSetup = new SpatialActionButton(
                 tr("SETUP"), [pWindow]() { emit pWindow->preferencesRequested(); }, this);
         m_pFullScreen = new SpatialActionButton(
@@ -75,7 +84,8 @@ class SpatialTopBar : public QWidget {
         m_lf = m_pLf->get() > 0 && m_speakers < m_channels;
         m_limiter = std::round(m_pLimiter->get() * 2) / 2;
         m_passthrough = m_pPassthrough->get() > 0;
-        out << m_beat << m_channels << m_speakers << m_lf << m_limiter << m_passthrough;
+        m_headphones = m_pHeadphones->get() > 0;
+        out << m_headphones << m_beat << m_channels << m_speakers << m_lf << m_limiter << m_passthrough;
         for (int c = 0; c < 8; ++c) {
             m_vu[c] = std::round(m_pVu[c]->get() * 32) / 32;
             out << m_vu[c];
@@ -109,10 +119,11 @@ class SpatialTopBar : public QWidget {
         // Output meters: one per channel, speakers then LF.
         p.setFont(styleFont(10, true));
         if (m_channels <= 0) {
-            p.setPen(kHotOrange);
+            p.setPen(m_headphones ? kPlayPos : kHotOrange);
             p.setFont(styleFont(13, true));
             p.drawText(QRectF(x, 0, 420, height()), Qt::AlignLeft | Qt::AlignVCenter,
-                    tr("Spatial output not assigned"));
+                    m_headphones ? tr("Headphones only: no Spatial output")
+                                 : tr("Spatial output not assigned"));
             x += 420;
         } else {
             const int shown = m_speakers + (m_lf ? 1 : 0);
@@ -149,7 +160,7 @@ class SpatialTopBar : public QWidget {
 
   private:
     std::unique_ptr<PollingControlProxy> m_pBeat, m_pChannels, m_pSpeakers, m_pLf, m_pLimiter,
-            m_pPassthrough;
+            m_pPassthrough, m_pHeadphones;
     std::array<std::unique_ptr<PollingControlProxy>, 8> m_pVu;
     SpatialActionButton* m_pFullScreen;
     QByteArray m_state;
@@ -159,6 +170,7 @@ class SpatialTopBar : public QWidget {
     bool m_lf = false;
     double m_limiter = 0;
     bool m_passthrough = false;
+    bool m_headphones = false;
     std::array<double, 8> m_vu{};
 };
 

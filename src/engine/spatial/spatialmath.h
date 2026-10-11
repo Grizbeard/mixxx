@@ -111,8 +111,8 @@ enum class Wave {
     Square = 0,     // hold on the point, snap to the next on the step
     Sine = 1,       // ease out of a point and into the next
     Triangle = 2,   // constant speed from point to point
-    Saw = 3,        // ramp A->B over the step, snap to C, ramp C->D, ...
-    ReverseSaw = 4, // ramp B->A, snap to D, ramp D->C, ...
+    Saw = 3,        // glide half way A->B over the step, snap to B on the next
+    ReverseSaw = 4, // glide half way back from A over the step, snap on to B
 };
 constexpr int kWaveCount = 5;
 
@@ -131,7 +131,7 @@ double randomAzimuth(std::int64_t k);
 constexpr double kRandomMinJump = 75;
 
 /// Steps in one full cycle of the wave over the shape (the motion repeats
-/// after this many steps).
+/// after this many steps): one per point for every wave.
 int waveCycleSteps(Wave wave, int pointCount);
 
 /// Position along the path (point units, not wrapped) after `steps` steps.

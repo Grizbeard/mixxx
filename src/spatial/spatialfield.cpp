@@ -61,6 +61,7 @@ SpatialField::SpatialField(int decks, QWidget* pParent)
     m_pLayoutCustom = makePoll(spatial, "layout_custom");
     m_pChannelCount = makePoll(spatial, "channel_count");
     m_pLfEnabled = makePoll(spatial, "lf_enabled");
+    m_pHeadphones = makePoll(spatial, "headphone_spatial");
     for (int i = 0; i < 6; ++i) {
         m_pSpeakerAzimuth[i] = makePoll(spatial, QStringLiteral("speaker_%1_azimuth").arg(i + 1));
     }
@@ -150,7 +151,8 @@ void SpatialField::poll() {
         m_vu[c] = std::round(m_pVu[c]->get() * 64) / 64;
         out << m_vu[c];
     }
-    out << m_speakers << m_lf;
+    m_headphones = m_pHeadphones->get() > 0;
+    out << m_speakers << m_lf << m_headphones;
 
     for (Source& source : m_sources) {
         const bool stems = m_pStemCount[source.deck]->get() > 0;
@@ -558,11 +560,12 @@ void SpatialField::paintEvent(QPaintEvent* pEvent) {
             QStringLiteral("FRONT"));
 
     if (m_channels <= 0) {
-        p.setPen(kHotOrange);
+        p.setPen(m_headphones ? kPlayPos : kHotOrange);
         p.setFont(styleFont(13, true));
         p.drawText(QRectF(centre.x() - r, centre.y() + r / 2 - 20, 2 * r, 40),
                 Qt::AlignCenter | Qt::TextWordWrap,
-                tr("Spatial output not assigned (Preferences > Sound Hardware)"));
+                m_headphones ? tr("Headphone monitoring of a virtual ring")
+                             : tr("Spatial output not assigned (Preferences > Sound Hardware)"));
     }
 
     paintSpeakers(p);

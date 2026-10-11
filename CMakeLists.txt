@@ -1319,6 +1319,7 @@ add_library(
   src/engine/sidechain/enginesidechain.cpp
   src/engine/spatial/enginespatialoutput.cpp
   src/engine/spatial/spatialautopan.cpp
+  src/engine/spatial/spatialbinaural.cpp
   src/engine/spatial/spatialdelay.cpp
   src/engine/spatial/spatialdsp.cpp
   src/engine/spatial/spatialmath.cpp

@@ -119,6 +119,7 @@ DlgPrefSpatial::DlgPrefSpatial(QWidget* pParent, UserSettingsPointer pConfig)
     pLayout->addWidget(createAlignmentGroup());
     pLayout->addWidget(pChannels);
     pLayout->addWidget(pTest);
+    pLayout->addWidget(createHeadphoneGroup());
     pLayout->addWidget(pPass);
     pLayout->addStretch(1);
 
@@ -280,6 +281,28 @@ QGroupBox* DlgPrefSpatial::createAlignmentGroup() {
             QStringLiteral("limiter_ceiling_db"), -12, 0, 0.1, 1, tr(" dBFS")));
     pLimiterRow->addStretch(1);
     pLayout->addLayout(pLimiterRow);
+    return pGroup;
+}
+
+QGroupBox* DlgPrefSpatial::createHeadphoneGroup() {
+    auto* pGroup = new QGroupBox(tr("Headphone monitoring"));
+    auto* pLayout = new QVBoxLayout(pGroup);
+    auto* pHelp = new QLabel(tr("Hear the spatial mix in headphones: each speaker of the ring "
+                                "becomes a virtual source around your head. It takes the place "
+                                "of the main mix in the headphones, so the cue/mix knob still "
+                                "blends it with the cue. Works without a Spatial output, for "
+                                "practising away from the room."));
+    pHelp->setWordWrap(true);
+    pLayout->addWidget(pHelp);
+    pLayout->addWidget(bindCheckBox(QStringLiteral("headphone_spatial"),
+            tr("Spatial mix in the headphones")));
+    auto* pRoomRow = new QHBoxLayout;
+    pRoomRow->addWidget(new QLabel(tr("Room (early reflections):")));
+    pRoomRow->addWidget(bindSpinBox(QStringLiteral("headphone_room"), 0, 1, 0.05, 2, QString()));
+    pRoomRow->addStretch(1);
+    pLayout->addLayout(pRoomRow);
+    pLayout->addWidget(bindCheckBox(QStringLiteral("headphone_eq"),
+            tr("Sennheiser HD 280 PRO correction (AutoEq, oratory1990 measurement)")));
     return pGroup;
 }
 
