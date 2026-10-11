@@ -10,6 +10,7 @@
 #include <QtEndian>
 #include <QtGlobal>
 
+#include "engine/engine.h"
 #include "util/logger.h"
 
 namespace mixxx {
@@ -217,6 +218,20 @@ QList<StemInfo> StemInfoImporter::importStemInfos(
     file.close();
 
     return stemsList;
+}
+
+void StemInfoImporter::applySpatialStemLayout(QList<StemInfo>* pStemInfos) {
+    if (pStemInfos->size() != mixxx::kMaxSupportedStems) {
+        return;
+    }
+    static const QString kLabels[] = {QStringLiteral("DRUMS"),
+            QStringLiteral("BASS"),
+            QStringLiteral("INST"),
+            QStringLiteral("VOCAL")};
+    for (int i = 0; i < mixxx::kMaxSupportedStems; ++i) {
+        (*pStemInfos)[i].setLabel(kLabels[i]);
+    }
+    (*pStemInfos)[3].setColor(QColor(0xff, 0xff, 0x00));
 }
 
 } // namespace mixxx

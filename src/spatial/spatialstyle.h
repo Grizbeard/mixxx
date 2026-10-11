@@ -40,7 +40,7 @@ inline const QColor kGain{0xb9, 0x63, 0x00};      // gain arc
 // Stems (NI stem defaults; the track's own colours are used when known)
 inline const QColor kDrums{0xfd, 0x4a, 0x4a};
 inline const QColor kInstruments{0x00, 0xe8, 0xe8}; // Mixxx's "Other" stem cyan
-inline const QColor kVocals{0xad, 0x65, 0xff};
+inline const QColor kVocals{0xff, 0xff, 0x00}; // yellow, as Mixxx shows VOCAL
 
 /// The stem whose colour a source shows: INST is stem 3 (Other, cyan), as in
 /// the Mixxx skin; stem 2 (Bass) is folded into it.

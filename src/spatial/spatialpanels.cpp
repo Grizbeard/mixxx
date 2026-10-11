@@ -293,7 +293,7 @@ void SpatialStemStrip::poll() {
     }
     m_available = available;
     m_color = color;
-    static const char* const kNames[] = {"DRUMS", "INST", "VOCALS"};
+    static const char* const kNames[] = {"DRUMS", "INST", "VOCAL"};
     static const QColor kColors[] = {kDrums, kInstruments, kVocals};
     // A stereo track plays as the Instruments source.
     m_pName->setText(available == 1 ? tr("TRACK") : QString::fromLatin1(kNames[m_slot]));

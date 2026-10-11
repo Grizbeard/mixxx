@@ -1467,9 +1467,10 @@ bool Track::setStemInfosWhileLocked(QList<StemInfo> stemInfos) {
 }
 
 bool Track::importPendingStemInfosWhileLocked() {
-    const QList<StemInfo> stemInfos =
+    QList<StemInfo> stemInfos =
             mixxx::StemInfoImporter::importStemInfos(
                     getLocation());
+    mixxx::StemInfoImporter::applySpatialStemLayout(&stemInfos);
 
     return setStemInfosWhileLocked(stemInfos);
 }

@@ -12,6 +12,10 @@ class StemInfoImporter {
     static QList<StemInfo> importStemInfos(
             const QString& filePath);
 
+    /// Spatial Mixxx's stem names and colours, whatever the file says:
+    /// DRUMS, BASS (folded into INST), INST, VOCAL, with VOCAL yellow.
+    static void applySpatialStemLayout(QList<StemInfo>* pStemInfos);
+
     static bool maybeStemFile(
             const QString& aFileName, QMimeType mimeType = QMimeType());
 

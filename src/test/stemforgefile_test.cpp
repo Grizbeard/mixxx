@@ -8,6 +8,7 @@
 #include "sources/soundsourceproxy.h"
 #include "sources/soundsourcestem.h"
 #include "test/mixxxtest.h"
+#include "track/steminfoimporter.h"
 #include "track/track.h"
 #include "util/samplebuffer.h"
 
@@ -45,7 +46,9 @@ TEST_F(StemforgeFileTest, OpensAsFourNamedStems) {
     config.setChannelCount(audio::ChannelCount::stereo());
     ASSERT_NE(SoundSourceProxy(pTrack).openAudioSource(config), nullptr);
 
-    const auto stemInfo = pTrack->getStemInfo();
+    ASSERT_EQ(pTrack->getStemInfo().size(), 4);
+    // The names stemforge wrote (Mixxx shows its own: DRUMS, INST, VOCAL).
+    const auto stemInfo = mixxx::StemInfoImporter::importStemInfos(testFile());
     ASSERT_EQ(stemInfo.size(), 4);
     EXPECT_EQ(stemInfo.at(0).getLabel(), QStringLiteral("Drums"));
     // "Bass (in Other)" when the preset leaves bass in the Other stem.

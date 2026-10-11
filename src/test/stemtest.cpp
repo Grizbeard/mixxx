@@ -6,6 +6,7 @@
 #include "sources/soundsourceffmpeg.h"
 #include "sources/soundsourceproxy.cpp"
 #include "test/mixxxtest.h"
+#include "track/steminfoimporter.h"
 #include "track/track.h"
 #include "util/samplebuffer.h"
 
@@ -67,10 +68,15 @@ TEST_P(StemFixture, FetchStemInfo) {
 
     auto stemInfo = pTrack->getStemInfo();
     ASSERT_EQ(stemInfo.size(), 4);
-    ASSERT_EQ(stemInfo.at(0), StemInfo("Drums", QColor(0xfd, 0x4a, 0x4a)));  // #fd4a4a
-    ASSERT_EQ(stemInfo.at(1), StemInfo("Bass", QColor(0xff, 0xff, 0x00)));   // #ffff00
-    ASSERT_EQ(stemInfo.at(2), StemInfo("Synths", QColor(0x00, 0xe8, 0xe8))); // #00e8e8
-    ASSERT_EQ(stemInfo.at(3), StemInfo("Vox", QColor(0xad, 0x65, 0xff)));    // #ad65ff
+    // Spatial Mixxx's names; the file's colours except VOCAL, always yellow.
+    ASSERT_EQ(stemInfo.at(0), StemInfo("DRUMS", QColor(0xfd, 0x4a, 0x4a))); // #fd4a4a
+    ASSERT_EQ(stemInfo.at(1), StemInfo("BASS", QColor(0xff, 0xff, 0x00)));  // #ffff00
+    ASSERT_EQ(stemInfo.at(2), StemInfo("INST", QColor(0x00, 0xe8, 0xe8)));  // #00e8e8
+    ASSERT_EQ(stemInfo.at(3), StemInfo("VOCAL", QColor(0xff, 0xff, 0x00))); // #ffff00
+    // The file's own manifest is still read as written.
+    const auto manifest = mixxx::StemInfoImporter::importStemInfos(sourceStemPath);
+    ASSERT_EQ(manifest.at(2), StemInfo("Synths", QColor(0x00, 0xe8, 0xe8)));
+    ASSERT_EQ(manifest.at(3), StemInfo("Vox", QColor(0xad, 0x65, 0xff)));
 }
 
 TEST_P(StemFixture, FetchStemEmptyInfo) {
@@ -84,10 +90,10 @@ TEST_P(StemFixture, FetchStemEmptyInfo) {
 
     auto stemInfo = pTrack->getStemInfo();
     ASSERT_EQ(stemInfo.size(), 4);
-    ASSERT_EQ(stemInfo.at(0), StemInfo("Stem #1", QColor(0x00, 0x9E, 0x73)));
-    ASSERT_EQ(stemInfo.at(1), StemInfo("Stem #2", QColor(0xD5, 0x5E, 0x00)));
-    ASSERT_EQ(stemInfo.at(2), StemInfo("Stem #3", QColor(0xCC, 0x79, 0xA7)));
-    ASSERT_EQ(stemInfo.at(3), StemInfo("Stem #4", QColor(0x56, 0xB4, 0xE9)));
+    ASSERT_EQ(stemInfo.at(0), StemInfo("DRUMS", QColor(0x00, 0x9E, 0x73)));
+    ASSERT_EQ(stemInfo.at(1), StemInfo("BASS", QColor(0xD5, 0x5E, 0x00)));
+    ASSERT_EQ(stemInfo.at(2), StemInfo("INST", QColor(0xCC, 0x79, 0xA7)));
+    ASSERT_EQ(stemInfo.at(3), StemInfo("VOCAL", QColor(0xff, 0xff, 0x00)));
 }
 
 TEST_P(StemFixture, ReadMainMix) {
