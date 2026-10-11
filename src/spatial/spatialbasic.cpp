@@ -287,16 +287,17 @@ SpatialBasicSurface::SpatialBasicSurface(
     auto* pLayout = new QHBoxLayout(this);
     pLayout->setContentsMargins(0, 0, 0, 0);
     pLayout->setSpacing(4);
+    m_pAutopan = new SpatialBasicAutopan(pAutopanBank, this);
+    pLayout->addWidget(m_pAutopan);
     for (int deck = 0; deck < 2; ++deck) {
+        pLayout->addSpacing(6);
         for (int slot = 0; slot < EngineSpatialOutput::kSlots; ++slot) {
             auto* pStem = new SpatialBasicStem(deck, slot, this);
             m_stems.append(pStem);
             pLayout->addWidget(pStem);
         }
-        pLayout->addSpacing(6);
     }
-    m_pAutopan = new SpatialBasicAutopan(pAutopanBank, this);
-    pLayout->addWidget(m_pAutopan);
+    pLayout->addSpacing(6);
     pLayout->addWidget(new SpatialBasicFx(pFxBank, this));
 }
 

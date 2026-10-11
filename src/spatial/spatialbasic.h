@@ -59,11 +59,11 @@ class SpatialBasicFx : public SpatialPanel {
 };
 
 /// The Basic layout: eight columns laid out like the Novation Launch
-/// Control XL MK3, each with 3 knobs, 1 fader and 2 buttons:
-///   6 stems (deck 1 and 2: DRUMS, INST, VOCAL): pan, width, FX send;
-///     volume; auto-pan, Front. The touch A/B buttons pick the unit.
+/// Control XL MK3, each with 3 knobs, 1 fader and 2 buttons. Left to right:
 ///   AUTO-PAN: shape, wave, beats; size; reverse, and A/B choosing which
 ///     unit the column plays ([Spatial],autopan_focus).
+///   6 stems (deck 1 and 2: DRUMS, INST, VOCAL): pan, width, FX send;
+///     volume; auto-pan, Front. The touch A/B buttons pick the unit.
 ///   SPATIAL FX: the SPACE, ECHO and TONE macros; LEVEL; delay on, reverb on.
 class SpatialBasicSurface : public QWidget {
     Q_OBJECT
