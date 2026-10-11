@@ -154,7 +154,20 @@ void EngineDeck::processStem(CSAMPLE* pOut, const std::size_t bufferSize) {
 
     CSAMPLE* pIn = m_stemBuffer.data();
 
-    // TODO(XXX): process stem DSP
+    // Bass is part of INST: fold it into the Other stem, so Other's volume,
+    // mute, QuickEffect and effect units act on both.
+    const bool foldBass = static_cast<int>(stemCount) == mixxx::kMaxSupportedStems;
+    if (foldBass) {
+        const int bass = mixxx::kFoldedStem * mixxx::audio::ChannelCount::stereo();
+        const int other = mixxx::kInstrumentStem * mixxx::audio::ChannelCount::stereo();
+        for (SINT frame = 0; frame < numFrames; ++frame) {
+            CSAMPLE* pFrame = pIn + frame * static_cast<int>(chCount);
+            pFrame[other] += pFrame[bass];
+            pFrame[other + 1] += pFrame[bass + 1];
+            pFrame[bass] = 0;
+            pFrame[bass + 1] = 0;
+        }
+    }
 
     EngineEffectsManager* pEngineEffectsManager = m_pEffectsManager->getEngineEffectsManager();
 
@@ -172,6 +185,9 @@ void EngineDeck::processStem(CSAMPLE* pOut, const std::size_t bufferSize) {
     collectFeatures(&featureState);
     for (unsigned int stemIdx = 0; stemIdx < stemCount;
             stemIdx++) {
+        if (foldBass && static_cast<int>(stemIdx) == mixxx::kFoldedStem) {
+            continue; // silent: folded into INST
+        }
         int chOffset = stemIdx * mixxx::audio::ChannelCount::stereo();
         float stemGain = m_stemMute[stemIdx]->toBool()
                 ? 0.0f
@@ -207,16 +223,16 @@ void EngineDeck::processStem(CSAMPLE* pOut, const std::size_t bufferSize) {
                 chOffset);
     }
 
-    // Spatial tap: Drums, Instruments (bass + other), Vocals.
-    if (m_spatialTapEnabled && m_spatialHandles.size() == kSpatialStems &&
-            stemCount == mixxx::kMaxSupportedStems) {
+    // Spatial tap: Drums, INST (bass already folded into other), Vocals.
+    if (m_spatialTapEnabled && m_spatialHandles.size() == kSpatialStems && foldBass) {
         const int stereo = mixxx::audio::ChannelCount::stereo();
         SampleUtil::copyOneStereoFromMulti(
                 m_spatialStems[0].data(), pIn, numFrames, chCount, 0);
-        SampleUtil::copyOneStereoFromMulti(
-                m_spatialStems[1].data(), pIn, numFrames, chCount, stereo);
-        SampleUtil::copyOneStereoFromMulti(pOut, pIn, numFrames, chCount, 2 * stereo);
-        SampleUtil::add(m_spatialStems[1].data(), pOut, bufferSize);
+        SampleUtil::copyOneStereoFromMulti(m_spatialStems[1].data(),
+                pIn,
+                numFrames,
+                chCount,
+                mixxx::kInstrumentStem * stereo);
         SampleUtil::copyOneStereoFromMulti(
                 m_spatialStems[2].data(), pIn, numFrames, chCount, 3 * stereo);
         m_spatialStemsValid = true;

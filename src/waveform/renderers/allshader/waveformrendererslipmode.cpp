@@ -105,16 +105,16 @@ bool WaveformRendererSlipMode::preprocessInner() {
     const float posx2 = m_waveformRenderer->getLength();
     const float breadth = m_waveformRenderer->getBreadth();
 
-    const int numBoxes = splitStemTracks ? mixxx::kMaxSupportedStems : 1;
+    const int numBoxes = splitStemTracks ? mixxx::kDisplayedStems : 1;
     const float boxBreadth = splitStemTracks
-            ? breadth / static_cast<float>(mixxx::kMaxSupportedStems)
+            ? breadth / static_cast<float>(mixxx::kDisplayedStems)
             : breadth;
 
     const float topOutlineSize = splitStemTracks
-            ? m_slipBorderTopOutlineSize / static_cast<float>(mixxx::kMaxSupportedStems)
+            ? m_slipBorderTopOutlineSize / static_cast<float>(mixxx::kDisplayedStems)
             : m_slipBorderTopOutlineSize;
     const float bottomOutlineSize = splitStemTracks
-            ? m_slipBorderBottomOutlineSize / static_cast<float>(mixxx::kMaxSupportedStems)
+            ? m_slipBorderBottomOutlineSize / static_cast<float>(mixxx::kDisplayedStems)
             : m_slipBorderBottomOutlineSize;
     const float sideBorderOutlineSide = topOutlineSize;
 

@@ -525,30 +525,74 @@ void paintShape(QPainter& p, const QRectF& r, const QColor& color, int shape) {
 
 void paintWave(QPainter& p, const QRectF& r, const QColor& color, int wave) {
     using namespace mixxx::spatial;
-    // Position along four points over two steps: the motion's own graph.
+    // The classic oscillator symbol for each wave, two cycles wide.
     p.save();
     p.setRenderHint(QPainter::Antialiasing);
-    const QRectF box = r.adjusted(2, 4, -2, -4);
+    const QRectF box = r.adjusted(4, 8, -4, -8);
+    const double top = box.top();
+    const double bottom = box.bottom();
+    const double middle = box.center().y();
+    const double cycle = box.width() / 2;
+    const auto x = [&](double c) {
+        return box.left() + c * cycle;
+    };
     QPainterPath path;
-    constexpr int kSamples = 120;
-    double previous = 0;
-    for (int i = 0; i <= kSamples; ++i) {
-        const double steps = 2.0 * i / kSamples * 0.999;
-        // Two steps over four points span at most 3 points (saw: 0-1, 2-3).
-        const double position = wavePosition(static_cast<Wave>(wave), steps, 4, false) / 3;
-        const QPointF q(box.left() + box.width() * i / kSamples,
-                box.bottom() - std::min(1.0, position) * box.height());
-        if (i == 0) {
-            path.moveTo(q);
-        } else {
-            if (std::abs(position - previous) > 0.1) {
-                // A snap: draw the jump as a vertical stroke.
-                path.lineTo(QPointF(q.x(), path.currentPosition().y()));
-            }
-            path.lineTo(q);
+    switch (static_cast<Wave>(wave)) {
+    case Wave::Square:
+        path.moveTo(x(0), middle);
+        path.lineTo(x(0), top);
+        for (int c = 0; c < 2; ++c) {
+            path.lineTo(x(c + 0.5), top);
+            path.lineTo(x(c + 0.5), bottom);
+            path.lineTo(x(c + 1), bottom);
+            path.lineTo(x(c + 1), c == 1 ? middle : top);
         }
-        previous = position;
+        break;
+    case Wave::Sine: {
+        constexpr int kSamples = 64;
+        for (int i = 0; i <= kSamples; ++i) {
+            const double c = 2.0 * i / kSamples;
+            const QPointF q(x(c), middle - std::sin(2 * kPi * c) * (middle - top));
+            if (i == 0) {
+                path.moveTo(q);
+            } else {
+                path.lineTo(q);
+            }
+        }
+        break;
     }
+    case Wave::Triangle:
+        path.moveTo(x(0), middle);
+        for (int c = 0; c < 2; ++c) {
+            path.lineTo(x(c + 0.25), top);
+            path.lineTo(x(c + 0.75), bottom);
+            path.lineTo(x(c + 1), middle);
+        }
+        break;
+    case Wave::Saw:
+        // Ramp up, then drop.
+        path.moveTo(x(0), middle);
+        path.lineTo(x(0.5), top);
+        path.lineTo(x(0.5), bottom);
+        path.lineTo(x(1.5), top);
+        path.lineTo(x(1.5), bottom);
+        path.lineTo(x(2), middle);
+        break;
+    case Wave::ReverseSaw:
+        // Jump up, then ramp down.
+        path.moveTo(x(0), middle);
+        path.lineTo(x(0.5), bottom);
+        path.lineTo(x(0.5), top);
+        path.lineTo(x(1.5), bottom);
+        path.lineTo(x(1.5), top);
+        path.lineTo(x(2), middle);
+        break;
+    }
+    // A faint centre line, like an oscilloscope's axis.
+    QColor axis = color;
+    axis.setAlphaF(0.25);
+    p.setPen(QPen(axis, 1));
+    p.drawLine(QPointF(box.left(), middle), QPointF(box.right(), middle));
     p.setPen(QPen(color, 2.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     p.setBrush(Qt::NoBrush);
     p.drawPath(path);

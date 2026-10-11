@@ -98,7 +98,7 @@ SpatialField::SpatialField(int decks, QWidget* pParent)
             source.pUnit = makePoll(group, "spatial_autopan_unit");
             source.pFront = makePoll(group, "spatial_front");
             source.pFrontBlend = makePoll(group, "spatial_front_blend");
-            source.pColor = makePoll(group, "color");
+            source.pColor = makePoll(colorGroupForSource(deck, slot), "color");
             source.pSend = makePoll(group, "spatial_fx_send");
             source.pSetAzimuth = new ControlProxy(group, "spatial_azimuth", this,
                     ControlFlag::NoAssertIfMissing);

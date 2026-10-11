@@ -140,7 +140,7 @@ bool WaveformRendererPreroll::preprocessInner() {
     const int totalVSamples = m_waveformRenderer->getTotalVSample();
 
     const float breadth = m_waveformRenderer->getBreadth();
-    const int numBoxes = splitStemTracks ? mixxx::kMaxSupportedStems : 1;
+    const int numBoxes = splitStemTracks ? mixxx::kDisplayedStems : 1;
     const float boxBreadth = breadth / static_cast<float>(numBoxes);
     const float halfBoxBreadth = boxBreadth * 0.5f;
 

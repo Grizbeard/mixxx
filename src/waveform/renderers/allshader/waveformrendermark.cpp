@@ -333,7 +333,7 @@ void allshader::WaveformRenderMark::update() {
             WaveformWidgetFactory::instance()->isStemSplitTracks();
 
     const float breadth = m_waveformRenderer->getBreadth();
-    const int numBoxes = (splitStemTracks && slipActive) ? mixxx::kMaxSupportedStems : 1;
+    const int numBoxes = (splitStemTracks && slipActive) ? mixxx::kDisplayedStems : 1;
     const float boxBreadth = breadth / static_cast<float>(numBoxes);
     const float markBreadth = slipActive ? (boxBreadth / 2.f) : boxBreadth;
     const float yOffset = !m_isSlipRenderer && slipActive

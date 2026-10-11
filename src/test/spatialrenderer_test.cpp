@@ -342,8 +342,8 @@ TEST_F(SpatialBusTest, TheLfFeedDoesNotDependOnPosition) {
     connect(6, true);
     set("[Spatial]", "lf_crossover_hz", 100);
     const auto atFront = run(60, 1, sines(50, 50, 0.5));
-    set("[Channel1_Stem2]", "spatial_azimuth", 150);
-    set("[Channel1_Stem2]", "spatial_spread", 0.7);
+    set("[Channel1_Stem3]", "spatial_azimuth", 150);
+    set("[Channel1_Stem3]", "spatial_spread", 0.7);
     const auto atBack = run(60, 1, sines(50, 50, 0.5));
     const std::size_t settled = 30 * kFrames;
     const double front = rmsOf(atFront[6], settled);

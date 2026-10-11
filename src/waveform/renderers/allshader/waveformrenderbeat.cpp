@@ -108,7 +108,7 @@ bool WaveformRenderBeat::preprocessInner() {
     }
 
     const int numBoxesPerBeat = (m_isSlipRenderer && splitStemTracks)
-            ? mixxx::kMaxSupportedStems
+            ? mixxx::kDisplayedStems
             : 1;
     const int reserved = numBeatsInRange * numVerticesPerLine * numBoxesPerBeat;
     geometry().allocate(reserved);
@@ -116,7 +116,7 @@ bool WaveformRenderBeat::preprocessInner() {
     VertexUpdater vertexUpdater{geometry().vertexDataAs<Geometry::Point2D>()};
 
     const float boxBreadth = splitStemTracks
-            ? rendererBreadth / static_cast<float>(mixxx::kMaxSupportedStems)
+            ? rendererBreadth / static_cast<float>(mixxx::kDisplayedStems)
             : rendererBreadth;
 
     for (auto it = trackBeats->iteratorFrom(startPosition);
@@ -133,7 +133,7 @@ bool WaveformRenderBeat::preprocessInner() {
         const float x2 = x1 + 1.f;
 
         if (m_isSlipRenderer && splitStemTracks) {
-            for (int stemIdx = 0; stemIdx < mixxx::kMaxSupportedStems; ++stemIdx) {
+            for (int stemIdx = 0; stemIdx < mixxx::kDisplayedStems; ++stemIdx) {
                 const float posy1 = stemIdx * boxBreadth;
                 const float posy2 = posy1 + boxBreadth / 2.f;
                 vertexUpdater.addRectangle({x1, posy1}, {x2, posy2});

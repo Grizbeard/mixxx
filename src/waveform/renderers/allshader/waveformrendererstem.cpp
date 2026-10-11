@@ -49,6 +49,7 @@ void WaveformRendererStem::onSetup(const QDomNode&) {
 bool WaveformRendererStem::init() {
     for (int stemIdx = 0; stemIdx < mixxx::kMaxSupportedStems; stemIdx++) {
         QString stemGroup = EngineDeck::getGroupForStem(m_waveformRenderer->getGroup(), stemIdx);
+        // Bass has no lane of its own: it is drawn inside INST.
         m_pStemGain.emplace_back(
                 std::make_unique<ControlProxy>(stemGroup,
                         QStringLiteral("volume")));
@@ -57,6 +58,9 @@ bool WaveformRendererStem::init() {
                         QStringLiteral("mute")));
         auto bringToForeground = [this, stemIdx](double) {
             if (!m_reorderOnChange) {
+                return;
+            }
+            if (stemIdx == mixxx::kFoldedStem) {
                 return;
             }
             m_stackOrder.removeAll(stemIdx);
@@ -68,6 +72,7 @@ bool WaveformRendererStem::init() {
 
     m_stackOrder.resize(mixxx::kMaxSupportedStems);
     std::iota(m_stackOrder.begin(), m_stackOrder.end(), 0);
+    m_stackOrder.removeAll(mixxx::kFoldedStem);
 
 #ifndef __SCENEGRAPH__
     auto* pWaveformWidgetFactory = WaveformWidgetFactory::instance();
@@ -166,7 +171,9 @@ bool WaveformRendererStem::preprocessInner() {
     getGains(&allGain, nullptr, nullptr, nullptr);
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
-    const float stemBreadth = m_splitStemTracks ? breadth / 4.0f : 0;
+    const float stemBreadth = m_splitStemTracks
+            ? breadth / static_cast<float>(mixxx::kDisplayedStems)
+            : 0;
     const float halfBreadth = (m_splitStemTracks ? stemBreadth : breadth) / 2.0f;
 
     const float heightFactor = allGain * halfBreadth / m_maxValue;
@@ -177,8 +184,9 @@ bool WaveformRendererStem::preprocessInner() {
 
     const int numVerticesPerLine = 6; // 2 triangles
 
+    // Two layers per displayed stem per strip, plus the axis.
     const int reserved = numVerticesPerLine *
-            (mixxx::audio::ChannelCount::stem() * stripLength + 1);
+            (2 * static_cast<int>(m_stackOrder.size()) * stripLength + 1);
 
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
     geometry().allocate(reserved);
@@ -222,6 +230,10 @@ bool WaveformRendererStem::preprocessInner() {
                         const WaveformData& waveformData = data[i];
 
                         u8max = math_max(u8max, waveformData.stems[stemIdx]);
+                        if (stemIdx == mixxx::kInstrumentStem) {
+                            // INST: bass and other together.
+                            u8max = math_max(u8max, waveformData.stems[mixxx::kFoldedStem]);
+                        }
                     }
                 }
 
@@ -250,7 +262,8 @@ bool WaveformRendererStem::preprocessInner() {
                 if (m_splitStemTracks) {
                     height = std::min(height, halfBreadth);
                 }
-                const int yIndex = m_splitStemTracks ? stemIdx : stemLayer;
+                const int yIndex = m_splitStemTracks ? mixxx::displayedLaneOfStem(stemIdx)
+                                                     : stemLayer;
                 vertexUpdater.addRectangle(
                         {fVisualIdx - halfStripSize,
                                 yIndex * stemBreadth + halfBreadth - height},

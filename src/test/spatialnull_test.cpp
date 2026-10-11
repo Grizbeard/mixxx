@@ -167,7 +167,7 @@ TEST_F(SpatialNullRunner, FrontPairNullsAgainstTheStereoMain) {
             ControlObject::set(ConfigKey("[Master]", "gain"), 0.7);
             break;
         case 100:
-            ControlObject::set(ConfigKey("[Channel1_Stem2]", "volume"), 0.3);
+            ControlObject::set(ConfigKey("[Channel1_Stem3]", "volume"), 0.3);
             ControlObject::set(ConfigKey("[Channel1_Stem4]", "mute"), 1);
             break;
         case 120:
@@ -180,6 +180,23 @@ TEST_F(SpatialNullRunner, FrontPairNullsAgainstTheStereoMain) {
     EXPECT_LT(result.worst, 1e-4) << "in buffer " << result.worstAt;
     EXPECT_EQ(result.others, 0.0);
     EXPECT_LT(result.tail, 1e-6);
+}
+
+TEST_F(SpatialNullRunner, InstCarriesTheBass) {
+    // Bass is folded into Other (INST): with Drums, INST and Vocals muted,
+    // nothing plays, though the Bass stem itself is not muted.
+    const NullResult result = run(40, [this](int b) {
+        if (b == 0) {
+            for (int stem : {1, 3, 4}) {
+                ControlObject::set(
+                        ConfigKey(QStringLiteral("[Channel1_Stem%1]").arg(stem), "mute"), 1);
+            }
+        }
+    });
+    for (std::size_t b = 5; b < result.mainRms.size(); ++b) {
+        EXPECT_EQ(result.mainRms[b], 0) << "buffer " << b;
+    }
+    EXPECT_LT(result.worst, 1e-6);
 }
 
 TEST_F(SpatialNullRunner, DeckEqAppliesToEveryStem) {

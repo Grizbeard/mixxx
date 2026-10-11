@@ -63,21 +63,7 @@
                       </WidgetGroup>
                     </Children>
                   </WidgetGroup>
-                  <WidgetGroup>
-                    <!-- StemCh2 controls  -->
-                    <Layout>horizontal</Layout>
-                    <Children>
-                      <WidgetGroup>
-                        <Size>1min,2me</Size>
-                      </WidgetGroup>
-                      <Template src="skins:LateNight/stem_channel.xml">
-                        <SetVariable name="StemNum">2</SetVariable>
-                      </Template>
-                      <WidgetGroup>
-                        <Size>1min,3f</Size>
-                      </WidgetGroup>
-                    </Children>
-                  </WidgetGroup>
+                  <!-- No StemCh2 (Bass): Spatial Mixxx folds it into INST (StemCh3) -->
                   <WidgetGroup>
                     <!-- StemCh3 controls  -->
                     <Layout>horizontal</Layout>

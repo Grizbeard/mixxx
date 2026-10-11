@@ -12,6 +12,16 @@ static constexpr audio::ChannelCount kMaxEngineChannelInputCount =
 // struct, which must stay consistent, whether the STEM feature is enabled or
 // not.
 constexpr int kMaxSupportedStems = 4;
+// Spatial Mixxx presents three stems: Drums, INST and Vocals. The engine
+// folds the file's Bass stem (2) into Other (3), which becomes INST, so the
+// Other stem's controls cover both; waveforms show three lanes.
+constexpr int kFoldedStem = 1;     // Bass, 0-based
+constexpr int kInstrumentStem = 2; // Other = INST, 0-based
+constexpr int kDisplayedStems = 3;
+/// The waveform lane of a stem (0-based) other than the folded one.
+constexpr int displayedLaneOfStem(int stemIdx) {
+    return stemIdx < kFoldedStem ? stemIdx : stemIdx - 1;
+}
 #ifdef __STEM__
 enum class StemChannel {
     First = 0x1,

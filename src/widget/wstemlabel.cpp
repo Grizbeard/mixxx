@@ -1,5 +1,6 @@
 #include "wstemlabel.h"
 
+#include "engine/engine.h"
 #include "moc_wstemlabel.cpp"
 #include "util/logger.h"
 
@@ -57,6 +58,10 @@ void WStemLabel::slotTrackLoaded(TrackPointer pTrack) {
 void WStemLabel::updateLabel() {
     QColor color = m_stemInfo.getColor();
     QString text = m_stemInfo.getLabel();
+    if (m_stemNo == mixxx::kInstrumentStem + 1 && !text.isEmpty()) {
+        // Other carries the folded-in bass: it is the INST stem.
+        text = tr("INST");
+    }
     setTextColor(color);
     setLabelText(text);
 }

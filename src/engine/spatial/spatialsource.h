@@ -31,8 +31,8 @@ struct SpatialRenderContext {
 /// One spatial source: a stem of a deck (or a whole stereo track), with its
 /// position controls, panned onto the ring.
 ///
-/// Controls, group [ChannelN_StemM] (Drums = Stem1, Instruments = Stem2
-/// covering Stem2 + Stem3, Vocals = Stem4; a stereo track uses Stem2):
+/// Controls, group [ChannelN_StemM] (Drums = Stem1, INST = Stem3, which
+/// carries the folded-in Bass, Vocals = Stem4; a stereo track uses Stem3):
 ///   spatial_azimuth   pan, degrees, 0 = front, wraps (±180)
 ///   spatial_width     0..1 = 0..180° between the stem's L and R
 ///   spatial_spread    0 = a point on the ring, 1 = every speaker

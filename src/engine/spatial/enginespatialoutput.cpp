@@ -37,7 +37,8 @@ QString speakerKey(int speaker, const char* suffix) {
 } // namespace
 
 QString EngineSpatialOutput::sourceGroup(int deck, int slot) {
-    static constexpr int kStemOfSlot[kSlots] = {1, 2, 4};
+    // INST is the Other stem, which carries the folded-in bass.
+    static constexpr int kStemOfSlot[kSlots] = {1, 3, 4};
     return QStringLiteral("[Channel%1_Stem%2]").arg(deck + 1).arg(kStemOfSlot[slot]);
 }
 

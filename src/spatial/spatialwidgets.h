@@ -44,7 +44,7 @@ class SpatialTouchWidget : public QWidget {
 
 /// A fader bound to a control. Drags are relative (no jump on touch);
 /// double-tap resets to the default. Optionally writes extra controls too
-/// (the Instruments fader moves stems 2 and 3).
+/// (to keep linked controls in step).
 class SpatialSlider : public SpatialTouchWidget {
     Q_OBJECT
   public:

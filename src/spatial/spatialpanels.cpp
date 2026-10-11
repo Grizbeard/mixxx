@@ -228,7 +228,7 @@ SpatialStemStrip::SpatialStemStrip(int deck, int slot, QWidget* pParent)
     m_pStemCount = std::make_unique<PollingControlProxy>(
             deckGroup, "stem_count", ControlFlag::AllowMissingOrInvalid);
     m_pColor = std::make_unique<PollingControlProxy>(
-            group, "color", ControlFlag::AllowMissingOrInvalid);
+            colorGroupForSource(deck, slot), "color", ControlFlag::AllowMissingOrInvalid);
 
     auto* pLayout = new QVBoxLayout(this);
     pLayout->setContentsMargins(4, 4, 4, 4);
@@ -244,10 +244,6 @@ SpatialStemStrip::SpatialStemStrip(int deck, int slot, QWidget* pParent)
     auto* pVolume = new SpatialSlider(group, "volume", 0, 1, tr("VOL"), Qt::Vertical, this);
     pVolume->setAccent(accent);
     pVolume->setFormatter(percent);
-    if (slot == 1) {
-        // Instruments: bass and other together.
-        pVolume->addMirror(QStringLiteral("[Channel%1_Stem3]").arg(deck + 1), "volume");
-    }
     pFaderRow->addWidget(pVolume, 1);
     pLayout->addLayout(pFaderRow, 1);
     m_sliders.append(pVolume);
@@ -297,7 +293,7 @@ void SpatialStemStrip::poll() {
     }
     m_available = available;
     m_color = color;
-    static const char* const kNames[] = {"DRUMS", "INSTR", "VOCALS"};
+    static const char* const kNames[] = {"DRUMS", "INST", "VOCALS"};
     static const QColor kColors[] = {kDrums, kInstruments, kVocals};
     // A stereo track plays as the Instruments source.
     m_pName->setText(available == 1 ? tr("TRACK") : QString::fromLatin1(kNames[m_slot]));

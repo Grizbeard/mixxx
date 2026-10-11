@@ -53,10 +53,10 @@ TEST_F(SpatialWindowTest, RendersAPerformanceScene) {
     set("[Channel1_Stem1]", "spatial_width", 0.6);
     set("[Channel1_Stem4]", "spatial_autopan", 1);
     set("[Channel1_Stem4]", "spatial_fx_send", 0.6);
-    set("[Channel1_Stem2]", "spatial_azimuth", -100);
-    set("[Channel1_Stem2]", "spatial_spread", 0.3);
-    set("[Channel2_Stem2]", "spatial_azimuth", 160);
-    set("[Channel2_Stem2]", "spatial_width", 0.8);
+    set("[Channel1_Stem3]", "spatial_azimuth", -100);
+    set("[Channel1_Stem3]", "spatial_spread", 0.3);
+    set("[Channel2_Stem3]", "spatial_azimuth", 160);
+    set("[Channel2_Stem3]", "spatial_width", 0.8);
     set("[Channel2_Stem1]", "spatial_front", 1);
     set("[Channel2_Stem4]", "spatial_azimuth", 75);
     set("[Channel2_Stem4]", "spatial_autopan", 1);

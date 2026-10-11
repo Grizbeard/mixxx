@@ -63,8 +63,8 @@ class EngineSpatialOutput : public AudioSource {
     static constexpr double kMaxAlignmentSeconds = 0.03;
 
     /// The control group of a source: deck 0-based, slot 0 drums
-    /// ([ChannelN_Stem1]), 1 instruments ([ChannelN_Stem2]), 2 vocals
-    /// ([ChannelN_Stem4]).
+    /// ([ChannelN_Stem1]), 1 INST ([ChannelN_Stem3], Other with the bass
+    /// folded in), 2 vocals ([ChannelN_Stem4]).
     static QString sourceGroup(int deck, int slot);
 
     EngineSpatialOutput();
