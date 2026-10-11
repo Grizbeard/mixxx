@@ -98,7 +98,8 @@ void SpatialReverb::process(const float* pIn,
         double sampleRate,
         const SpeakerLayout& layout,
         const std::array<float*, kMaxSpeakers>& speakers,
-        float* pLf) {
+        float* pLf,
+        const FxMeta& meta) {
     const bool freeze = m_pFreeze->toBool();
     const float enabledTarget = m_pEnabled->toBool() ? 1.0f : 0.0f;
     if (enabledTarget == 0 && m_enabledGain == 0) {
@@ -118,11 +119,12 @@ void SpatialReverb::process(const float* pIn,
     m_sleeping = false;
 
     const int speakerCount = layout.count();
-    const double sizeScale = 0.4 + (kMaxSizeScale - 0.4) * std::clamp(m_pSize->get(), 0.0, 1.0);
+    const double sizeScale = 0.4 +
+            (kMaxSizeScale - 0.4) * std::clamp(meta.reverbSize(m_pSize->get()), 0.0, 1.0);
     const double modulation = std::clamp(m_pModulation->get(), 0.0, 1.0);
     const double modDepth = modulation * kMaxModulationSeconds * sampleRate;
-    const double decay = std::clamp(m_pDecay->get(), 0.5, 30.0);
-    const double damping = std::clamp(m_pDamping->get(), 0.0, 1.0);
+    const double decay = std::clamp(meta.reverbDecay(m_pDecay->get()), 0.5, 30.0);
+    const double damping = std::clamp(meta.reverbDamping(m_pDamping->get()), 0.0, 1.0);
 
     std::array<double, kLines> length{};
     std::array<float, kLines> lineGain{};
@@ -159,7 +161,7 @@ void SpatialReverb::process(const float* pIn,
         diffuserLength[i] = std::max(1, static_cast<int>(kDiffuserMs[i] / 1000.0 * sampleRate));
     }
     const int predelay = std::clamp(
-            static_cast<int>(m_pPredelayMs->get() / 1000.0 * sampleRate),
+            static_cast<int>(meta.reverbPredelayMs(m_pPredelayMs->get()) / 1000.0 * sampleRate),
             1,
             m_predelay.capacity() - 2);
     const auto shimmer = static_cast<float>(0.55 * std::clamp(m_pShimmer->get(), 0.0, 1.0));
@@ -169,7 +171,7 @@ void SpatialReverb::process(const float* pIn,
     const double release = smoothingCoefficient(0.25, 1, sampleRate);
     const auto fadeStep = static_cast<float>(1.0 / (kFadeSeconds * sampleRate));
     const float inputTarget = freeze ? 0.0f : 1.0f;
-    const auto level = static_cast<float>(std::clamp(m_pLevel->get(), 0.0, 1.0));
+    const auto level = static_cast<float>(std::clamp(m_pLevel->get(), 0.0, 1.0) * meta.level);
 
     float outputPeak = 0;
     std::array<float, kLines> s{};

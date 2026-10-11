@@ -15,6 +15,7 @@
 #include <initializer_list>
 
 #include "control/controlobject.h"
+#include "engine/spatial/spatialfxmeta.h"
 #include "moc_spatialpresets.cpp"
 #include "spatial/spatialpanels.h"
 #include "spatial/spatialstyle.h"
@@ -255,6 +256,32 @@ QList<SpatialPreset> fxFactory() {
     };
 }
 
+void bakeFxMacros() {
+    mixxx::spatial::FxMeta meta;
+    const QString fx = QStringLiteral("[SpatialFX]");
+    meta.space = ControlObject::get(ConfigKey(fx, "space"));
+    meta.echo = ControlObject::get(ConfigKey(fx, "echo"));
+    meta.tone = ControlObject::get(ConfigKey(fx, "tone"));
+    const auto bake = [](const char* group, const char* key, auto function) {
+        const ConfigKey configKey(QString::fromLatin1(group), QString::fromLatin1(key));
+        ControlObject::set(configKey, function(ControlObject::get(configKey)));
+    };
+    bake("[SpatialReverb]", "decay", [&](double v) { return meta.reverbDecay(v); });
+    bake("[SpatialReverb]", "size", [&](double v) { return meta.reverbSize(v); });
+    bake("[SpatialReverb]", "predelay_ms", [&](double v) { return meta.reverbPredelayMs(v); });
+    bake("[SpatialReverb]", "damping", [&](double v) { return meta.reverbDamping(v); });
+    bake("[SpatialDelay]", "feedback", [&](double v) { return meta.delayFeedback(v); });
+    bake("[SpatialDelay]", "to_reverb", [&](double v) { return meta.delayToReverb(v); });
+    bake("[SpatialDelay]", "tone", [&](double v) { return meta.delayTone(v); });
+    centreFxMacros();
+}
+
+void centreFxMacros() {
+    for (const char* key : {"space", "echo", "tone"}) {
+        ControlObject::set(ConfigKey(QStringLiteral("[SpatialFX]"), QString::fromLatin1(key)), 0.5);
+    }
+}
+
 } // namespace spatialpresets
 
 // ---------------------------------------------------------------------------
@@ -479,6 +506,9 @@ void SpatialPresetBar::slotRebuild() {
         const QString name = presets[i].name;
         auto* pButton = new SpatialActionButton(name, [this, i, name]() {
             m_pBank->apply(i, m_group);
+            if (m_afterLoad) {
+                m_afterLoad();
+            }
             m_selected = name;
             m_pollCount = 0;
             poll();
@@ -546,6 +576,9 @@ void SpatialPresetBar::slotSave() {
         if (box.exec() != QMessageBox::Yes) {
             return;
         }
+    }
+    if (m_beforeSave) {
+        m_beforeSave();
     }
     m_pBank->saveCurrent(name, m_group);
     m_selected = name;

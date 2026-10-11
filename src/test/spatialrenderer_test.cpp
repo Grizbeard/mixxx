@@ -13,6 +13,7 @@
 #include "engine/spatial/spatialbinaural.h"
 #include "engine/spatial/spatialdelay.h"
 #include "engine/spatial/spatialdsp.h"
+#include "engine/spatial/spatialfxmeta.h"
 #include "engine/spatial/spatialmath.h"
 #include "engine/spatial/spatialreverb.h"
 #include "test/mixxxtest.h"
@@ -525,6 +526,68 @@ TEST_F(SpatialFxTest, EchoesArriveOnTheBeatAndStepAroundTheShape) {
         }
         previous = level;
     }
+}
+
+TEST(SpatialFxMetaTest, MacrosAreNeutralInTheMiddleAndReachTheEnds) {
+    FxMeta meta;
+    EXPECT_DOUBLE_EQ(meta.delayFeedback(0.55), 0.55);
+    EXPECT_DOUBLE_EQ(meta.reverbDecay(9), 9);
+    EXPECT_DOUBLE_EQ(meta.reverbDamping(0.45), 0.45);
+    meta.echo = 1;
+    meta.space = 1;
+    meta.tone = 1;
+    EXPECT_DOUBLE_EQ(meta.delayFeedback(0.55), 0.95);
+    EXPECT_DOUBLE_EQ(meta.delayToReverb(0.3), 1);
+    EXPECT_NEAR(meta.reverbDecay(9), 30, 1e-9);
+    EXPECT_DOUBLE_EQ(meta.reverbSize(0.8), 1);
+    EXPECT_DOUBLE_EQ(meta.delayTone(0.6), 1) << "bright";
+    EXPECT_DOUBLE_EQ(meta.reverbDamping(0.45), 0) << "bright";
+    meta.echo = 0;
+    meta.space = 0;
+    meta.tone = 0;
+    EXPECT_DOUBLE_EQ(meta.delayFeedback(0.55), 0);
+    EXPECT_NEAR(meta.reverbDecay(9), 0.5, 1e-9);
+    EXPECT_DOUBLE_EQ(meta.reverbDamping(0.45), 1) << "dark";
+    meta.space = 0.75;
+    EXPECT_NEAR(meta.reverbDecay(9), 9 * std::sqrt(30.0 / 9), 1e-9) << "half way, on a ratio scale";
+}
+
+TEST_F(SpatialFxTest, TheEchoMacroAtZeroLeavesOneEcho) {
+    SpatialDelay delay;
+    configureDelay(1);
+    FxMeta meta;
+    meta.echo = 0; // feedback 0.5 pushed to 0
+    std::vector<float> in(kFrames);
+    std::vector<float> lf(kFrames);
+    std::vector<float> toReverb(kFrames);
+    std::vector<double> sum;
+    const auto burst = burstAt(kFramesPerBeat / 4);
+    for (int c = 0; c < 3 * 50; ++c) {
+        const auto tempo = tempoAfter(c + 1);
+        m_clock.advance(kFrames, kRate, tempo.beat_length->seconds,
+                *tempo.beat_fraction_buffer_end, 0);
+        for (int f = 0; f < kFrames; ++f) {
+            in[f] = burst(c * kFrames + f);
+        }
+        std::array<float*, kMaxSpeakers> speakers{};
+        for (int i = 0; i < 4; ++i) {
+            std::fill(m_speakers[i].begin(), m_speakers[i].end(), 0.0f);
+            speakers[i] = m_speakers[i].data();
+        }
+        delay.process(in.data(), in.data(), kFrames, kRate, m_clock, m_layout,
+                speakers, lf.data(), toReverb.data(), meta);
+        for (int f = 0; f < kFrames; ++f) {
+            double x = 0;
+            for (int i = 0; i < 4; ++i) {
+                x += std::abs(m_speakers[i][f]);
+            }
+            sum.push_back(x);
+        }
+    }
+    const std::size_t first = kFramesPerBeat / 4 + kFramesPerBeat;
+    EXPECT_GT(rmsOf(sum, first, first + 48), 0.05) << "echo 1";
+    EXPECT_LT(rmsOf(sum, first + kFramesPerBeat - 10, first + kFramesPerBeat + 100), 1e-6)
+            << "no echo 2";
 }
 
 TEST_F(SpatialFxTest, ReEnablingTheDelayForgetsOldEchoes) {

@@ -85,10 +85,12 @@ TEST_F(SpatialWindowTest, RendersAPerformanceScene) {
         m_pOutput->process(nullptr, 480, mixxx::audio::SampleRate(48000));
     }
 
-    // One render per tab (auto-pan A, B, Spatial FX on delay, then reverb).
-    for (int tab = 0; tab < 4; ++tab) {
+    // One render per tab (auto-pan A, B, Spatial FX on delay, then reverb),
+    // then the Basic layout.
+    for (int tab = 0; tab < 5; ++tab) {
         config()->setValue(ConfigKey("[SpatialWindow]", "tab"), std::min(tab, 2));
         config()->setValue(ConfigKey("[SpatialWindow]", "fx_unit"), tab == 3 ? 1 : 0);
+        config()->setValue(ConfigKey("[SpatialWindow]", "layout"), tab == 4 ? 1 : 0);
         SpatialWindow window(config(), nullptr, nullptr);
         window.setAttribute(Qt::WA_DontShowOnScreen);
         window.resize(1920, 1080);
@@ -196,6 +198,20 @@ TEST_F(SpatialWindowTest, FxPresetsCoverDelayAndReverbTogether) {
             spatialpresets::fxFactory(),
             settings.path());
     EXPECT_LT(bank.indexOf(QStringLiteral("MY THROW")), 0);
+}
+
+TEST_F(SpatialWindowTest, SavingBakesTheMacrosIn) {
+    set("[SpatialReverb]", "decay", 9);
+    set("[SpatialDelay]", "feedback", 0.5);
+    set("[SpatialFX]", "space", 0.75);
+    set("[SpatialFX]", "echo", 0.25);
+    spatialpresets::bakeFxMacros();
+    EXPECT_NEAR(ControlObject::get(ConfigKey("[SpatialReverb]", "decay")),
+            9 * std::sqrt(30.0 / 9),
+            1e-6);
+    EXPECT_NEAR(ControlObject::get(ConfigKey("[SpatialDelay]", "feedback")), 0.25, 1e-9);
+    EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialFX]", "space")), 0.5);
+    EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialFX]", "echo")), 0.5);
 }
 
 TEST_F(SpatialWindowTest, OlderDelayAndReverbPresetsMoveIntoTheFxList) {

@@ -41,7 +41,8 @@ QWidget* routingNote(QWidget* pParent) {
             "Signal: each stem's FX SEND feeds the DELAY and, at DIRECT IN, the "
             "REVERB. The delay's echoes go to the speakers and, at TO REVERB, into "
             "the reverb too. So the reverb works with the delay off; with DIRECT IN "
-            "at 0 it hears only the echoes."), pParent);
+            "at 0 it hears only the echoes. The Basic layout's SPACE / ECHO / TONE "
+            "macros push these settings live; saving a preset keeps what they do."), pParent);
     pNote->setWordWrap(true);
     pNote->setStyleSheet(QStringLiteral("color: #777; font-size: 12px;"));
     return pNote;
@@ -546,6 +547,7 @@ SpatialFxPanel::SpatialFxPanel(
 
     // One preset list for the whole unit: delay and reverb together.
     m_pPresets = new SpatialPresetBar(pBank, QString(), this);
+    m_pPresets->setHooks(spatialpresets::centreFxMacros, spatialpresets::bakeFxMacros);
     pLayout->addWidget(m_pPresets);
 
     // Sub-tabs, each with its unit's on/off beside it.

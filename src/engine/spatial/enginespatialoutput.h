@@ -20,6 +20,7 @@ struct GroupFeatureState;
 namespace mixxx::spatial {
 class SpatialAutopan;
 class SpatialBinaural;
+class SpatialFxMetaControls;
 class SpatialDelay;
 class SpatialReverb;
 } // namespace mixxx::spatial
@@ -58,6 +59,9 @@ class SpatialReverb;
 ///                      output assigned (persisted)
 ///   headphone_room     early reflections for an outside-the-head image 0..1
 ///   headphone_eq       Sennheiser HD 280 PRO correction (AutoEq) (persisted)
+///   autopan_focus      which auto-pan unit the Basic layout and a controller's
+///                      auto-pan column play: 0 = A, 1 = B
+/// The Spatial FX macros live in [SpatialFX] (see SpatialFxMetaControls).
 class EngineSpatialOutput : public AudioSource {
   public:
     static constexpr int kMaxChannels = 8;
@@ -167,6 +171,8 @@ class EngineSpatialOutput : public AudioSource {
     std::unique_ptr<mixxx::spatial::SpatialDelay> m_pDelay;
     std::unique_ptr<mixxx::spatial::SpatialReverb> m_pReverb;
     std::unique_ptr<mixxx::spatial::SpatialBinaural> m_pBinaural;
+    std::unique_ptr<mixxx::spatial::SpatialFxMetaControls> m_pFxMeta;
+    std::unique_ptr<ControlPushButton> m_pAutopanFocus;
     std::vector<float> m_binaural;
     bool m_binauralValid = false;
 

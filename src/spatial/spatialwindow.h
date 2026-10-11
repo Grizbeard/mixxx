@@ -12,6 +12,7 @@ class SpatialActionButton;
 class SpatialAutopanPanel;
 class SpatialDeckPanel;
 class SpatialFxPanel;
+class SpatialBasicSurface;
 class SpatialField;
 class SpatialTopBar;
 
@@ -29,6 +30,11 @@ class SpatialWindow : public QWidget {
     ~SpatialWindow() override;
 
     void toggleFullScreen();
+    /// 0 = Advanced (every setting), 1 = Basic (the controller's layout).
+    void setLayoutMode(int mode);
+    int layoutMode() const {
+        return m_layoutMode;
+    }
     /// Shows it where it was last, or full screen on a second screen.
     void showRestored();
 
@@ -57,5 +63,8 @@ class SpatialWindow : public QWidget {
     QList<SpatialActionButton*> m_tabButtons;
     QList<SpatialAutopanPanel*> m_autopans;
     SpatialFxPanel* m_pFx;
+    QList<QWidget*> m_advanced;
+    SpatialBasicSurface* m_pBasic;
+    int m_layoutMode = 0;
     QTimer m_pollTimer;
 };

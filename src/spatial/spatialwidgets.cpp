@@ -165,6 +165,14 @@ void SpatialSlider::addMirror(const QString& group, const QString& key) {
     m_mirrors.append(makeProxy(group, key, this));
 }
 
+void SpatialSlider::rebind(const QString& group) {
+    const QString key = m_pControl->getKey().item;
+    delete m_pControl;
+    m_pControl = makeProxy(group, key, this);
+    m_pControl->connectValueChanged(this, [this](double) { update(); });
+    update();
+}
+
 void SpatialSlider::setControlEnabled(bool enabled) {
     if (m_enabled != enabled) {
         m_enabled = enabled;
@@ -345,6 +353,14 @@ void SpatialButton::setControlEnabled(bool enabled) {
     }
 }
 
+void SpatialButton::rebind(const QString& group) {
+    const QString key = m_pControl->getKey().item;
+    delete m_pControl;
+    m_pControl = makeProxy(group, key, this);
+    m_pControl->connectValueChanged(this, [this](double) { update(); });
+    update();
+}
+
 void SpatialButton::addMirror(const QString& group, const QString& key) {
     m_mirrors.append(makeProxy(group, key, this));
 }
@@ -421,6 +437,177 @@ void SpatialButton::paintEvent(QPaintEvent* pEvent) {
         p.setPen(ink);
         p.setFont(styleFont(m_fontSize, true));
         p.drawText(rect(), Qt::AlignCenter, m_text);
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+SpatialKnob::SpatialKnob(const QString& group,
+        const QString& key,
+        double min,
+        double max,
+        const QString& label,
+        QWidget* pParent)
+        : SpatialTouchWidget(pParent),
+          m_pControl(makeProxy(group, key, this)),
+          m_min(min),
+          m_max(max),
+          m_label(label),
+          m_accent(kGain) {
+    m_pControl->connectValueChanged(this, [this](double) { update(); });
+    setMinimumSize(80, 104);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+}
+
+void SpatialKnob::setAccent(const QColor& accent) {
+    m_accent = accent;
+    update();
+}
+
+void SpatialKnob::setBipolar(bool bipolar) {
+    m_bipolar = bipolar;
+    update();
+}
+
+void SpatialKnob::setFormatter(std::function<QString(double)> formatter) {
+    m_formatter = std::move(formatter);
+    update();
+}
+
+void SpatialKnob::setSteps(const QList<double>& steps) {
+    m_steps = steps;
+    update();
+}
+
+void SpatialKnob::setValuePainter(ValuePainter painter) {
+    m_valuePainter = std::move(painter);
+    update();
+}
+
+void SpatialKnob::setControlEnabled(bool enabled) {
+    if (m_enabled != enabled) {
+        m_enabled = enabled;
+        update();
+    }
+}
+
+void SpatialKnob::rebind(const QString& group) {
+    const QString key = m_pControl->getKey().item;
+    delete m_pControl;
+    m_pControl = makeProxy(group, key, this);
+    m_pControl->connectValueChanged(this, [this](double) { update(); });
+    update();
+}
+
+double SpatialKnob::parameter() const {
+    const double value = m_pControl->get();
+    if (!m_steps.isEmpty()) {
+        // The nearest step.
+        int best = 0;
+        for (int i = 1; i < m_steps.size(); ++i) {
+            if (std::abs(m_steps[i] - value) < std::abs(m_steps[best] - value)) {
+                best = i;
+            }
+        }
+        return m_steps.size() > 1 ? static_cast<double>(best) / (m_steps.size() - 1) : 0;
+    }
+    return std::clamp((value - m_min) / (m_max - m_min), 0.0, 1.0);
+}
+
+void SpatialKnob::setParameter(double parameter) {
+    parameter = std::clamp(parameter, 0.0, 1.0);
+    if (!m_steps.isEmpty()) {
+        const int index = static_cast<int>(std::lround(parameter * (m_steps.size() - 1)));
+        m_pControl->set(m_steps[index]);
+    } else {
+        m_pControl->set(m_min + (m_max - m_min) * parameter);
+    }
+    update();
+}
+
+void SpatialKnob::pointerPressed(QPointF position) {
+    m_pressPosition = position;
+    m_pressParameter = parameter();
+    update();
+}
+
+void SpatialKnob::pointerMoved(QPointF position) {
+    if (!m_enabled) {
+        return;
+    }
+    // 160 px of travel for the whole range; 30 px per step when stepped.
+    const double travel = m_steps.isEmpty()
+            ? 160.0
+            : 30.0 * std::max(2, static_cast<int>(m_steps.size()));
+    setParameter(m_pressParameter + (m_pressPosition.y() - position.y()) / travel);
+}
+
+void SpatialKnob::pointerReleased(QPointF position) {
+    Q_UNUSED(position);
+    update();
+}
+
+void SpatialKnob::doubleTapped(QPointF position) {
+    Q_UNUSED(position);
+    if (m_enabled) {
+        m_pControl->reset();
+        m_pressParameter = parameter();
+        update();
+    }
+}
+
+void SpatialKnob::paintEvent(QPaintEvent* pEvent) {
+    Q_UNUSED(pEvent);
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    const QColor accent = m_enabled ? m_accent : kDisabled;
+    p.setPen(m_enabled ? kLabel : kDisabled);
+    p.setFont(styleFont(11, true));
+    p.drawText(QRectF(0, 0, width(), 18), Qt::AlignCenter, m_label);
+
+    const double side = std::min<double>(width() - 16, height() - 46);
+    const QRectF face(width() / 2.0 - side / 2, 20, side, side);
+    // The ring: 270 degrees, from bottom left round to bottom right.
+    const QRectF ring = face.adjusted(-3, -3, 3, 3);
+    p.setPen(QPen(kBar, 5, Qt::SolidLine, Qt::FlatCap));
+    p.setBrush(Qt::NoBrush);
+    p.drawArc(ring, 225 * 16, -270 * 16);
+    const double param = parameter();
+    const double from = m_bipolar ? 0.5 : 0.0;
+    p.setPen(QPen(accent, 5, Qt::SolidLine, Qt::FlatCap));
+    const double startDegrees = 225 - 270 * from;
+    p.drawArc(ring,
+            static_cast<int>(startDegrees * 16),
+            static_cast<int>(-270 * (param - from) * 16));
+    // The face, like LateNight's knob_bg.
+    QRadialGradient gradient(face.center() - QPointF(0, side * 0.2), side * 0.7);
+    gradient.setColorAt(0, QColor(0x4a, 0x4a, 0x4c));
+    gradient.setColorAt(1, QColor(0x1c, 0x1c, 0x1e));
+    p.setPen(QPen(kBorderDark, 1));
+    p.setBrush(gradient);
+    p.drawEllipse(face.adjusted(4, 4, -4, -4));
+    // The pointer.
+    const double angle = (225 - 270 * param) * mixxx::spatial::kPi / 180;
+    const QPointF centre = face.center();
+    const double r = side / 2 - 8;
+    p.setPen(QPen(m_pressed ? kText : QColor(0xd2, 0xd2, 0xd2), 2.5, Qt::SolidLine, Qt::RoundCap));
+    p.drawLine(centre + QPointF(std::cos(angle) * r * 0.35, -std::sin(angle) * r * 0.35),
+            centre + QPointF(std::cos(angle) * r, -std::sin(angle) * r));
+
+    const QRectF valueRect(0, face.bottom() + 2, width(), height() - face.bottom() - 2);
+    if (m_valuePainter) {
+        const double h = std::min(24.0, valueRect.height());
+        m_valuePainter(p,
+                QRectF(width() / 2.0 - h * 1.2, valueRect.top(), h * 2.4, h),
+                m_enabled ? kText : kDisabled,
+                m_pControl->get());
+    } else {
+        p.setPen(m_enabled ? kText : kDisabled);
+        p.setFont(styleFont(12));
+        p.drawText(valueRect,
+                Qt::AlignHCenter | Qt::AlignTop,
+                m_formatter ? m_formatter(m_pControl->get())
+                            : QString::number(m_pControl->get(), 'f', 2));
     }
 }
 

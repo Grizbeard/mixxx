@@ -68,6 +68,8 @@ class SpatialSlider : public SpatialTouchWidget {
     void setFormatter(std::function<QString(double)> formatter);
     void addMirror(const QString& group, const QString& key);
     void setControlEnabled(bool enabled);
+    /// Points the slider at the same key of another group.
+    void rebind(const QString& group);
 
     QSize sizeHint() const override;
 
@@ -121,12 +123,18 @@ class SpatialButton : public SpatialTouchWidget {
     void setValue(double value) {
         m_value = value;
     }
+    void setText(const QString& text) {
+        m_text = text;
+        update();
+    }
     void setAccent(const QColor& accent);
     void setIcon(IconPainter painter);
     void setFontSize(int pixels);
     void setControlEnabled(bool enabled);
     /// Extra controls this button writes with the same value.
     void addMirror(const QString& group, const QString& key);
+    /// Points the button at the same key of another group.
+    void rebind(const QString& group);
 
     QSize sizeHint() const override;
 
@@ -149,6 +157,59 @@ class SpatialButton : public SpatialTouchWidget {
     IconPainter m_icon;
     int m_fontSize = 13;
     bool m_enabled = true;
+};
+
+/// A knob bound to a control, LateNight style: an arc ring that fills with
+/// the value. Drag up/down (relative, no jump); double-tap resets. With
+/// steps it snaps through a list of values (shapes, waves, beat lengths)
+/// and can draw each one.
+class SpatialKnob : public SpatialTouchWidget {
+    Q_OBJECT
+  public:
+    using ValuePainter = std::function<void(QPainter&, const QRectF&, const QColor&, double)>;
+
+    SpatialKnob(const QString& group,
+            const QString& key,
+            double min,
+            double max,
+            const QString& label,
+            QWidget* pParent = nullptr);
+
+    void setAccent(const QColor& accent);
+    void setBipolar(bool bipolar);
+    void setFormatter(std::function<QString(double)> formatter);
+    void setSteps(const QList<double>& steps);
+    void setValuePainter(ValuePainter painter);
+    void setControlEnabled(bool enabled);
+    void rebind(const QString& group);
+
+    QSize sizeHint() const override {
+        return {96, 118};
+    }
+
+  protected:
+    void paintEvent(QPaintEvent* pEvent) override;
+    void pointerPressed(QPointF position) override;
+    void pointerMoved(QPointF position) override;
+    void pointerReleased(QPointF position) override;
+    void doubleTapped(QPointF position) override;
+
+  private:
+    double parameter() const;
+    void setParameter(double parameter);
+
+    ControlProxy* m_pControl;
+    const double m_min;
+    const double m_max;
+    const QString m_label;
+    QColor m_accent;
+    bool m_bipolar = false;
+    bool m_enabled = true;
+    QList<double> m_steps;
+    std::function<QString(double)> m_formatter;
+    ValuePainter m_valuePainter;
+    QPointF m_pressPosition;
+    double m_pressParameter = 0;
 };
 
 /// A vertical peak meter fed by polling (call poll() from a timer).

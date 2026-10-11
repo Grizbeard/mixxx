@@ -6,6 +6,7 @@
 #include <QString>
 #include <QStringList>
 #include <QWidget>
+#include <functional>
 
 class QHBoxLayout;
 class SpatialActionButton;
@@ -77,6 +78,11 @@ class SpatialPresetBar : public QWidget {
     SpatialPresetBar(SpatialPresetBank* pBank, const QString& group, QWidget* pParent = nullptr);
     /// Call regularly: lights the matching preset.
     void poll();
+    /// Runs after a preset loads, and before the current settings are saved.
+    void setHooks(std::function<void()> afterLoad, std::function<void()> beforeSave) {
+        m_afterLoad = std::move(afterLoad);
+        m_beforeSave = std::move(beforeSave);
+    }
 
   private slots:
     void slotRebuild();
@@ -91,6 +97,8 @@ class SpatialPresetBar : public QWidget {
     SpatialActionButton* m_pDelete;
     QString m_selected;
     int m_pollCount = 0;
+    std::function<void()> m_afterLoad;
+    std::function<void()> m_beforeSave;
 };
 
 /// The factory banks.
@@ -100,4 +108,10 @@ QList<SpatialPreset> autopanFactory();
 QList<SpatialPreset> fxFactory();
 QStringList autopanKeys();
 QStringList fxKeys();
+/// Writes what the SPACE / ECHO / TONE macros are doing into the delay and
+/// reverb settings and centres the macros: nothing changes to the ear, and
+/// a preset saved now sounds as heard.
+void bakeFxMacros();
+/// Centres the macros, so a loaded preset sounds as it was saved.
+void centreFxMacros();
 } // namespace spatialpresets

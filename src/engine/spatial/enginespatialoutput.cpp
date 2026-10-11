@@ -11,6 +11,7 @@
 #include "engine/spatial/spatialbinaural.h"
 #include "engine/spatial/spatialcontrols.h"
 #include "engine/spatial/spatialdelay.h"
+#include "engine/spatial/spatialfxmeta.h"
 #include "engine/spatial/spatialreverb.h"
 #include "util/defs.h"
 
@@ -73,6 +74,8 @@ EngineSpatialOutput::EngineSpatialOutput()
           m_pDelay(std::make_unique<SpatialDelay>()),
           m_pReverb(std::make_unique<SpatialReverb>()),
           m_pBinaural(std::make_unique<SpatialBinaural>()),
+          m_pFxMeta(std::make_unique<SpatialFxMetaControls>()),
+          m_pAutopanFocus(makeToggle(kGroup, "autopan_focus")),
           m_binaural(2 * kMaxEngineFrames),
           m_rendered(kMaxDecks * kSlots, false),
           m_lf(kMaxEngineFrames),
@@ -284,7 +287,8 @@ void EngineSpatialOutput::renderBus(
     }
 
     // Spatial FX unit: the delay feeds the speakers and, optionally, the
-    // reverb; the reverb takes the sends too.
+    // reverb; the reverb takes the sends too. The macros play both.
+    const FxMeta meta = m_pFxMeta->values();
     m_pDelay->process(m_sendLeft.data(),
             m_sendRight.data(),
             frameCount,
@@ -293,14 +297,16 @@ void EngineSpatialOutput::renderBus(
             m_layout,
             bus,
             m_lf.data(),
-            m_reverbIn.data());
+            m_reverbIn.data(),
+            meta);
     // The reverb hears the echoes (to_reverb) plus, at its direct level,
     // the stems' send itself, so it also works with the delay off.
     const float direct = 0.5f * m_pReverb->directLevel();
     for (int f = 0; f < frameCount; ++f) {
         m_reverbIn[f] += direct * (m_sendLeft[f] + m_sendRight[f]);
     }
-    m_pReverb->process(m_reverbIn.data(), frameCount, m_sampleRate, m_layout, bus, m_lf.data());
+    m_pReverb->process(
+            m_reverbIn.data(), frameCount, m_sampleRate, m_layout, bus, m_lf.data(), meta);
 
     // Master gain, crossover, alignment, trims.
     const bool lfEnabled = lfChannel >= 0;

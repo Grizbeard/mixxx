@@ -1322,6 +1322,7 @@ add_library(
   src/engine/spatial/spatialbinaural.cpp
   src/engine/spatial/spatialdelay.cpp
   src/engine/spatial/spatialdsp.cpp
+  src/engine/spatial/spatialfxmeta.cpp
   src/engine/spatial/spatialmath.cpp
   src/engine/spatial/spatialreverb.cpp
   src/engine/spatial/spatialsource.cpp
@@ -1514,6 +1515,7 @@ add_library(
   src/preferences/dialog/dlgprefreplaygaindlg.ui
   src/preferences/dialog/dlgprefsound.cpp
   src/preferences/dialog/dlgprefspatial.cpp
+  src/spatial/spatialbasic.cpp
   src/spatial/spatialfield.cpp
   src/spatial/spatialpanels.cpp
   src/spatial/spatialpresets.cpp

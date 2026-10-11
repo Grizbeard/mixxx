@@ -5,6 +5,7 @@
 
 #include "engine/spatial/spatialcontrols.h"
 #include "engine/spatial/spatialdsp.h"
+#include "engine/spatial/spatialfxmeta.h"
 
 namespace mixxx::spatial {
 
@@ -62,7 +63,8 @@ class SpatialDelay {
             const SpeakerLayout& layout,
             const std::array<float*, kMaxSpeakers>& speakers,
             float* pLf,
-            float* pToReverb);
+            float* pToReverb,
+            const FxMeta& meta = FxMeta());
 
     /// The point (0-based) echo `tap` + 1 lands on, for `points` points; echo
     /// time and poly step in the same unit (beats or seconds), 0 = no poly.

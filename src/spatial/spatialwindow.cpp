@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "moc_spatialwindow.cpp"
+#include "spatial/spatialbasic.h"
 #include "spatial/spatialfield.h"
 #include "spatial/spatialpanels.h"
 #include "spatial/spatialpresets.h"
@@ -60,6 +61,16 @@ class SpatialTopBar : public QWidget {
         pPhones->setAccent(kPlayPos);
         pPhones->setFixedWidth(130);
         pLayout->addWidget(pPhones);
+        // Basic (the controller's layout) or Advanced (every setting).
+        m_pBasic = new SpatialActionButton(
+                tr("BASIC"), [pWindow]() { pWindow->setLayoutMode(1); }, this);
+        m_pAdvanced = new SpatialActionButton(
+                tr("ADVANCED"), [pWindow]() { pWindow->setLayoutMode(0); }, this);
+        for (SpatialActionButton* pButton : {m_pBasic, m_pAdvanced}) {
+            pButton->setFixedWidth(120);
+            pLayout->addWidget(pButton);
+        }
+        pLayout->addSpacing(12);
         auto* pSetup = new SpatialActionButton(
                 tr("SETUP"), [pWindow]() { emit pWindow->preferencesRequested(); }, this);
         m_pFullScreen = new SpatialActionButton(
@@ -71,8 +82,10 @@ class SpatialTopBar : public QWidget {
         }
     }
 
-    void poll(bool fullScreen) {
+    void poll(bool fullScreen, int layoutMode) {
         m_pFullScreen->setActive(fullScreen);
+        m_pBasic->setActive(layoutMode == 1);
+        m_pAdvanced->setActive(layoutMode == 0);
         QByteArray state;
         QDataStream out(&state, QIODevice::WriteOnly);
         m_beat = static_cast<int>(std::floor(m_pBeat->get())) % 4;
@@ -164,6 +177,8 @@ class SpatialTopBar : public QWidget {
             m_pPassthrough, m_pHeadphones;
     std::array<std::unique_ptr<PollingControlProxy>, 8> m_pVu;
     SpatialActionButton* m_pFullScreen;
+    SpatialActionButton* m_pBasic;
+    SpatialActionButton* m_pAdvanced;
     QByteArray m_state;
     int m_beat = 0;
     int m_channels = 0;
@@ -199,12 +214,18 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
     for (int deck = 0; deck < kDecks; ++deck) {
         auto* pDeck = new SpatialDeckPanel(deck, this);
         m_decks.append(pDeck);
+        m_advanced.append(pDeck);
         pMain->addWidget(pDeck);
     }
+    m_pBasic = new SpatialBasicSurface(this);
+    pMain->addWidget(m_pBasic);
     pRoot->addLayout(pMain, 1);
 
-    auto* pTabRow = new QHBoxLayout();
+    auto* pTabBar = new QWidget(this);
+    auto* pTabRow = new QHBoxLayout(pTabBar);
+    pTabRow->setContentsMargins(0, 0, 0, 0);
     pTabRow->setSpacing(4);
+    m_advanced.append(pTabBar);
     const QStringList tabs = {tr("AUTO-PAN A"), tr("AUTO-PAN B"), tr("SPATIAL FX")};
     m_pTabs = new QStackedWidget(this);
     for (int i = 0; i < tabs.size(); ++i) {
@@ -213,7 +234,7 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
         m_tabButtons.append(pButton);
         pTabRow->addWidget(pButton);
     }
-    pRoot->addLayout(pTabRow);
+    pRoot->addWidget(pTabBar);
     // Presets: one bank per tool; both auto-pan units share theirs.
     const QString settingsPath = m_pConfig->getSettingsPath();
     auto* pAutopanBank = new SpatialPresetBank(QStringLiteral("autopan"),
@@ -239,7 +260,9 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
     m_pTabs->setMinimumHeight(260);
     m_pTabs->setMaximumHeight(350);
     pRoot->addWidget(m_pTabs);
+    m_advanced.append(m_pTabs);
     showTab(m_pConfig->getValue(ConfigKey(kConfigGroup, "tab"), 0));
+    setLayoutMode(m_pConfig->getValue(ConfigKey(kConfigGroup, "layout"), 0));
 
     m_pollTimer.setInterval(kPollMs);
     connect(&m_pollTimer, &QTimer::timeout, this, &SpatialWindow::slotPoll);
@@ -256,8 +279,22 @@ void SpatialWindow::showTab(int index) {
     m_pConfig->setValue(ConfigKey(kConfigGroup, "tab"), index);
 }
 
+void SpatialWindow::setLayoutMode(int mode) {
+    m_layoutMode = mode == 1 ? 1 : 0;
+    for (QWidget* pWidget : std::as_const(m_advanced)) {
+        pWidget->setVisible(m_layoutMode == 0);
+    }
+    m_pBasic->setVisible(m_layoutMode == 1);
+    m_pConfig->setValue(ConfigKey(kConfigGroup, "layout"), m_layoutMode);
+}
+
 void SpatialWindow::slotPoll() {
-    m_pTopBar->poll(isFullScreen());
+    m_pTopBar->poll(isFullScreen(), m_layoutMode);
+    if (m_layoutMode == 1) {
+        m_pField->poll();
+        m_pBasic->poll();
+        return;
+    }
     m_pField->poll();
     for (SpatialDeckPanel* pDeck : std::as_const(m_decks)) {
         pDeck->poll();

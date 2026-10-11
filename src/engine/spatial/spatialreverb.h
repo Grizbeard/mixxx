@@ -5,6 +5,7 @@
 
 #include "engine/spatial/spatialcontrols.h"
 #include "engine/spatial/spatialdsp.h"
+#include "engine/spatial/spatialfxmeta.h"
 
 namespace mixxx::spatial {
 
@@ -48,7 +49,8 @@ class SpatialReverb {
             double sampleRate,
             const SpeakerLayout& layout,
             const std::array<float*, kMaxSpeakers>& speakers,
-            float* pLf);
+            float* pLf,
+            const FxMeta& meta = FxMeta());
 
   private:
     void clear();

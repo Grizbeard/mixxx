@@ -88,7 +88,8 @@ void SpatialDelay::process(const float* pSendLeft,
         const SpeakerLayout& layout,
         const std::array<float*, kMaxSpeakers>& speakers,
         float* pLf,
-        float* pToReverb) {
+        float* pToReverb,
+        const FxMeta& meta) {
     const float enabledTarget = m_pEnabled->toBool() ? 1.0f : 0.0f;
     if (enabledTarget == 0 && m_enabledGain == 0) {
         m_idle = true;
@@ -146,9 +147,11 @@ void SpatialDelay::process(const float* pSendLeft,
 
     // Echo k + 1 (tap k): level feedback^k, its point, and tone darkening as
     // if it had passed the filters k + 1 times.
-    const auto feedback = static_cast<float>(std::clamp(m_pFeedback->get(), 0.0, 0.97));
+    const auto feedback = static_cast<float>(
+            std::clamp(meta.delayFeedback(m_pFeedback->get()), 0.0, 0.97));
     const auto cycleFeedback = static_cast<float>(std::pow(feedback, cycle));
-    const double toneHz = 1000.0 * std::pow(20.0, std::clamp(m_pTone->get(), 0.0, 1.0));
+    const double toneHz = 1000.0 *
+            std::pow(20.0, std::clamp(meta.delayTone(m_pTone->get()), 0.0, 1.0));
     const bool toneOpen = toneHz >= 19500;
     const double lowCutHz = std::clamp(m_pLowCut->get(), 20.0, 1000.0);
     const double nyquistGuard = 0.45 * sampleRate;
@@ -200,8 +203,9 @@ void SpatialDelay::process(const float* pSendLeft,
     const auto gateCoefficient = static_cast<float>(smoothingCoefficient(
             0.0005 + std::clamp(m_pGateSmooth->get(), 0.0, 1.0) * 0.0195, 1, sampleRate));
 
-    const auto level = static_cast<float>(std::clamp(m_pLevel->get(), 0.0, 1.0));
-    const auto toReverb = static_cast<float>(std::clamp(m_pToReverb->get(), 0.0, 1.0));
+    const auto level = static_cast<float>(std::clamp(m_pLevel->get(), 0.0, 1.0) * meta.level);
+    const auto toReverb = static_cast<float>(
+            std::clamp(meta.delayToReverb(m_pToReverb->get()), 0.0, 1.0));
     const auto enableStep = static_cast<float>(1.0 / (kEnableFadeSeconds * sampleRate));
 
     std::array<float, kMaxPoints> bucket{};
