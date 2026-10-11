@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 #include <cmath>
 #include <numeric>
@@ -425,17 +426,14 @@ void SpatialAutopanPanel::poll() {
 
 // ---------------------------------------------------------------------------
 
-SpatialDelayPanel::SpatialDelayPanel(SpatialPresetBank* pBank, QWidget* pParent)
-        : SpatialPanel(pParent) {
+SpatialDelayPanel::SpatialDelayPanel(QWidget* pParent)
+        : QWidget(pParent) {
     const QString group = QStringLiteral("[SpatialDelay]");
     m_pSync = std::make_unique<PollingControlProxy>(
             group, "sync", ControlFlag::AllowMissingOrInvalid);
     auto* pLayout = new QVBoxLayout(this);
-    pLayout->setContentsMargins(8, 8, 8, 8);
+    pLayout->setContentsMargins(0, 0, 0, 0);
     pLayout->setSpacing(6);
-
-    m_pPresets = new SpatialPresetBar(pBank, group, this);
-    pLayout->addWidget(m_pPresets);
 
     QList<QWidget*> time;
     time.append(toggle(group, "sync", tr("SYNC"), kHotOrange));
@@ -478,7 +476,6 @@ SpatialDelayPanel::SpatialDelayPanel(SpatialPresetBank* pBank, QWidget* pParent)
     pLayout->addWidget(row(tr("RHYTHM"), rhythm, this));
 
     QList<QWidget*> tone;
-    tone.append(toggle(group, "enabled", tr("ON"), kTeal));
     tone.append(slider(group, "level", 0, 1, tr("LEVEL"), kTeal));
     tone.append(slider(group, "feedback", 0, 0.97, tr("FEEDBACK"), kTeal));
     tone.append(slider(group, "tone", 0, 1, tr("TONE"), kTeal, [](double v) {
@@ -489,13 +486,11 @@ SpatialDelayPanel::SpatialDelayPanel(SpatialPresetBank* pBank, QWidget* pParent)
     tone.append(pLowCut);
     tone.append(slider(group, "to_reverb", 0, 1, tr("TO REVERB"), kTeal));
     pLayout->addWidget(row(tr("TONE"), tone, this));
-    pLayout->addWidget(routingNote(this));
     pLayout->addStretch(1);
     poll();
 }
 
 void SpatialDelayPanel::poll() {
-    m_pPresets->poll();
     const bool sync = m_pSync->get() > 0;
     for (SpatialButton* pButton : std::as_const(m_beatButtons)) {
         pButton->setControlEnabled(sync);
@@ -505,22 +500,17 @@ void SpatialDelayPanel::poll() {
 
 // ---------------------------------------------------------------------------
 
-SpatialReverbPanel::SpatialReverbPanel(SpatialPresetBank* pBank, QWidget* pParent)
-        : SpatialPanel(pParent) {
+SpatialReverbPanel::SpatialReverbPanel(QWidget* pParent)
+        : QWidget(pParent) {
     const QString group = QStringLiteral("[SpatialReverb]");
     auto* pLayout = new QVBoxLayout(this);
-    pLayout->setContentsMargins(8, 8, 8, 8);
+    pLayout->setContentsMargins(0, 0, 0, 0);
     pLayout->setSpacing(6);
 
-    m_pPresets = new SpatialPresetBar(pBank, group, this);
-    pLayout->addWidget(m_pPresets);
-
-    auto* pOn = toggle(group, "enabled", tr("ON"), kTeal);
     auto* pFreeze = toggle(group, "freeze", tr("FREEZE"), kHotOrange);
-    pOn->setMaximumWidth(160);
     pFreeze->setMaximumWidth(160);
     auto* pDirect = slider(group, "direct", 0, 1, tr("DIRECT IN (FROM THE SEND)"), kTeal);
-    pLayout->addWidget(row(tr("REVERB"), {pOn, pFreeze, pDirect}, this));
+    pLayout->addWidget(row(tr("INPUT"), {pFreeze, pDirect}, this));
 
     auto* pDecay = slider(group, "decay", 0.5, 30, tr("DECAY"), kTeal, seconds);
     pDecay->setCurve(SpatialSlider::Curve::Log);
@@ -541,10 +531,64 @@ SpatialReverbPanel::SpatialReverbPanel(SpatialPresetBank* pBank, QWidget* pParen
                     slider(group, "shimmer", 0, 1, tr("SHIMMER"), kTeal),
                     slider(group, "duck", 0, 1, tr("DUCK"), kTeal)},
             this));
-    pLayout->addWidget(routingNote(this));
     pLayout->addStretch(1);
 }
 
-void SpatialReverbPanel::poll() {
+// ---------------------------------------------------------------------------
+
+SpatialFxPanel::SpatialFxPanel(
+        SpatialPresetBank* pBank, UserSettingsPointer pConfig, QWidget* pParent)
+        : SpatialPanel(pParent),
+          m_pConfig(std::move(pConfig)) {
+    auto* pLayout = new QVBoxLayout(this);
+    pLayout->setContentsMargins(8, 8, 8, 8);
+    pLayout->setSpacing(6);
+
+    // One preset list for the whole unit: delay and reverb together.
+    m_pPresets = new SpatialPresetBar(pBank, QString(), this);
+    pLayout->addWidget(m_pPresets);
+
+    // Sub-tabs, each with its unit's on/off beside it.
+    auto* pTabs = new QHBoxLayout();
+    pTabs->setSpacing(4);
+    auto* pLabel = new SpatialLabel(tr("UNIT"), this);
+    pLabel->setFixedWidth(64);
+    pTabs->addWidget(pLabel);
+    m_pContent = new QStackedWidget(this);
+    m_pDelay = new SpatialDelayPanel(m_pContent);
+    m_pReverb = new SpatialReverbPanel(m_pContent);
+    m_pContent->addWidget(m_pDelay);
+    m_pContent->addWidget(m_pReverb);
+    const QStringList names = {tr("DELAY"), tr("REVERB")};
+    const QStringList groups = {QStringLiteral("[SpatialDelay]"), QStringLiteral("[SpatialReverb]")};
+    for (int i = 0; i < names.size(); ++i) {
+        auto* pTab = new SpatialActionButton(names[i], [this, i]() { showUnit(i); }, this);
+        pTab->setAccent(kTeal);
+        m_unitTabs.append(pTab);
+        pTabs->addWidget(pTab, 3);
+        // Green like LateNight's effect-enable buttons, apart from the tab.
+        auto* pOn = toggle(groups[i], "enabled", tr("%1 ON").arg(names[i]), kGreen);
+        pTabs->addWidget(pOn, 1);
+        if (i == 0) {
+            pTabs->addSpacing(16);
+        }
+    }
+    pLayout->addLayout(pTabs);
+    pLayout->addWidget(m_pContent, 1);
+    pLayout->addWidget(routingNote(this));
+    showUnit(m_pConfig->getValue(ConfigKey("[SpatialWindow]", "fx_unit"), 0));
+}
+
+void SpatialFxPanel::showUnit(int index) {
+    index = std::clamp(index, 0, m_pContent->count() - 1);
+    m_pContent->setCurrentIndex(index);
+    for (int i = 0; i < m_unitTabs.size(); ++i) {
+        m_unitTabs[i]->setActive(i == index);
+    }
+    m_pConfig->setValue(ConfigKey("[SpatialWindow]", "fx_unit"), index);
+}
+
+void SpatialFxPanel::poll() {
     m_pPresets->poll();
+    m_pDelay->poll();
 }

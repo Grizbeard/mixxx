@@ -11,8 +11,7 @@ class QStackedWidget;
 class SpatialActionButton;
 class SpatialAutopanPanel;
 class SpatialDeckPanel;
-class SpatialDelayPanel;
-class SpatialReverbPanel;
+class SpatialFxPanel;
 class SpatialField;
 class SpatialTopBar;
 
@@ -57,7 +56,6 @@ class SpatialWindow : public QWidget {
     QStackedWidget* m_pTabs;
     QList<SpatialActionButton*> m_tabButtons;
     QList<SpatialAutopanPanel*> m_autopans;
-    SpatialDelayPanel* m_pDelay;
-    SpatialReverbPanel* m_pReverb;
+    SpatialFxPanel* m_pFx;
     QTimer m_pollTimer;
 };

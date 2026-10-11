@@ -205,8 +205,7 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
 
     auto* pTabRow = new QHBoxLayout();
     pTabRow->setSpacing(4);
-    const QStringList tabs = {
-            tr("AUTO-PAN A"), tr("AUTO-PAN B"), tr("SPATIAL DELAY"), tr("SPATIAL REVERB")};
+    const QStringList tabs = {tr("AUTO-PAN A"), tr("AUTO-PAN B"), tr("SPATIAL FX")};
     m_pTabs = new QStackedWidget(this);
     for (int i = 0; i < tabs.size(); ++i) {
         auto* pButton = new SpatialActionButton(tabs[i], [this, i]() { showTab(i); }, this);
@@ -222,25 +221,21 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
             spatialpresets::autopanFactory(),
             settingsPath,
             this);
-    auto* pDelayBank = new SpatialPresetBank(QStringLiteral("delay"),
-            spatialpresets::delayKeys(),
-            spatialpresets::delayFactory(),
+    auto* pFxBank = new SpatialPresetBank(QStringLiteral("fx"),
+            spatialpresets::fxKeys(),
+            spatialpresets::fxFactory(),
             settingsPath,
             this);
-    auto* pReverbBank = new SpatialPresetBank(QStringLiteral("reverb"),
-            spatialpresets::reverbKeys(),
-            spatialpresets::reverbFactory(),
-            settingsPath,
-            this);
+    // Presets saved before delay and reverb shared a list.
+    pFxBank->importLegacy(QStringLiteral("delay"), QStringLiteral("[SpatialDelay]"));
+    pFxBank->importLegacy(QStringLiteral("reverb"), QStringLiteral("[SpatialReverb]"));
     for (int unit = 1; unit <= 2; ++unit) {
         auto* pAutopan = new SpatialAutopanPanel(unit, pAutopanBank, m_pTabs);
         m_autopans.append(pAutopan);
         m_pTabs->addWidget(pAutopan);
     }
-    m_pDelay = new SpatialDelayPanel(pDelayBank, m_pTabs);
-    m_pTabs->addWidget(m_pDelay);
-    m_pReverb = new SpatialReverbPanel(pReverbBank, m_pTabs);
-    m_pTabs->addWidget(m_pReverb);
+    m_pFx = new SpatialFxPanel(pFxBank, m_pConfig, m_pTabs);
+    m_pTabs->addWidget(m_pFx);
     m_pTabs->setMinimumHeight(260);
     m_pTabs->setMaximumHeight(350);
     pRoot->addWidget(m_pTabs);
@@ -270,8 +265,7 @@ void SpatialWindow::slotPoll() {
     for (SpatialAutopanPanel* pAutopan : std::as_const(m_autopans)) {
         pAutopan->poll();
     }
-    m_pDelay->poll();
-    m_pReverb->poll();
+    m_pFx->poll();
 }
 
 void SpatialWindow::toggleFullScreen() {

@@ -100,6 +100,17 @@ const QMap<QString, double>& reverbDefaults() {
     return defaults;
 }
 
+/// A preset key: "key" belongs to `group`; "[Group],key" names its own.
+ConfigKey resolve(const QString& group, const QString& key) {
+    if (key.startsWith(QLatin1Char('['))) {
+        const int end = key.indexOf(QStringLiteral("],"));
+        if (end > 0) {
+            return ConfigKey(key.left(end + 1), key.mid(end + 2));
+        }
+    }
+    return ConfigKey(group, key);
+}
+
 bool sameValue(double a, double b) {
     return std::abs(a - b) <= 1e-6 * std::max(1.0, std::abs(b));
 }
@@ -111,11 +122,18 @@ namespace spatialpresets {
 QStringList autopanKeys() {
     return autopanDefaults().keys();
 }
-QStringList delayKeys() {
-    return delayDefaults().keys();
-}
-QStringList reverbKeys() {
-    return reverbDefaults().keys();
+
+QStringList fxKeys() {
+    QStringList keys;
+    for (const QString& key : delayDefaults().keys()) {
+        keys.append(QStringLiteral("[SpatialDelay],") + key);
+    }
+    keys.append(QStringLiteral("[SpatialDelay],enabled"));
+    for (const QString& key : reverbDefaults().keys()) {
+        keys.append(QStringLiteral("[SpatialReverb],") + key);
+    }
+    keys.append(QStringLiteral("[SpatialReverb],enabled"));
+    return keys;
 }
 
 QList<SpatialPreset> autopanFactory() {
@@ -132,97 +150,108 @@ QList<SpatialPreset> autopanFactory() {
     };
 }
 
-QList<SpatialPreset> delayFactory() {
-    const auto& d = delayDefaults();
-    return {
-            make(QStringLiteral("DOTTED PING"),
-                    d,
-                    {{"beats", 0.75}, {"shape", 1}, {"feedback", 0.5}}),
-            make(QStringLiteral("QUARTER ORBIT"),
-                    d,
-                    {{"beats", 1}, {"shape", 0}, {"feedback", 0.45}}),
-            make(QStringLiteral("TRIPLET CORNERS"),
-                    d,
-                    {{"beats", 0.5}, {"triplet", 1}, {"shape", 3}}),
-            make(QStringLiteral("POLY STARS"),
-                    d,
-                    {{"beats", 0.75}, {"shape", 4}, {"poly", 1}, {"poly_beats", 1}}),
-            make(QStringLiteral("TRANCE GATE"),
-                    d,
-                    {{"beats", 0.5},
-                            {"feedback", 0.7},
-                            {"shape", 3},
-                            {"gate", 1},
-                            {"gate_beats", 1.0 / 16},
-                            {"gate_duty", 0.5}}),
-            make(QStringLiteral("WASH THROW"),
-                    d,
-                    {{"beats", 1},
-                            {"feedback", 0.6},
-                            {"tone", 0.45},
-                            {"shape", 2},
-                            {"to_reverb", 0.8}}),
+QList<SpatialPreset> fxFactory() {
+    // Delay and reverb settings by name, each over its defaults.
+    const auto delay = [](Values values) {
+        QMap<QString, double> map = delayDefaults();
+        for (const auto& [key, value] : values) {
+            map.insert(QString::fromLatin1(key), value);
+        }
+        return map;
     };
-}
+    const auto reverb = [](Values values) {
+        QMap<QString, double> map = reverbDefaults();
+        for (const auto& [key, value] : values) {
+            map.insert(QString::fromLatin1(key), value);
+        }
+        return map;
+    };
+    const auto dottedPing = delay({{"beats", 0.75}, {"shape", 1}, {"feedback", 0.5}});
+    const auto quarterOrbit = delay({{"beats", 1}, {"shape", 0}, {"feedback", 0.45}});
+    const auto tripletCorners = delay({{"beats", 0.5}, {"triplet", 1}, {"shape", 3}});
+    const auto polyStars =
+            delay({{"beats", 0.75}, {"shape", 4}, {"poly", 1}, {"poly_beats", 1}});
+    const auto tranceGate = delay({{"beats", 0.5},
+            {"feedback", 0.7},
+            {"shape", 3},
+            {"gate", 1},
+            {"gate_beats", 1.0 / 16},
+            {"gate_duty", 0.5}});
+    const auto washThrow = delay({{"beats", 1},
+            {"feedback", 0.6},
+            {"tone", 0.45},
+            {"shape", 2},
+            {"to_reverb", 0.8}});
+    const auto vocalSpace = reverb({{"decay", 9}, {"predelay_ms", 60}, {"duck", 0.3}});
+    const auto shimmer = reverb({{"decay", 14},
+            {"size", 0.9},
+            {"predelay_ms", 40},
+            {"damping", 0.35},
+            {"lowcut", 300},
+            {"modulation", 0.7},
+            {"diffusion", 0.8},
+            {"shimmer", 0.5},
+            {"duck", 0.2}});
+    const auto infinite = reverb({{"decay", 30},
+            {"size", 1},
+            {"predelay_ms", 20},
+            {"damping", 0.3},
+            {"lowcut", 300},
+            {"modulation", 0.8},
+            {"diffusion", 0.85},
+            {"shimmer", 0.2}});
+    const auto plate = reverb({{"decay", 3},
+            {"size", 0.4},
+            {"predelay_ms", 15},
+            {"damping", 0.5},
+            {"lowcut", 200},
+            {"modulation", 0.3},
+            {"diffusion", 0.9}});
+    // Only the echoes reach this one: echo-into-wash throws.
+    const auto echoWash = reverb({{"decay", 12},
+            {"size", 0.9},
+            {"predelay_ms", 0},
+            {"damping", 0.4},
+            {"lowcut", 300},
+            {"modulation", 0.7},
+            {"diffusion", 0.8},
+            {"direct", 0}});
+    const auto off = QMap<QString, double>();
 
-QList<SpatialPreset> reverbFactory() {
-    const auto& d = reverbDefaults();
+    // A preset: the delay's and the reverb's settings, and which are on (an
+    // empty map leaves that unit off at its defaults).
+    const auto unit = [](const QString& name,
+                              const QMap<QString, double>& delaySettings,
+                              const QMap<QString, double>& reverbSettings) {
+        SpatialPreset preset{name, {}, true};
+        const auto add = [&preset](const QString& group,
+                                 const QMap<QString, double>& defaults,
+                                 const QMap<QString, double>& settings) {
+            const auto& values = settings.isEmpty() ? defaults : settings;
+            for (auto it = values.constBegin(); it != values.constEnd(); ++it) {
+                preset.values.insert(group + QStringLiteral(",") + it.key(), it.value());
+            }
+            preset.values.insert(group + QStringLiteral(",enabled"), settings.isEmpty() ? 0 : 1);
+        };
+        add(QStringLiteral("[SpatialDelay]"), delayDefaults(), delaySettings);
+        add(QStringLiteral("[SpatialReverb]"), reverbDefaults(), reverbSettings);
+        return preset;
+    };
     return {
-            make(QStringLiteral("VOCAL SPACE"),
-                    d,
-                    {{"decay", 9},
-                            {"size", 0.8},
-                            {"predelay_ms", 60},
-                            {"damping", 0.45},
-                            {"lowcut", 250},
-                            {"modulation", 0.6},
-                            {"diffusion", 0.75},
-                            {"shimmer", 0},
-                            {"duck", 0.3}}),
-            make(QStringLiteral("SHIMMER"),
-                    d,
-                    {{"decay", 14},
-                            {"size", 0.9},
-                            {"predelay_ms", 40},
-                            {"damping", 0.35},
-                            {"lowcut", 300},
-                            {"modulation", 0.7},
-                            {"diffusion", 0.8},
-                            {"shimmer", 0.5},
-                            {"duck", 0.2}}),
-            make(QStringLiteral("INFINITE"),
-                    d,
-                    {{"decay", 30},
-                            {"size", 1},
-                            {"predelay_ms", 20},
-                            {"damping", 0.3},
-                            {"lowcut", 300},
-                            {"modulation", 0.8},
-                            {"diffusion", 0.85},
-                            {"shimmer", 0.2},
-                            {"duck", 0}}),
-            make(QStringLiteral("PLATE"),
-                    d,
-                    {{"decay", 3},
-                            {"size", 0.4},
-                            {"predelay_ms", 15},
-                            {"damping", 0.5},
-                            {"lowcut", 200},
-                            {"modulation", 0.3},
-                            {"diffusion", 0.9},
-                            {"shimmer", 0},
-                            {"duck", 0}}),
-            // Only the delay's echoes reach this one: echo-into-wash throws.
-            make(QStringLiteral("ECHO WASH"),
-                    d,
-                    {{"decay", 12},
-                            {"size", 0.9},
-                            {"predelay_ms", 0},
-                            {"damping", 0.4},
-                            {"lowcut", 300},
-                            {"modulation", 0.7},
-                            {"diffusion", 0.8},
-                            {"direct", 0}}),
+            // Reverb alone
+            unit(QStringLiteral("VOCAL SPACE"), off, vocalSpace),
+            unit(QStringLiteral("SHIMMER"), off, shimmer),
+            unit(QStringLiteral("INFINITE"), off, infinite),
+            unit(QStringLiteral("PLATE"), off, plate),
+            // Delay alone
+            unit(QStringLiteral("DOTTED PING"), dottedPing, off),
+            unit(QStringLiteral("QUARTER ORBIT"), quarterOrbit, off),
+            unit(QStringLiteral("TRIPLET CORNERS"), tripletCorners, off),
+            unit(QStringLiteral("TRANCE GATE"), tranceGate, off),
+            // Together
+            unit(QStringLiteral("SPACE ECHO"), dottedPing, vocalSpace),
+            unit(QStringLiteral("STAR SHIMMER"), polyStars, shimmer),
+            unit(QStringLiteral("WASH THROW"), washThrow, echoWash),
     };
 }
 
@@ -239,8 +268,44 @@ SpatialPresetBank::SpatialPresetBank(const QString& kind,
           m_kind(kind),
           m_keys(keys),
           m_filePath(QDir(settingsPath).filePath(QStringLiteral("spatial_presets/%1.json").arg(kind))),
-          m_presets(factory) {
+          m_presets(factory),
+          m_settingsPath(settingsPath),
+          m_legacyImport(!QFile::exists(m_filePath)) {
     load();
+}
+
+void SpatialPresetBank::importLegacy(const QString& kind, const QString& group) {
+    if (!m_legacyImport) {
+        return;
+    }
+    QFile file(QDir(m_settingsPath).filePath(QStringLiteral("spatial_presets/%1.json").arg(kind)));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    const QJsonArray presets =
+            QJsonDocument::fromJson(file.readAll()).object().value("presets").toArray();
+    bool imported = false;
+    for (const auto& item : presets) {
+        const QJsonObject object = item.toObject();
+        QString name = object.value("name").toString();
+        if (name.isEmpty()) {
+            continue;
+        }
+        while (indexOf(name) >= 0) {
+            name += QStringLiteral(" (OLD)");
+        }
+        SpatialPreset preset{name, {}, false};
+        const QJsonObject values = object.value("values").toObject();
+        for (auto it = values.constBegin(); it != values.constEnd(); ++it) {
+            preset.values.insert(group + QStringLiteral(",") + it.key(), it.value().toDouble());
+        }
+        m_presets.append(preset);
+        imported = true;
+    }
+    if (imported) {
+        store();
+        emit changed();
+    }
 }
 
 int SpatialPresetBank::indexOf(const QString& name) const {
@@ -264,7 +329,7 @@ void SpatialPresetBank::apply(int index, const QString& group) const {
     const auto& values = m_presets[index].values;
     for (auto it = values.constBegin(); it != values.constEnd(); ++it) {
         if (m_keys.contains(it.key())) {
-            ControlObject::set(ConfigKey(group, it.key()), it.value());
+            ControlObject::set(resolve(group, it.key()), it.value());
         }
     }
 }
@@ -276,7 +341,7 @@ bool SpatialPresetBank::matches(int index, const QString& group) const {
     const auto& values = m_presets[index].values;
     for (auto it = values.constBegin(); it != values.constEnd(); ++it) {
         if (m_keys.contains(it.key()) &&
-                !sameValue(ControlObject::get(ConfigKey(group, it.key())), it.value())) {
+                !sameValue(ControlObject::get(resolve(group, it.key())), it.value())) {
             return false;
         }
     }
@@ -286,7 +351,7 @@ bool SpatialPresetBank::matches(int index, const QString& group) const {
 void SpatialPresetBank::saveCurrent(const QString& name, const QString& group) {
     SpatialPreset preset{name, {}, false};
     for (const QString& key : m_keys) {
-        preset.values.insert(key, ControlObject::get(ConfigKey(group, key)));
+        preset.values.insert(key, ControlObject::get(resolve(group, key)));
     }
     const int index = indexOf(name);
     if (index >= 0 && !m_presets[index].factory) {

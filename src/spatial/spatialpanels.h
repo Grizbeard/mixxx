@@ -5,9 +5,11 @@
 #include <memory>
 
 #include "control/pollingcontrolproxy.h"
+#include "preferences/usersettings.h"
 #include "spatial/spatialwidgets.h"
 
 class QGridLayout;
+class QStackedWidget;
 class SpatialPresetBank;
 class SpatialPresetBar;
 
@@ -116,29 +118,45 @@ class SpatialAutopanPanel : public SpatialPanel {
     std::unique_ptr<PollingControlProxy> m_pSync;
 };
 
-/// The Spatial FX delay: time, placement shape, polyrhythm, gate, tone.
-class SpatialDelayPanel : public SpatialPanel {
+/// The Spatial FX unit's delay controls: time, placement shape, polyrhythm,
+/// gate, tone.
+class SpatialDelayPanel : public QWidget {
     Q_OBJECT
   public:
-    SpatialDelayPanel(SpatialPresetBank* pBank, QWidget* pParent = nullptr);
+    explicit SpatialDelayPanel(QWidget* pParent = nullptr);
     void poll();
 
   private:
-    SpatialPresetBar* m_pPresets;
     QList<SpatialButton*> m_beatButtons;
     SpatialSlider* m_pTimeMs;
     std::unique_ptr<PollingControlProxy> m_pSync;
 };
 
-/// The Spatial FX reverb, with presets for trance vocals.
-class SpatialReverbPanel : public SpatialPanel {
+/// The Spatial FX unit's reverb controls.
+class SpatialReverbPanel : public QWidget {
     Q_OBJECT
   public:
-    SpatialReverbPanel(SpatialPresetBank* pBank, QWidget* pParent = nullptr);
+    explicit SpatialReverbPanel(QWidget* pParent = nullptr);
+};
+
+/// The Spatial FX unit: delay and reverb, fed by the stems' one FX send,
+/// with one preset list for both (a preset also sets which units are on),
+/// and a sub-tab per unit, each with its on/off beside it.
+class SpatialFxPanel : public SpatialPanel {
+    Q_OBJECT
+  public:
+    SpatialFxPanel(SpatialPresetBank* pBank, UserSettingsPointer pConfig, QWidget* pParent = nullptr);
     void poll();
 
   private:
+    void showUnit(int index);
+
+    const UserSettingsPointer m_pConfig;
     SpatialPresetBar* m_pPresets;
+    QStackedWidget* m_pContent;
+    SpatialDelayPanel* m_pDelay;
+    SpatialReverbPanel* m_pReverb;
+    QList<SpatialActionButton*> m_unitTabs;
 };
 
 /// Shared builders.

@@ -85,9 +85,10 @@ TEST_F(SpatialWindowTest, RendersAPerformanceScene) {
         m_pOutput->process(nullptr, 480, mixxx::audio::SampleRate(48000));
     }
 
-    // One render per tab (auto-pan A, B, delay, reverb).
+    // One render per tab (auto-pan A, B, Spatial FX on delay, then reverb).
     for (int tab = 0; tab < 4; ++tab) {
-        config()->setValue(ConfigKey("[SpatialWindow]", "tab"), tab);
+        config()->setValue(ConfigKey("[SpatialWindow]", "tab"), std::min(tab, 2));
+        config()->setValue(ConfigKey("[SpatialWindow]", "fx_unit"), tab == 3 ? 1 : 0);
         SpatialWindow window(config(), nullptr, nullptr);
         window.setAttribute(Qt::WA_DontShowOnScreen);
         window.resize(1920, 1080);
@@ -125,63 +126,94 @@ TEST_F(SpatialWindowTest, RendersThePreferencesPage) {
 }
 
 TEST_F(SpatialWindowTest, PresetKeysAreRealControls) {
-    const std::pair<QString, QStringList> kinds[] = {
-            {QStringLiteral("[SpatialAutopan1]"), spatialpresets::autopanKeys()},
-            {QStringLiteral("[SpatialDelay]"), spatialpresets::delayKeys()},
-            {QStringLiteral("[SpatialReverb]"), spatialpresets::reverbKeys()},
-    };
-    for (const auto& [group, keys] : kinds) {
-        for (const QString& key : keys) {
-            EXPECT_NE(ControlObject::getControl(ConfigKey(group, key), ControlFlag::AllowMissingOrInvalid),
-                    nullptr)
-                    << group.toStdString() << "," << key.toStdString();
-        }
+    for (const QString& key : spatialpresets::autopanKeys()) {
+        EXPECT_NE(ControlObject::getControl(
+                          ConfigKey(QStringLiteral("[SpatialAutopan1]"), key),
+                          ControlFlag::AllowMissingOrInvalid),
+                nullptr)
+                << key.toStdString();
+    }
+    for (const QString& key : spatialpresets::fxKeys()) {
+        const int split = key.indexOf(QStringLiteral("],"));
+        ASSERT_GT(split, 0) << key.toStdString();
+        EXPECT_NE(ControlObject::getControl(ConfigKey(key.left(split + 1), key.mid(split + 2)),
+                          ControlFlag::AllowMissingOrInvalid),
+                nullptr)
+                << key.toStdString();
     }
 }
 
-TEST_F(SpatialWindowTest, PresetsLoadSaveAndDelete) {
+TEST_F(SpatialWindowTest, FxPresetsCoverDelayAndReverbTogether) {
     QTemporaryDir settings;
-    const QString group = QStringLiteral("[SpatialDelay]");
+    const ConfigKey delayOn(QStringLiteral("[SpatialDelay]"), QStringLiteral("enabled"));
+    const ConfigKey reverbOn(QStringLiteral("[SpatialReverb]"), QStringLiteral("enabled"));
     {
-        SpatialPresetBank bank(QStringLiteral("delay"),
-                spatialpresets::delayKeys(),
-                spatialpresets::delayFactory(),
+        SpatialPresetBank bank(QStringLiteral("fx"),
+                spatialpresets::fxKeys(),
+                spatialpresets::fxFactory(),
                 settings.path());
-        const int gate = bank.indexOf(QStringLiteral("TRANCE GATE"));
-        ASSERT_GE(gate, 0);
-        bank.apply(gate, group);
-        EXPECT_EQ(ControlObject::get(ConfigKey(group, "gate")), 1);
-        EXPECT_EQ(ControlObject::get(ConfigKey(group, "beats")), 0.5);
-        EXPECT_TRUE(bank.matches(gate, group));
+        // A reverb-only preset turns the delay off, and the other way round.
+        bank.apply(bank.indexOf(QStringLiteral("VOCAL SPACE")), QString());
+        EXPECT_EQ(ControlObject::get(delayOn), 0);
+        EXPECT_EQ(ControlObject::get(reverbOn), 1);
+        bank.apply(bank.indexOf(QStringLiteral("TRANCE GATE")), QString());
+        EXPECT_EQ(ControlObject::get(delayOn), 1);
+        EXPECT_EQ(ControlObject::get(reverbOn), 0);
+        EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialDelay]", "gate")), 1);
+        // Together: echoes only into the wash.
+        const int throwIndex = bank.indexOf(QStringLiteral("WASH THROW"));
+        bank.apply(throwIndex, QString());
+        EXPECT_EQ(ControlObject::get(delayOn), 1);
+        EXPECT_EQ(ControlObject::get(reverbOn), 1);
+        EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialReverb]", "direct")), 0);
+        EXPECT_TRUE(bank.matches(throwIndex, QString()));
 
-        set(group, "feedback", 0.3);
-        EXPECT_FALSE(bank.matches(gate, group));
-        bank.saveCurrent(QStringLiteral("MY GATE"), group);
-        EXPECT_FALSE(bank.isFactory(QStringLiteral("MY GATE")));
+        set("[SpatialDelay]", "feedback", 0.3);
+        set("[SpatialReverb]", "decay", 20);
+        EXPECT_FALSE(bank.matches(throwIndex, QString()));
+        bank.saveCurrent(QStringLiteral("MY THROW"), QString());
         // Factory presets can't be overwritten.
-        bank.saveCurrent(QStringLiteral("TRANCE GATE"), group);
-        bank.apply(gate, group);
-        EXPECT_EQ(ControlObject::get(ConfigKey(group, "feedback")), 0.7);
+        bank.saveCurrent(QStringLiteral("WASH THROW"), QString());
+        bank.apply(throwIndex, QString());
+        EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialDelay]", "feedback")), 0.6);
     }
     {
         // A new session finds the user preset in the settings folder.
-        SpatialPresetBank bank(QStringLiteral("delay"),
-                spatialpresets::delayKeys(),
-                spatialpresets::delayFactory(),
+        SpatialPresetBank bank(QStringLiteral("fx"),
+                spatialpresets::fxKeys(),
+                spatialpresets::fxFactory(),
                 settings.path());
-        const int mine = bank.indexOf(QStringLiteral("MY GATE"));
+        const int mine = bank.indexOf(QStringLiteral("MY THROW"));
         ASSERT_GE(mine, 0);
-        bank.apply(mine, group);
-        EXPECT_EQ(ControlObject::get(ConfigKey(group, "feedback")), 0.3);
-        EXPECT_EQ(ControlObject::get(ConfigKey(group, "gate")), 1);
-        EXPECT_TRUE(bank.remove(QStringLiteral("MY GATE")));
-        EXPECT_FALSE(bank.remove(QStringLiteral("TRANCE GATE")));
+        bank.apply(mine, QString());
+        EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialDelay]", "feedback")), 0.3);
+        EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialReverb]", "decay")), 20);
+        EXPECT_TRUE(bank.remove(QStringLiteral("MY THROW")));
+        EXPECT_FALSE(bank.remove(QStringLiteral("WASH THROW")));
     }
-    SpatialPresetBank bank(QStringLiteral("delay"),
-            spatialpresets::delayKeys(),
-            spatialpresets::delayFactory(),
+    SpatialPresetBank bank(QStringLiteral("fx"),
+            spatialpresets::fxKeys(),
+            spatialpresets::fxFactory(),
             settings.path());
-    EXPECT_LT(bank.indexOf(QStringLiteral("MY GATE")), 0);
+    EXPECT_LT(bank.indexOf(QStringLiteral("MY THROW")), 0);
+}
+
+TEST_F(SpatialWindowTest, OlderDelayAndReverbPresetsMoveIntoTheFxList) {
+    QTemporaryDir settings;
+    QDir(settings.path()).mkpath(QStringLiteral("spatial_presets"));
+    QFile old(settings.filePath(QStringLiteral("spatial_presets/delay.json")));
+    ASSERT_TRUE(old.open(QIODevice::WriteOnly));
+    old.write(R"({"presets":[{"name":"OLD ECHO","values":{"feedback":0.25,"beats":1}}]})");
+    old.close();
+    SpatialPresetBank bank(QStringLiteral("fx"),
+            spatialpresets::fxKeys(),
+            spatialpresets::fxFactory(),
+            settings.path());
+    bank.importLegacy(QStringLiteral("delay"), QStringLiteral("[SpatialDelay]"));
+    const int index = bank.indexOf(QStringLiteral("OLD ECHO"));
+    ASSERT_GE(index, 0);
+    bank.apply(index, QString());
+    EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialDelay]", "feedback")), 0.25);
 }
 
 } // namespace

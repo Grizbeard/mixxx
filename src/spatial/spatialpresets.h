@@ -10,7 +10,8 @@
 class QHBoxLayout;
 class SpatialActionButton;
 
-/// A named set of control values for one Spatial tool.
+/// A named set of control values for one Spatial tool. A key is either a
+/// control key of the bar's group ("shape") or a full "[Group],key".
 struct SpatialPreset {
     QString name;
     QMap<QString, double> values; // control key -> value
@@ -48,6 +49,10 @@ class SpatialPresetBank : public QObject {
 
     QString suggestName() const;
 
+    /// Once, when this bank has no file yet: takes the user presets of an
+    /// older single-tool bank `kind`, whose keys belong to `group`.
+    void importLegacy(const QString& kind, const QString& group);
+
   signals:
     void changed();
 
@@ -59,6 +64,8 @@ class SpatialPresetBank : public QObject {
     const QStringList m_keys;
     const QString m_filePath;
     QList<SpatialPreset> m_presets; // factory first, then user
+    const QString m_settingsPath;
+    const bool m_legacyImport; // no file of our own yet
 };
 
 /// A preset strip for a tool panel: a scrolling row of preset buttons (tap
@@ -89,9 +96,8 @@ class SpatialPresetBar : public QWidget {
 /// The factory banks.
 namespace spatialpresets {
 QList<SpatialPreset> autopanFactory();
-QList<SpatialPreset> delayFactory();
-QList<SpatialPreset> reverbFactory();
+/// The Spatial FX unit: delay and reverb settings and on/off together.
+QList<SpatialPreset> fxFactory();
 QStringList autopanKeys();
-QStringList delayKeys();
-QStringList reverbKeys();
+QStringList fxKeys();
 } // namespace spatialpresets
