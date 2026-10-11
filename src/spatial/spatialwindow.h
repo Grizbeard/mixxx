@@ -53,6 +53,7 @@ class SpatialWindow : public QWidget {
 
   private:
     void showTab(int index);
+    void fitToScreen();
     void saveGeometryToConfig();
 
     const UserSettingsPointer m_pConfig;

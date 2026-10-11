@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QScreen>
+#include <QShortcut>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 #include <cmath>
@@ -264,6 +265,14 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
     showTab(m_pConfig->getValue(ConfigKey(kConfigGroup, "tab"), 0));
     setLayoutMode(m_pConfig->getValue(ConfigKey(kConfigGroup, "layout"), 0));
 
+    // Esc leaves full screen (the FULL SCREEN button toggles it).
+    auto* pEscape = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    connect(pEscape, &QShortcut::activated, this, [this]() {
+        if (isFullScreen()) {
+            toggleFullScreen();
+        }
+    });
+
     m_pollTimer.setInterval(kPollMs);
     connect(&m_pollTimer, &QTimer::timeout, this, &SpatialWindow::slotPoll);
 }
@@ -311,6 +320,7 @@ void SpatialWindow::toggleFullScreen() {
     } else {
         showFullScreen();
     }
+    QTimer::singleShot(0, this, &SpatialWindow::fitToScreen);
     m_pConfig->setValue(ConfigKey(kConfigGroup, "fullscreen"), isFullScreen() ? 1 : 0);
 }
 
@@ -345,6 +355,40 @@ void SpatialWindow::showRestored() {
     }
     raise();
     activateWindow();
+    // Once the window has its frame: keep it all on screen.
+    QTimer::singleShot(0, this, &SpatialWindow::fitToScreen);
+}
+
+void SpatialWindow::fitToScreen() {
+    QScreen* pScreen = QGuiApplication::screenAt(frameGeometry().center());
+    if (!pScreen) {
+        pScreen = screen() ? screen() : QGuiApplication::primaryScreen();
+    }
+    if (!pScreen) {
+        return;
+    }
+    if (isFullScreen()) {
+        if (geometry() != pScreen->geometry()) {
+            setGeometry(pScreen->geometry());
+        }
+        return;
+    }
+    // A saved size from a bigger screen (or an older, taller layout) can put
+    // the top bar above the screen: shrink to fit, then move fully inside.
+    const QRect available = pScreen->availableGeometry();
+    const QRect frame = frameGeometry();
+    const QSize border = frame.size() - geometry().size();
+    const QSize size = geometry().size().boundedTo(available.size() - border).expandedTo(
+            minimumSizeHint());
+    resize(size);
+    const QSize frameSize = size + border;
+    const int x = std::clamp(frame.left(),
+            available.left(),
+            std::max(available.left(), available.right() - frameSize.width() + 1));
+    const int y = std::clamp(frame.top(),
+            available.top(),
+            std::max(available.top(), available.bottom() - frameSize.height() + 1));
+    move(x, y);
 }
 
 void SpatialWindow::saveGeometryToConfig() {
