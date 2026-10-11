@@ -904,8 +904,11 @@ void StemConverter::importConverted(int entryIndex, const QJsonObject& event) {
     }
 
     if (qa.contains(QStringLiteral("sum_error_peak_dbfs"))) {
-        notes.prepend(tr("stems sum to within %1 dB")
-                        .arg(qa.value(QStringLiteral("sum_error_peak_dbfs")).toDouble()));
+        // null is -inf dB: the stems sum to the main mix sample for sample.
+        const QJsonValue error = qa.value(QStringLiteral("sum_error_peak_dbfs"));
+        notes.prepend(error.isNull()
+                        ? tr("stems sum exactly to the mix")
+                        : tr("stems sum to within %1 dB").arg(error.toDouble()));
     }
     setState(entryIndex,
             skipped ? TrackState::Skipped : TrackState::Done,
