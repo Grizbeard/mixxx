@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <QApplication>
 #include <QDir>
 #include <QFontDatabase>
 #include <QImage>
@@ -12,6 +13,7 @@
 #include "engine/effects/groupfeaturestate.h"
 #include "engine/spatial/enginespatialoutput.h"
 #include "preferences/dialog/dlgprefspatial.h"
+#include "spatial/spatialpanels.h"
 #include "spatial/spatialpresets.h"
 #include "spatial/spatialwindow.h"
 #include "test/mixxxtest.h"
@@ -87,10 +89,12 @@ TEST_F(SpatialWindowTest, RendersAPerformanceScene) {
 
     // One render per tab (auto-pan A, B, Spatial FX on delay, then reverb),
     // then the Basic layout.
-    for (int tab = 0; tab < 5; ++tab) {
+    // (5: Basic with the auto-pan column on unit B.)
+    for (int tab = 0; tab < 6; ++tab) {
         config()->setValue(ConfigKey("[SpatialWindow]", "tab"), std::min(tab, 2));
         config()->setValue(ConfigKey("[SpatialWindow]", "fx_unit"), tab == 3 ? 1 : 0);
-        config()->setValue(ConfigKey("[SpatialWindow]", "layout"), tab == 4 ? 1 : 0);
+        config()->setValue(ConfigKey("[SpatialWindow]", "layout"), tab >= 4 ? 1 : 0);
+        set("[Spatial]", "autopan_focus", tab == 5 ? 1 : 0);
         SpatialWindow window(config(), nullptr, nullptr);
         window.setAttribute(Qt::WA_DontShowOnScreen);
         window.resize(1920, 1080);
@@ -212,6 +216,33 @@ TEST_F(SpatialWindowTest, SavingBakesTheMacrosIn) {
     EXPECT_NEAR(ControlObject::get(ConfigKey("[SpatialDelay]", "feedback")), 0.25, 1e-9);
     EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialFX]", "space")), 0.5);
     EXPECT_EQ(ControlObject::get(ConfigKey("[SpatialFX]", "echo")), 0.5);
+}
+
+TEST_F(SpatialWindowTest, ThePresetPopupListsTheBankAndLoadsOnTap) {
+    QTemporaryDir settings;
+    SpatialPresetBank bank(QStringLiteral("fx"),
+            spatialpresets::fxKeys(),
+            spatialpresets::fxFactory(),
+            settings.path());
+    QWidget anchor;
+    anchor.setAttribute(Qt::WA_DontShowOnScreen);
+    anchor.resize(120, 48);
+    anchor.show();
+    SpatialPresetPopup::open(&bank, QString(), nullptr, QColor(0x02, 0x83, 0x92), &anchor);
+    QWidget* pPopup = nullptr;
+    for (QWidget* pWidget : QApplication::topLevelWidgets()) {
+        if (qobject_cast<SpatialPresetPopup*>(pWidget) && pWidget->isVisible()) {
+            pPopup = pWidget;
+        }
+    }
+    ASSERT_NE(pPopup, nullptr);
+    EXPECT_EQ(pPopup->findChildren<SpatialActionButton*>().size(), bank.presets().size());
+    QString path = qEnvironmentVariable("SPATIAL_SCREENSHOT");
+    if (!path.isEmpty()) {
+        path.replace(QStringLiteral(".png"), QStringLiteral("_popup.png"));
+        pPopup->grab().save(path);
+    }
+    pPopup->close();
 }
 
 TEST_F(SpatialWindowTest, OlderDelayAndReverbPresetsMoveIntoTheFxList) {

@@ -7,6 +7,7 @@
 #include "engine/spatial/enginespatialoutput.h"
 #include "engine/spatial/spatialmath.h"
 #include "moc_spatialbasic.cpp"
+#include "spatial/spatialpresets.h"
 #include "spatial/spatialstyle.h"
 #include "spatial/spatialwidgets.h"
 
@@ -91,7 +92,10 @@ SpatialBasicStem::SpatialBasicStem(int deck, int slot, QWidget* pParent)
     pLayout->addLayout(pFaderRow, 1);
     m_sliders.append(pVolume);
 
-    auto* pAuto = toggle(group, "spatial_autopan", tr("AUTO"), kGreen);
+    auto* pAuto = toggle(group, "spatial_autopan", tr("AUTO"), kUnitA);
+    m_pAuto = pAuto;
+    m_pUnit = std::make_unique<PollingControlProxy>(
+            group, "spatial_autopan_unit", ControlFlag::AllowMissingOrInvalid);
     auto* pFront = toggle(group, "spatial_front", tr("FRONT"), kHotOrange);
     // Touch only: which auto-pan unit the stem follows.
     auto* pUnits = new QHBoxLayout();
@@ -102,7 +106,7 @@ SpatialBasicStem::SpatialBasicStem(int deck, int slot, QWidget* pParent)
                 SpatialButton::Mode::Select,
                 unit == 1 ? QStringLiteral("A") : QStringLiteral("B"));
         pUnit->setValue(unit);
-        pUnit->setAccent(kGreen);
+        pUnit->setAccent(unitColor(unit));
         pUnit->setMinimumHeight(36);
         pUnits->addWidget(pUnit);
         m_buttons.append(pUnit);
@@ -118,6 +122,11 @@ SpatialBasicStem::SpatialBasicStem(int deck, int slot, QWidget* pParent)
 
 void SpatialBasicStem::poll() {
     m_pMeter->poll();
+    const int unit = m_pUnit->get() > 1.5 ? 2 : 1;
+    if (unit != m_unit) {
+        m_unit = unit;
+        m_pAuto->setAccent(unitColor(unit));
+    }
     const bool stems = m_pStemCount->get() > 0;
     const int available = stems ? 2 : (m_slot == 1 ? 1 : 0);
     const double color = m_pColor->get();
@@ -144,7 +153,7 @@ void SpatialBasicStem::poll() {
 
 // ---------------------------------------------------------------------------
 
-SpatialBasicAutopan::SpatialBasicAutopan(QWidget* pParent)
+SpatialBasicAutopan::SpatialBasicAutopan(SpatialPresetBank* pBank, QWidget* pParent)
         : SpatialPanel(pParent) {
     m_pFocus = std::make_unique<PollingControlProxy>(
             QStringLiteral("[Spatial]"), "autopan_focus", ControlFlag::AllowMissingOrInvalid);
@@ -198,7 +207,15 @@ SpatialBasicAutopan::SpatialBasicAutopan(QWidget* pParent)
     // The controller's last button: play unit A or B with this column.
     m_pFocusButton = toggle(QStringLiteral("[Spatial]"), "autopan_focus", tr("A / B"), kGreen);
     pLayout->addWidget(m_pFocusButton);
+    // Touch only: choose a preset for the unit the column is playing.
+    auto* pPresets = new SpatialActionButton(tr("PRESETS"), nullptr, this);
+    pPresets->setAction([this, pBank, pPresets]() {
+        SpatialPresetPopup::open(pBank, autopanGroup(m_unit), nullptr, unitColor(m_unit + 1), pPresets);
+    });
+    pPresets->setMinimumHeight(48);
+    pLayout->addWidget(pPresets);
     setMinimumWidth(110);
+    m_unit = -1;
     poll();
 }
 
@@ -216,11 +233,20 @@ void SpatialBasicAutopan::poll() {
     m_pReverse->rebind(group);
     m_pTitle->setText(unit == 0 ? tr("AUTO-PAN A") : tr("AUTO-PAN B"));
     m_pFocusButton->setText(unit == 0 ? tr("A / B") : tr("B / A"));
+    // Green for A, orange for B: which unit the column plays at a glance.
+    const QColor accent = unitColor(unit + 1);
+    m_pTitle->setColor(accent);
+    for (SpatialKnob* pKnob : {m_pShape, m_pWave, m_pBeats}) {
+        pKnob->setAccent(accent);
+    }
+    m_pSize->setAccent(accent);
+    m_pReverse->setAccent(accent);
+    m_pFocusButton->setAccent(accent);
 }
 
 // ---------------------------------------------------------------------------
 
-SpatialBasicFx::SpatialBasicFx(QWidget* pParent)
+SpatialBasicFx::SpatialBasicFx(SpatialPresetBank* pBank, QWidget* pParent)
         : SpatialPanel(pParent) {
     const QString group = QStringLiteral("[SpatialFX]");
     auto* pLayout = new QVBoxLayout(this);
@@ -241,12 +267,20 @@ SpatialBasicFx::SpatialBasicFx(QWidget* pParent)
     pLayout->addWidget(fader(group, "level", tr("LEVEL"), kTeal), 1);
     pLayout->addWidget(toggle(QStringLiteral("[SpatialDelay]"), "enabled", tr("DELAY"), kGreen));
     pLayout->addWidget(toggle(QStringLiteral("[SpatialReverb]"), "enabled", tr("REVERB"), kGreen));
+    auto* pPresets = new SpatialActionButton(tr("PRESETS"), nullptr, this);
+    pPresets->setAction([pBank, pPresets]() {
+        SpatialPresetPopup::open(
+                pBank, QString(), spatialpresets::centreFxMacros, kTeal, pPresets);
+    });
+    pPresets->setMinimumHeight(48);
+    pLayout->addWidget(pPresets);
     setMinimumWidth(110);
 }
 
 // ---------------------------------------------------------------------------
 
-SpatialBasicSurface::SpatialBasicSurface(QWidget* pParent)
+SpatialBasicSurface::SpatialBasicSurface(
+        SpatialPresetBank* pAutopanBank, SpatialPresetBank* pFxBank, QWidget* pParent)
         : QWidget(pParent) {
     auto* pLayout = new QHBoxLayout(this);
     pLayout->setContentsMargins(0, 0, 0, 0);
@@ -259,9 +293,9 @@ SpatialBasicSurface::SpatialBasicSurface(QWidget* pParent)
         }
         pLayout->addSpacing(6);
     }
-    m_pAutopan = new SpatialBasicAutopan(this);
+    m_pAutopan = new SpatialBasicAutopan(pAutopanBank, this);
     pLayout->addWidget(m_pAutopan);
-    pLayout->addWidget(new SpatialBasicFx(this));
+    pLayout->addWidget(new SpatialBasicFx(pFxBank, this));
 }
 
 void SpatialBasicSurface::poll() {

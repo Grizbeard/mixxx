@@ -7,6 +7,7 @@
 #include "spatial/spatialpanels.h"
 
 class SpatialKnob;
+class SpatialPresetBank;
 
 /// One stem column.
 class SpatialBasicStem : public SpatialPanel {
@@ -24,15 +25,18 @@ class SpatialBasicStem : public SpatialPanel {
     QList<SpatialButton*> m_buttons;
     std::unique_ptr<PollingControlProxy> m_pStemCount;
     std::unique_ptr<PollingControlProxy> m_pColor;
+    std::unique_ptr<PollingControlProxy> m_pUnit;
+    SpatialButton* m_pAuto;
     int m_available = -1;
     double m_color = -2;
+    int m_unit = 1;
 };
 
 /// The auto-pan column, playing unit A or B.
 class SpatialBasicAutopan : public SpatialPanel {
     Q_OBJECT
   public:
-    explicit SpatialBasicAutopan(QWidget* pParent = nullptr);
+    explicit SpatialBasicAutopan(SpatialPresetBank* pBank, QWidget* pParent = nullptr);
     void poll();
 
   private:
@@ -51,7 +55,7 @@ class SpatialBasicAutopan : public SpatialPanel {
 class SpatialBasicFx : public SpatialPanel {
     Q_OBJECT
   public:
-    explicit SpatialBasicFx(QWidget* pParent = nullptr);
+    explicit SpatialBasicFx(SpatialPresetBank* pBank, QWidget* pParent = nullptr);
 };
 
 /// The Basic layout: eight columns laid out like the Novation Launch
@@ -64,7 +68,9 @@ class SpatialBasicFx : public SpatialPanel {
 class SpatialBasicSurface : public QWidget {
     Q_OBJECT
   public:
-    explicit SpatialBasicSurface(QWidget* pParent = nullptr);
+    SpatialBasicSurface(SpatialPresetBank* pAutopanBank,
+            SpatialPresetBank* pFxBank,
+            QWidget* pParent = nullptr);
     void poll();
 
   private:

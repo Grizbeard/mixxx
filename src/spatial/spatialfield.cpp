@@ -396,8 +396,8 @@ void SpatialField::paintPaths(QPainter& p) {
                 0,
                 kShapeCount - 1));
         const double size = m_pAutopanSize[source.unit - 1]->get();
-        QColor color = deckColor(source.deck + 1);
-        color.setAlphaF(0.35);
+        QColor color = unitColor(source.unit);
+        color.setAlphaF(0.45);
         if (shape == Shape::Random) {
             // No fixed path: a dotted ring where it may land.
             const double r = size * ringRadius();

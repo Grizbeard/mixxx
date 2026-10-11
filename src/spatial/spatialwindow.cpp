@@ -208,34 +208,6 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
     m_pTopBar = new SpatialTopBar(this, this);
     pRoot->addWidget(m_pTopBar);
 
-    auto* pMain = new QHBoxLayout();
-    pMain->setSpacing(6);
-    m_pField = new SpatialField(kDecks, this);
-    pMain->addWidget(m_pField, 1);
-    for (int deck = 0; deck < kDecks; ++deck) {
-        auto* pDeck = new SpatialDeckPanel(deck, this);
-        m_decks.append(pDeck);
-        m_advanced.append(pDeck);
-        pMain->addWidget(pDeck);
-    }
-    m_pBasic = new SpatialBasicSurface(this);
-    pMain->addWidget(m_pBasic);
-    pRoot->addLayout(pMain, 1);
-
-    auto* pTabBar = new QWidget(this);
-    auto* pTabRow = new QHBoxLayout(pTabBar);
-    pTabRow->setContentsMargins(0, 0, 0, 0);
-    pTabRow->setSpacing(4);
-    m_advanced.append(pTabBar);
-    const QStringList tabs = {tr("AUTO-PAN A"), tr("AUTO-PAN B"), tr("SPATIAL FX")};
-    m_pTabs = new QStackedWidget(this);
-    for (int i = 0; i < tabs.size(); ++i) {
-        auto* pButton = new SpatialActionButton(tabs[i], [this, i]() { showTab(i); }, this);
-        pButton->setAccent(i < 2 ? kGreen : kTeal);
-        m_tabButtons.append(pButton);
-        pTabRow->addWidget(pButton);
-    }
-    pRoot->addWidget(pTabBar);
     // Presets: one bank per tool; both auto-pan units share theirs.
     const QString settingsPath = m_pConfig->getSettingsPath();
     auto* pAutopanBank = new SpatialPresetBank(QStringLiteral("autopan"),
@@ -251,6 +223,34 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
     // Presets saved before delay and reverb shared a list.
     pFxBank->importLegacy(QStringLiteral("delay"), QStringLiteral("[SpatialDelay]"));
     pFxBank->importLegacy(QStringLiteral("reverb"), QStringLiteral("[SpatialReverb]"));
+    auto* pMain = new QHBoxLayout();
+    pMain->setSpacing(6);
+    m_pField = new SpatialField(kDecks, this);
+    pMain->addWidget(m_pField, 1);
+    for (int deck = 0; deck < kDecks; ++deck) {
+        auto* pDeck = new SpatialDeckPanel(deck, this);
+        m_decks.append(pDeck);
+        m_advanced.append(pDeck);
+        pMain->addWidget(pDeck);
+    }
+    m_pBasic = new SpatialBasicSurface(pAutopanBank, pFxBank, this);
+    pMain->addWidget(m_pBasic);
+    pRoot->addLayout(pMain, 1);
+
+    auto* pTabBar = new QWidget(this);
+    auto* pTabRow = new QHBoxLayout(pTabBar);
+    pTabRow->setContentsMargins(0, 0, 0, 0);
+    pTabRow->setSpacing(4);
+    m_advanced.append(pTabBar);
+    const QStringList tabs = {tr("AUTO-PAN A"), tr("AUTO-PAN B"), tr("SPATIAL FX")};
+    m_pTabs = new QStackedWidget(this);
+    for (int i = 0; i < tabs.size(); ++i) {
+        auto* pButton = new SpatialActionButton(tabs[i], [this, i]() { showTab(i); }, this);
+        pButton->setAccent(i < 2 ? unitColor(i + 1) : kTeal);
+        m_tabButtons.append(pButton);
+        pTabRow->addWidget(pButton);
+    }
+    pRoot->addWidget(pTabBar);
     for (int unit = 1; unit <= 2; ++unit) {
         auto* pAutopan = new SpatialAutopanPanel(unit, pAutopanBank, m_pTabs);
         m_autopans.append(pAutopan);

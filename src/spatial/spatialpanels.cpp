@@ -277,9 +277,12 @@ SpatialStemStrip::SpatialStemStrip(int deck, int slot, QWidget* pParent)
 
     auto* pAutoRow = new QHBoxLayout();
     pAutoRow->setSpacing(2);
-    auto* pAuto = toggle(group, "spatial_autopan", tr("AUTO"), kGreen);
-    auto* pUnitA = select(group, "spatial_autopan_unit", 1, QStringLiteral("A"), kGreen);
-    auto* pUnitB = select(group, "spatial_autopan_unit", 2, QStringLiteral("B"), kGreen);
+    auto* pAuto = toggle(group, "spatial_autopan", tr("AUTO"), kUnitA);
+    auto* pUnitA = select(group, "spatial_autopan_unit", 1, QStringLiteral("A"), kUnitA);
+    auto* pUnitB = select(group, "spatial_autopan_unit", 2, QStringLiteral("B"), kUnitB);
+    m_pAuto = pAuto;
+    m_pUnit = std::make_unique<PollingControlProxy>(
+            group, "spatial_autopan_unit", ControlFlag::AllowMissingOrInvalid);
     pAuto->setMinimumWidth(48);
     pUnitA->setMinimumWidth(26);
     pUnitB->setMinimumWidth(26);
@@ -287,7 +290,8 @@ SpatialStemStrip::SpatialStemStrip(int deck, int slot, QWidget* pParent)
     pAutoRow->addWidget(pUnitA, 1);
     pAutoRow->addWidget(pUnitB, 1);
     pLayout->addLayout(pAutoRow);
-    auto* pOffset = slider(group, "spatial_autopan_offset", 0, 1, tr("OFFSET"), kGreen);
+    auto* pOffset = slider(group, "spatial_autopan_offset", 0, 1, tr("OFFSET"), kUnitA);
+    m_pOffset = pOffset;
     pLayout->addWidget(pOffset);
     m_sliders.append(pOffset);
     auto* pFront = toggle(group, "spatial_front", tr("FRONT"), kHotOrange);
@@ -300,6 +304,13 @@ SpatialStemStrip::SpatialStemStrip(int deck, int slot, QWidget* pParent)
 
 void SpatialStemStrip::poll() {
     m_pMeter->poll();
+    // AUTO and OFFSET take the colour of the unit the stem follows.
+    const int unit = m_pUnit->get() > 1.5 ? 2 : 1;
+    if (unit != m_unit) {
+        m_unit = unit;
+        m_pAuto->setAccent(unitColor(unit));
+        m_pOffset->setAccent(unitColor(unit));
+    }
     const bool stems = m_pStemCount->get() > 0;
     const int available = stems ? 2 : (m_slot == 1 ? 1 : 0);
     const double color = m_pColor->get();
@@ -389,23 +400,24 @@ SpatialAutopanPanel::SpatialAutopanPanel(int unit, SpatialPresetBank* pBank, QWi
     m_pPresets = new SpatialPresetBar(pBank, m_group, this);
     pLayout->addWidget(m_pPresets);
 
-    pLayout->addWidget(row(tr("SHAPE"), shapeButtons(m_group, kGreen), this));
-    pLayout->addWidget(row(tr("WAVE"), waveButtons(m_group, kGreen), this));
+    const QColor accent = unitColor(unit);
+    pLayout->addWidget(row(tr("SHAPE"), shapeButtons(m_group, accent), this));
+    pLayout->addWidget(row(tr("WAVE"), waveButtons(m_group, accent), this));
 
     QList<QWidget*> rate;
     rate.append(toggle(m_group, "sync", tr("SYNC"), kHotOrange));
     for (double beats : mixxx::spatial::kBeatDivisions) {
-        auto* pButton = select(m_group, "beats", beats, beatLabel(beats), kGreen);
+        auto* pButton = select(m_group, "beats", beats, beatLabel(beats), accent);
         m_beatButtons.append(pButton);
         rate.append(pButton);
     }
-    rate.append(toggle(m_group, "triplet", QStringLiteral("T"), kGreen));
+    rate.append(toggle(m_group, "triplet", QStringLiteral("T"), accent));
     pLayout->addWidget(row(tr("BEATS"), rate, this));
 
-    m_pSeconds = slider(m_group, "seconds", 0.05, 60, tr("SECONDS PER POINT"), kGreen, seconds);
+    m_pSeconds = slider(m_group, "seconds", 0.05, 60, tr("SECONDS PER POINT"), accent, seconds);
     m_pSeconds->setCurve(SpatialSlider::Curve::Log);
-    auto* pSize = slider(m_group, "size", 0, 1, tr("SIZE"), kGreen);
-    auto* pReverse = toggle(m_group, "direction", tr("REVERSE"), kGreen);
+    auto* pSize = slider(m_group, "size", 0, 1, tr("SIZE"), accent);
+    auto* pReverse = toggle(m_group, "direction", tr("REVERSE"), accent);
     auto* pRetrigger = new SpatialButton(
             m_group, "retrigger", SpatialButton::Mode::Momentary, tr("RETRIG"));
     pRetrigger->setAccent(kHotOrange);

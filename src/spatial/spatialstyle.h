@@ -55,6 +55,14 @@ inline QColor deckColor(int deck) {
     return deck % 2 == 1 ? kDeck12 : kDeck34;
 }
 
+/// Auto-pan units: A green, B orange (deeper than the FRONT / SYNC orange),
+/// on every control that belongs to or picks a unit.
+inline const QColor kUnitA = kGreen;
+inline const QColor kUnitB{0xd9, 0x6c, 0x00};
+inline QColor unitColor(int unit) {
+    return unit == 2 ? kUnitB : kUnitA;
+}
+
 inline QFont styleFont(int pixelSize, bool semibold = false) {
     QFont f(semibold ? QStringLiteral("Open Sans Semibold") : QStringLiteral("Open Sans"));
     f.setFamilies({semibold ? QStringLiteral("Open Sans Semibold") : QStringLiteral("Open Sans"),

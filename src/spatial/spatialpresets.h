@@ -101,6 +101,28 @@ class SpatialPresetBar : public QWidget {
     std::function<void()> m_beforeSave;
 };
 
+/// A pop-up list of a bank's presets (Basic layout): tap one to load it on
+/// `group` and close. Opens above `pAnchor`, kept on screen.
+class SpatialPresetPopup : public QWidget {
+    Q_OBJECT
+  public:
+    static void open(SpatialPresetBank* pBank,
+            const QString& group,
+            std::function<void()> afterLoad,
+            const QColor& accent,
+            QWidget* pAnchor);
+
+  protected:
+    void paintEvent(QPaintEvent* pEvent) override;
+
+  private:
+    SpatialPresetPopup(SpatialPresetBank* pBank,
+            const QString& group,
+            std::function<void()> afterLoad,
+            const QColor& accent,
+            QWidget* pParent);
+};
+
 /// The factory banks.
 namespace spatialpresets {
 QList<SpatialPreset> autopanFactory();

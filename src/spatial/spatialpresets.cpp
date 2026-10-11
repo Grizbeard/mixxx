@@ -2,6 +2,9 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QGridLayout>
+#include <QPainter>
+#include <QScreen>
 #include <QFile>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -450,6 +453,68 @@ void SpatialPresetBank::store() const {
     if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         file.write(QJsonDocument(QJsonObject{{"presets", presets}}).toJson());
     }
+}
+
+// ---------------------------------------------------------------------------
+
+SpatialPresetPopup::SpatialPresetPopup(SpatialPresetBank* pBank,
+        const QString& group,
+        std::function<void()> afterLoad,
+        const QColor& accent,
+        QWidget* pParent)
+        : QWidget(pParent, Qt::Popup) {
+    setAttribute(Qt::WA_DeleteOnClose);
+    setAttribute(Qt::WA_AcceptTouchEvents);
+    auto* pLayout = new QGridLayout(this);
+    pLayout->setContentsMargins(10, 10, 10, 10);
+    pLayout->setSpacing(6);
+    auto* pTitle = new SpatialLabel(tr("PRESETS"), this);
+    pTitle->setColor(accent);
+    pLayout->addWidget(pTitle, 0, 0, 1, 2);
+    const auto& presets = pBank->presets();
+    for (int i = 0; i < presets.size(); ++i) {
+        auto* pButton = new SpatialActionButton(presets[i].name, nullptr, this);
+        pButton->setAction([this, pBank, group, afterLoad, i]() {
+            pBank->apply(i, group);
+            if (afterLoad) {
+                afterLoad();
+            }
+            close();
+        });
+        pButton->setAccent(accent);
+        pButton->setActive(pBank->matches(i, group));
+        pButton->setMinimumSize(170, 48);
+        pLayout->addWidget(pButton, 1 + i / 2, i % 2);
+    }
+}
+
+void SpatialPresetPopup::open(SpatialPresetBank* pBank,
+        const QString& group,
+        std::function<void()> afterLoad,
+        const QColor& accent,
+        QWidget* pAnchor) {
+    auto* pPopup = new SpatialPresetPopup(pBank, group, std::move(afterLoad), accent, pAnchor);
+    pPopup->adjustSize();
+    // Above the button, right edges aligned, inside the screen.
+    const QPoint anchor = pAnchor->mapToGlobal(QPoint(pAnchor->width(), 0));
+    QPoint at(anchor.x() - pPopup->width(), anchor.y() - pPopup->height() - 6);
+    if (QScreen* pScreen = pAnchor->screen()) {
+        const QRect available = pScreen->availableGeometry();
+        at.setX(std::clamp(at.x(), available.left(), available.right() - pPopup->width()));
+        at.setY(std::clamp(at.y(), available.top(), available.bottom() - pPopup->height()));
+    }
+    pPopup->move(at);
+    pPopup->show();
+}
+
+void SpatialPresetPopup::paintEvent(QPaintEvent* pEvent) {
+    Q_UNUSED(pEvent);
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    paintContainer(p, QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), kContainer);
+    p.setPen(QPen(kBorderLight, 1));
+    p.setBrush(Qt::NoBrush);
+    p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 2, 2);
 }
 
 // ---------------------------------------------------------------------------

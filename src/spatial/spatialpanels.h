@@ -50,6 +50,9 @@ class SpatialActionButton : public SpatialTouchWidget {
     SpatialActionButton(const QString& text, std::function<void()> action, QWidget* pParent = nullptr);
     void setActive(bool active);
     void setAccent(const QColor& accent);
+    void setAction(std::function<void()> action) {
+        m_action = std::move(action);
+    }
     QSize sizeHint() const override {
         return {120, 44};
     }
@@ -87,8 +90,12 @@ class SpatialStemStrip : public SpatialPanel {
     QList<SpatialButton*> m_buttons;
     std::unique_ptr<PollingControlProxy> m_pStemCount;
     std::unique_ptr<PollingControlProxy> m_pColor;
+    std::unique_ptr<PollingControlProxy> m_pUnit;
+    SpatialButton* m_pAuto;
+    SpatialSlider* m_pOffset;
     int m_available = -1;
     double m_color = -2;
+    int m_unit = 1;
 };
 
 /// A deck's three strips with a deck header and "all Front".
