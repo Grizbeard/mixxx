@@ -54,7 +54,8 @@ SpatialReverb::SpatialReverb()
           m_pDiffusion(makePot(kGroup, "diffusion", 0, 1, 0.75, true)),
           m_pShimmer(makePot(kGroup, "shimmer", 0, 1, 0, true)),
           m_pDuck(makePot(kGroup, "duck", 0, 1, 0, true)),
-          m_pFreeze(makeToggle(kGroup, "freeze")) {
+          m_pFreeze(makeToggle(kGroup, "freeze")),
+          m_pDirect(makePot(kGroup, "direct", 0, 1, 1, true)) {
     const double maxLine = (kLineMs.back() / 1000.0 * kMaxSizeScale + kMaxModulationSeconds * 2) *
             kMaxSampleRate;
     for (auto& line : m_lines) {
@@ -68,6 +69,10 @@ SpatialReverb::SpatialReverb()
     for (int k = 0; k < kLines; ++k) {
         m_lfoPhase[k] = k * 0.7;
     }
+}
+
+float SpatialReverb::directLevel() const {
+    return static_cast<float>(std::clamp(m_pDirect->get(), 0.0, 1.0));
 }
 
 void SpatialReverb::clear() {

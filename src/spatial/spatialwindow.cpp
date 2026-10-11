@@ -12,6 +12,7 @@
 #include "moc_spatialwindow.cpp"
 #include "spatial/spatialfield.h"
 #include "spatial/spatialpanels.h"
+#include "spatial/spatialpresets.h"
 #include "spatial/spatialstyle.h"
 
 using namespace spatialstyle;
@@ -214,16 +215,34 @@ SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilt
         pTabRow->addWidget(pButton);
     }
     pRoot->addLayout(pTabRow);
+    // Presets: one bank per tool; both auto-pan units share theirs.
+    const QString settingsPath = m_pConfig->getSettingsPath();
+    auto* pAutopanBank = new SpatialPresetBank(QStringLiteral("autopan"),
+            spatialpresets::autopanKeys(),
+            spatialpresets::autopanFactory(),
+            settingsPath,
+            this);
+    auto* pDelayBank = new SpatialPresetBank(QStringLiteral("delay"),
+            spatialpresets::delayKeys(),
+            spatialpresets::delayFactory(),
+            settingsPath,
+            this);
+    auto* pReverbBank = new SpatialPresetBank(QStringLiteral("reverb"),
+            spatialpresets::reverbKeys(),
+            spatialpresets::reverbFactory(),
+            settingsPath,
+            this);
     for (int unit = 1; unit <= 2; ++unit) {
-        auto* pAutopan = new SpatialAutopanPanel(unit, m_pTabs);
+        auto* pAutopan = new SpatialAutopanPanel(unit, pAutopanBank, m_pTabs);
         m_autopans.append(pAutopan);
         m_pTabs->addWidget(pAutopan);
     }
-    m_pDelay = new SpatialDelayPanel(m_pTabs);
+    m_pDelay = new SpatialDelayPanel(pDelayBank, m_pTabs);
     m_pTabs->addWidget(m_pDelay);
-    m_pTabs->addWidget(new SpatialReverbPanel(m_pTabs));
-    m_pTabs->setMinimumHeight(220);
-    m_pTabs->setMaximumHeight(290);
+    m_pReverb = new SpatialReverbPanel(pReverbBank, m_pTabs);
+    m_pTabs->addWidget(m_pReverb);
+    m_pTabs->setMinimumHeight(260);
+    m_pTabs->setMaximumHeight(350);
     pRoot->addWidget(m_pTabs);
     showTab(m_pConfig->getValue(ConfigKey(kConfigGroup, "tab"), 0));
 
@@ -252,6 +271,7 @@ void SpatialWindow::slotPoll() {
         pAutopan->poll();
     }
     m_pDelay->poll();
+    m_pReverb->poll();
 }
 
 void SpatialWindow::toggleFullScreen() {

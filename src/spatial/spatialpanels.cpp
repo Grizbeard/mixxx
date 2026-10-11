@@ -2,6 +2,7 @@
 
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QPainter>
 #include <QVBoxLayout>
 #include <cmath>
@@ -11,6 +12,7 @@
 #include "engine/spatial/enginespatialoutput.h"
 #include "engine/spatial/spatialmath.h"
 #include "moc_spatialpanels.cpp"
+#include "spatial/spatialpresets.h"
 #include "spatial/spatialstyle.h"
 
 using namespace spatialstyle;
@@ -31,6 +33,17 @@ QString beatLabel(double beats) {
 
 QString percent(double value) {
     return QStringLiteral("%1%").arg(static_cast<int>(std::lround(value * 100)));
+}
+
+QWidget* routingNote(QWidget* pParent) {
+    auto* pNote = new QLabel(QObject::tr(
+            "Signal: each stem's FX SEND feeds the DELAY and, at DIRECT IN, the "
+            "REVERB. The delay's echoes go to the speakers and, at TO REVERB, into "
+            "the reverb too. So the reverb works with the delay off; with DIRECT IN "
+            "at 0 it hears only the echoes."), pParent);
+    pNote->setWordWrap(true);
+    pNote->setStyleSheet(QStringLiteral("color: #777; font-size: 12px;"));
+    return pNote;
 }
 
 QWidget* row(const QString& label, const QList<QWidget*>& widgets, QWidget* pParent) {
@@ -362,7 +375,7 @@ void SpatialDeckPanel::poll() {
 
 // ---------------------------------------------------------------------------
 
-SpatialAutopanPanel::SpatialAutopanPanel(int unit, QWidget* pParent)
+SpatialAutopanPanel::SpatialAutopanPanel(int unit, SpatialPresetBank* pBank, QWidget* pParent)
         : SpatialPanel(pParent),
           m_group(QStringLiteral("[SpatialAutopan%1]").arg(unit)) {
     m_pSync = std::make_unique<PollingControlProxy>(
@@ -370,6 +383,9 @@ SpatialAutopanPanel::SpatialAutopanPanel(int unit, QWidget* pParent)
     auto* pLayout = new QVBoxLayout(this);
     pLayout->setContentsMargins(8, 8, 8, 8);
     pLayout->setSpacing(6);
+
+    m_pPresets = new SpatialPresetBar(pBank, m_group, this);
+    pLayout->addWidget(m_pPresets);
 
     pLayout->addWidget(row(tr("SHAPE"), shapeButtons(m_group, kGreen), this));
     pLayout->addWidget(row(tr("WAVE"), waveButtons(m_group, kGreen), this));
@@ -399,6 +415,7 @@ SpatialAutopanPanel::SpatialAutopanPanel(int unit, QWidget* pParent)
 }
 
 void SpatialAutopanPanel::poll() {
+    m_pPresets->poll();
     const bool sync = m_pSync->get() > 0;
     for (SpatialButton* pButton : std::as_const(m_beatButtons)) {
         pButton->setControlEnabled(sync);
@@ -408,7 +425,7 @@ void SpatialAutopanPanel::poll() {
 
 // ---------------------------------------------------------------------------
 
-SpatialDelayPanel::SpatialDelayPanel(QWidget* pParent)
+SpatialDelayPanel::SpatialDelayPanel(SpatialPresetBank* pBank, QWidget* pParent)
         : SpatialPanel(pParent) {
     const QString group = QStringLiteral("[SpatialDelay]");
     m_pSync = std::make_unique<PollingControlProxy>(
@@ -416,6 +433,9 @@ SpatialDelayPanel::SpatialDelayPanel(QWidget* pParent)
     auto* pLayout = new QVBoxLayout(this);
     pLayout->setContentsMargins(8, 8, 8, 8);
     pLayout->setSpacing(6);
+
+    m_pPresets = new SpatialPresetBar(pBank, group, this);
+    pLayout->addWidget(m_pPresets);
 
     QList<QWidget*> time;
     time.append(toggle(group, "sync", tr("SYNC"), kHotOrange));
@@ -469,11 +489,13 @@ SpatialDelayPanel::SpatialDelayPanel(QWidget* pParent)
     tone.append(pLowCut);
     tone.append(slider(group, "to_reverb", 0, 1, tr("TO REVERB"), kTeal));
     pLayout->addWidget(row(tr("TONE"), tone, this));
+    pLayout->addWidget(routingNote(this));
     pLayout->addStretch(1);
     poll();
 }
 
 void SpatialDelayPanel::poll() {
+    m_pPresets->poll();
     const bool sync = m_pSync->get() > 0;
     for (SpatialButton* pButton : std::as_const(m_beatButtons)) {
         pButton->setControlEnabled(sync);
@@ -483,51 +505,22 @@ void SpatialDelayPanel::poll() {
 
 // ---------------------------------------------------------------------------
 
-namespace {
-
-struct ReverbPreset {
-    const char* name;
-    double decay, size, predelay, damping, lowcut, modulation, diffusion, shimmer, duck;
-};
-
-// Starting points for trance vocals in a spatial mix.
-constexpr ReverbPreset kReverbPresets[] = {
-        {"VOCAL SPACE", 9, 0.8, 60, 0.45, 250, 0.6, 0.75, 0, 0.3},
-        {"SHIMMER", 14, 0.9, 40, 0.35, 300, 0.7, 0.8, 0.5, 0.2},
-        {"INFINITE", 30, 1.0, 20, 0.3, 300, 0.8, 0.85, 0.2, 0},
-        {"PLATE", 3, 0.4, 15, 0.5, 200, 0.3, 0.9, 0, 0},
-};
-
-} // namespace
-
-SpatialReverbPanel::SpatialReverbPanel(QWidget* pParent)
+SpatialReverbPanel::SpatialReverbPanel(SpatialPresetBank* pBank, QWidget* pParent)
         : SpatialPanel(pParent) {
     const QString group = QStringLiteral("[SpatialReverb]");
     auto* pLayout = new QVBoxLayout(this);
     pLayout->setContentsMargins(8, 8, 8, 8);
     pLayout->setSpacing(6);
 
-    QList<QWidget*> presets;
-    presets.append(toggle(group, "enabled", tr("ON"), kTeal));
+    m_pPresets = new SpatialPresetBar(pBank, group, this);
+    pLayout->addWidget(m_pPresets);
+
+    auto* pOn = toggle(group, "enabled", tr("ON"), kTeal);
     auto* pFreeze = toggle(group, "freeze", tr("FREEZE"), kHotOrange);
-    presets.append(pFreeze);
-    static const char* const kKeys[] = {"decay", "size", "predelay_ms", "damping", "lowcut",
-            "modulation", "diffusion", "shimmer", "duck"};
-    for (const ReverbPreset& preset : kReverbPresets) {
-        QList<ControlProxy*> proxies;
-        for (const char* key : kKeys) {
-            proxies.append(new ControlProxy(group, key, this, ControlFlag::NoAssertIfMissing));
-        }
-        const ReverbPreset copy = preset;
-        presets.append(new SpatialActionButton(QString::fromLatin1(preset.name), [proxies, copy]() {
-            const double values[] = {copy.decay, copy.size, copy.predelay, copy.damping,
-                    copy.lowcut, copy.modulation, copy.diffusion, copy.shimmer, copy.duck};
-            for (int i = 0; i < proxies.size(); ++i) {
-                proxies[i]->set(values[i]);
-            }
-        }));
-    }
-    pLayout->addWidget(row(tr("REVERB"), presets, this));
+    pOn->setMaximumWidth(160);
+    pFreeze->setMaximumWidth(160);
+    auto* pDirect = slider(group, "direct", 0, 1, tr("DIRECT IN (FROM THE SEND)"), kTeal);
+    pLayout->addWidget(row(tr("REVERB"), {pOn, pFreeze, pDirect}, this));
 
     auto* pDecay = slider(group, "decay", 0.5, 30, tr("DECAY"), kTeal, seconds);
     pDecay->setCurve(SpatialSlider::Curve::Log);
@@ -548,5 +541,10 @@ SpatialReverbPanel::SpatialReverbPanel(QWidget* pParent)
                     slider(group, "shimmer", 0, 1, tr("SHIMMER"), kTeal),
                     slider(group, "duck", 0, 1, tr("DUCK"), kTeal)},
             this));
+    pLayout->addWidget(routingNote(this));
     pLayout->addStretch(1);
+}
+
+void SpatialReverbPanel::poll() {
+    m_pPresets->poll();
 }

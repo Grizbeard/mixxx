@@ -4,6 +4,7 @@
 #include <QFontDatabase>
 #include <QImage>
 #include <QPixmap>
+#include <QTemporaryDir>
 #include <QTest>
 #include <cmath>
 
@@ -11,6 +12,7 @@
 #include "engine/effects/groupfeaturestate.h"
 #include "engine/spatial/enginespatialoutput.h"
 #include "preferences/dialog/dlgprefspatial.h"
+#include "spatial/spatialpresets.h"
 #include "spatial/spatialwindow.h"
 #include "test/mixxxtest.h"
 
@@ -120,6 +122,66 @@ TEST_F(SpatialWindowTest, RendersThePreferencesPage) {
         path.replace(QStringLiteral(".png"), QStringLiteral("_prefs.png"));
         EXPECT_TRUE(image.save(path));
     }
+}
+
+TEST_F(SpatialWindowTest, PresetKeysAreRealControls) {
+    const std::pair<QString, QStringList> kinds[] = {
+            {QStringLiteral("[SpatialAutopan1]"), spatialpresets::autopanKeys()},
+            {QStringLiteral("[SpatialDelay]"), spatialpresets::delayKeys()},
+            {QStringLiteral("[SpatialReverb]"), spatialpresets::reverbKeys()},
+    };
+    for (const auto& [group, keys] : kinds) {
+        for (const QString& key : keys) {
+            EXPECT_NE(ControlObject::getControl(ConfigKey(group, key), ControlFlag::AllowMissingOrInvalid),
+                    nullptr)
+                    << group.toStdString() << "," << key.toStdString();
+        }
+    }
+}
+
+TEST_F(SpatialWindowTest, PresetsLoadSaveAndDelete) {
+    QTemporaryDir settings;
+    const QString group = QStringLiteral("[SpatialDelay]");
+    {
+        SpatialPresetBank bank(QStringLiteral("delay"),
+                spatialpresets::delayKeys(),
+                spatialpresets::delayFactory(),
+                settings.path());
+        const int gate = bank.indexOf(QStringLiteral("TRANCE GATE"));
+        ASSERT_GE(gate, 0);
+        bank.apply(gate, group);
+        EXPECT_EQ(ControlObject::get(ConfigKey(group, "gate")), 1);
+        EXPECT_EQ(ControlObject::get(ConfigKey(group, "beats")), 0.5);
+        EXPECT_TRUE(bank.matches(gate, group));
+
+        set(group, "feedback", 0.3);
+        EXPECT_FALSE(bank.matches(gate, group));
+        bank.saveCurrent(QStringLiteral("MY GATE"), group);
+        EXPECT_FALSE(bank.isFactory(QStringLiteral("MY GATE")));
+        // Factory presets can't be overwritten.
+        bank.saveCurrent(QStringLiteral("TRANCE GATE"), group);
+        bank.apply(gate, group);
+        EXPECT_EQ(ControlObject::get(ConfigKey(group, "feedback")), 0.7);
+    }
+    {
+        // A new session finds the user preset in the settings folder.
+        SpatialPresetBank bank(QStringLiteral("delay"),
+                spatialpresets::delayKeys(),
+                spatialpresets::delayFactory(),
+                settings.path());
+        const int mine = bank.indexOf(QStringLiteral("MY GATE"));
+        ASSERT_GE(mine, 0);
+        bank.apply(mine, group);
+        EXPECT_EQ(ControlObject::get(ConfigKey(group, "feedback")), 0.3);
+        EXPECT_EQ(ControlObject::get(ConfigKey(group, "gate")), 1);
+        EXPECT_TRUE(bank.remove(QStringLiteral("MY GATE")));
+        EXPECT_FALSE(bank.remove(QStringLiteral("TRANCE GATE")));
+    }
+    SpatialPresetBank bank(QStringLiteral("delay"),
+            spatialpresets::delayKeys(),
+            spatialpresets::delayFactory(),
+            settings.path());
+    EXPECT_LT(bank.indexOf(QStringLiteral("MY GATE")), 0);
 }
 
 } // namespace

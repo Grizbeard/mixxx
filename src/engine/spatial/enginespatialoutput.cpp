@@ -294,8 +294,11 @@ void EngineSpatialOutput::renderBus(
             bus,
             m_lf.data(),
             m_reverbIn.data());
+    // The reverb hears the echoes (to_reverb) plus, at its direct level,
+    // the stems' send itself, so it also works with the delay off.
+    const float direct = 0.5f * m_pReverb->directLevel();
     for (int f = 0; f < frameCount; ++f) {
-        m_reverbIn[f] += 0.5f * (m_sendLeft[f] + m_sendRight[f]);
+        m_reverbIn[f] += direct * (m_sendLeft[f] + m_sendRight[f]);
     }
     m_pReverb->process(m_reverbIn.data(), frameCount, m_sampleRate, m_layout, bus, m_lf.data());
 

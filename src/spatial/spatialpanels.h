@@ -8,6 +8,8 @@
 #include "spatial/spatialwidgets.h"
 
 class QGridLayout;
+class SpatialPresetBank;
+class SpatialPresetBar;
 
 /// A LateNight container frame for the panels below.
 class SpatialPanel : public QWidget {
@@ -103,11 +105,12 @@ class SpatialDeckPanel : public QWidget {
 class SpatialAutopanPanel : public SpatialPanel {
     Q_OBJECT
   public:
-    SpatialAutopanPanel(int unit, QWidget* pParent = nullptr);
+    SpatialAutopanPanel(int unit, SpatialPresetBank* pBank, QWidget* pParent = nullptr);
     void poll();
 
   private:
     QString m_group;
+    SpatialPresetBar* m_pPresets;
     QList<SpatialButton*> m_beatButtons;
     SpatialSlider* m_pSeconds;
     std::unique_ptr<PollingControlProxy> m_pSync;
@@ -117,10 +120,11 @@ class SpatialAutopanPanel : public SpatialPanel {
 class SpatialDelayPanel : public SpatialPanel {
     Q_OBJECT
   public:
-    explicit SpatialDelayPanel(QWidget* pParent = nullptr);
+    SpatialDelayPanel(SpatialPresetBank* pBank, QWidget* pParent = nullptr);
     void poll();
 
   private:
+    SpatialPresetBar* m_pPresets;
     QList<SpatialButton*> m_beatButtons;
     SpatialSlider* m_pTimeMs;
     std::unique_ptr<PollingControlProxy> m_pSync;
@@ -130,12 +134,18 @@ class SpatialDelayPanel : public SpatialPanel {
 class SpatialReverbPanel : public SpatialPanel {
     Q_OBJECT
   public:
-    explicit SpatialReverbPanel(QWidget* pParent = nullptr);
+    SpatialReverbPanel(SpatialPresetBank* pBank, QWidget* pParent = nullptr);
+    void poll();
+
+  private:
+    SpatialPresetBar* m_pPresets;
 };
 
 /// Shared builders.
 namespace spatialpanels {
 QString beatLabel(double beats);
 QString percent(double value);
+/// How the send, delay and reverb connect, for the FX tabs.
+QWidget* routingNote(QWidget* pParent);
 QWidget* row(const QString& label, const QList<QWidget*>& widgets, QWidget* pParent);
 } // namespace spatialpanels

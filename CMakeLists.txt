@@ -1516,6 +1516,7 @@ add_library(
   src/preferences/dialog/dlgprefspatial.cpp
   src/spatial/spatialfield.cpp
   src/spatial/spatialpanels.cpp
+  src/spatial/spatialpresets.cpp
   src/spatial/spatialwidgets.cpp
   src/spatial/spatialwindow.cpp
   src/preferences/dialog/dlgprefsounddlg.ui

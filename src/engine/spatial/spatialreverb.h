@@ -27,7 +27,10 @@ namespace mixxx::spatial {
 /// Controls, group [SpatialReverb] (persisted):
 ///   enabled, level 0..1, decay seconds (0.5..30), size 0..1, predelay_ms
 ///   (0..500), damping 0..1, lowcut Hz (20..1000), modulation 0..1,
-///   diffusion 0..1, shimmer 0..1, duck 0..1, freeze (not persisted)
+///   diffusion 0..1, shimmer 0..1, duck 0..1, freeze (not persisted),
+///   direct 0..1: how much of the stems' FX send feeds the reverb directly
+///   (the delay's to_reverb adds its echoes on top; at 0 the reverb hears
+///   only the echoes)
 class SpatialReverb {
   public:
     static constexpr int kLines = 8;
@@ -35,6 +38,9 @@ class SpatialReverb {
     static constexpr const char* kGroup = "[SpatialReverb]";
 
     SpatialReverb();
+
+    /// The share of the stems' FX send that feeds the reverb directly.
+    float directLevel() const;
 
     /// `pIn` is the mono input (sends + echoes), `frames` long.
     void process(const float* pIn,
@@ -59,6 +65,7 @@ class SpatialReverb {
     std::unique_ptr<ControlPotmeter> m_pShimmer;
     std::unique_ptr<ControlPotmeter> m_pDuck;
     std::unique_ptr<ControlPushButton> m_pFreeze;
+    std::unique_ptr<ControlPotmeter> m_pDirect;
 
     std::array<DelayLine, kLines> m_lines;
     std::array<OnePole, kLines> m_damping;
