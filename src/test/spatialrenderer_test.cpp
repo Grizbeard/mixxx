@@ -64,20 +64,44 @@ GroupFeatureState tempoAfter(int callbacks) {
 // Panner and motion maths.
 
 TEST(SpatialMathTest, PanningOnASpeakerUsesOnlyThatSpeaker) {
-    SpeakerLayout layout;
-    const auto azimuths = SpeakerLayout::defaultAzimuths(6);
-    layout.setSpeakers(6, azimuths.data());
-    float gains[kMaxSpeakers];
-    for (int s = 0; s < 6; ++s) {
-        layout.gains(azimuths[s], 0, gains);
-        for (int i = 0; i < 6; ++i) {
-            EXPECT_NEAR(gains[i], i == s ? 1.0 : 0.0, 1e-6) << "speaker " << s << " gain " << i;
+    for (int count = kMinSpeakers; count <= kMaxSpeakers; ++count) {
+        SpeakerLayout layout;
+        const auto azimuths = SpeakerLayout::defaultAzimuths(count);
+        layout.setSpeakers(count, azimuths.data());
+        float gains[kMaxSpeakers];
+        for (int s = 0; s < count; ++s) {
+            layout.gains(azimuths[s], 0, gains);
+            for (int i = 0; i < count; ++i) {
+                EXPECT_NEAR(gains[i], i == s ? 1.0 : 0.0, 1e-6)
+                        << count << " speakers: speaker " << s << " gain " << i;
+            }
         }
     }
 }
 
+TEST(SpatialMathTest, DefaultRingsAreEvenWithTheFrontPairAroundZero) {
+    for (int count = kMinSpeakers; count <= kMaxSpeakers; ++count) {
+        const auto azimuths = SpeakerLayout::defaultAzimuths(count);
+        const double spacing = 360.0 / count;
+        EXPECT_NEAR(azimuths[0], -spacing / 2, 1e-9) << count;
+        EXPECT_NEAR(azimuths[1], spacing / 2, 1e-9) << count;
+        // Clockwise from speaker 2, one spacing apart, back round to speaker 1.
+        for (int i = 1; i < count; ++i) {
+            const double step = wrapDegrees(azimuths[(i + 1) % count] - azimuths[i]);
+            EXPECT_NEAR(step < 0 ? step + 360 : step, spacing, 1e-9)
+                    << count << " speakers, speaker " << i + 1;
+        }
+    }
+    // The six-speaker ring keeps its angles.
+    const auto six = SpeakerLayout::defaultAzimuths(6);
+    const double expected[] = {-30, 30, 90, 150, -150, -90};
+    for (int i = 0; i < 6; ++i) {
+        EXPECT_NEAR(six[i], expected[i], 1e-9);
+    }
+}
+
 TEST(SpatialMathTest, PanningIsPowerNormalisedAllAround) {
-    for (int count = 4; count <= 6; ++count) {
+    for (int count = kMinSpeakers; count <= kMaxSpeakers; ++count) {
         SpeakerLayout layout;
         const auto azimuths = SpeakerLayout::defaultAzimuths(count);
         layout.setSpeakers(count, azimuths.data());
@@ -100,11 +124,15 @@ TEST(SpatialMathTest, PanningIsPowerNormalisedAllAround) {
 }
 
 TEST(SpatialMathTest, FullSpreadIsEqualOnEverySpeaker) {
-    SpeakerLayout layout;
-    float gains[kMaxSpeakers];
-    layout.gains(77, 1, gains);
-    for (int i = 0; i < 6; ++i) {
-        EXPECT_NEAR(gains[i], 1 / std::sqrt(6.0), 1e-6);
+    for (int count = kMinSpeakers; count <= kMaxSpeakers; ++count) {
+        SpeakerLayout layout;
+        const auto azimuths = SpeakerLayout::defaultAzimuths(count);
+        layout.setSpeakers(count, azimuths.data());
+        float gains[kMaxSpeakers];
+        layout.gains(77, 1, gains);
+        for (int i = 0; i < count; ++i) {
+            EXPECT_NEAR(gains[i], 1 / std::sqrt(static_cast<double>(count)), 1e-6) << count;
+        }
     }
 }
 
@@ -339,6 +367,36 @@ TEST_F(SpatialBusTest, PanningAPointSourceKeepsItsLevel) {
     for (int ch : {0, 1, 3, 4, 5}) {
         EXPECT_LT(rmsOf(out[ch]), 1e-6) << "speaker " << ch + 1;
     }
+}
+
+TEST_F(SpatialBusTest, ATwelveSpeakerRingWithLf) {
+    connect(12, true);
+    // Speaker 7 of the 12-speaker ring sits at 165 degrees.
+    set("[Channel1_Stem1]", "spatial_azimuth", 165);
+    set("[Channel1_Stem1]", "spatial_width", 0);
+    const auto out = run(5, 0, sines(440, 440, 0.5));
+    ASSERT_EQ(out.size(), 13u);
+    EXPECT_NEAR(rmsOf(out[6], kFrames), M_SQRT1_2 * 1.0 / M_SQRT2, 3e-3);
+    for (int ch = 0; ch < 12; ++ch) {
+        if (ch != 6) {
+            EXPECT_LT(rmsOf(out[ch]), 1e-6) << "speaker " << ch + 1;
+        }
+    }
+    // The LF feed is the channel after the last speaker (40 Hz, under the
+    // crossover).
+    const auto low = run(5, 0, sines(40, 40, 0.5));
+    EXPECT_GT(rmsOf(low[12], kFrames), 0.1);
+}
+
+TEST_F(SpatialBusTest, AThreeSpeakerRingPansAllAround) {
+    connect(3, false);
+    set("[Channel1_Stem1]", "spatial_width", 0);
+    // Half way between speaker 2 (60 degrees) and speaker 3 (180): both equally.
+    set("[Channel1_Stem1]", "spatial_azimuth", 120);
+    const auto out = run(5, 0, sines(440, 440, 0.5));
+    ASSERT_EQ(out.size(), 3u);
+    EXPECT_NEAR(rmsOf(out[1], kFrames), rmsOf(out[2], kFrames), 1e-3);
+    EXPECT_LT(rmsOf(out[0]), 1e-6);
 }
 
 TEST_F(SpatialBusTest, TheLfFeedDoesNotDependOnPosition) {
@@ -734,6 +792,71 @@ TEST_F(SpatialFxTest, TheReverbTailSurroundsTheRoomAndDecays) {
         b += out[1][n] * out[1][n];
     }
     EXPECT_LT(std::abs(cross) / std::sqrt(a * b), 0.3);
+}
+
+TEST_F(SpatialFxTest, TheReverbFillsTwelveSpeakersAtTheSameLevel) {
+    set("[SpatialReverb]", "enabled", 1);
+    set("[SpatialReverb]", "level", 1);
+    set("[SpatialReverb]", "decay", 2);
+    set("[SpatialReverb]", "predelay_ms", 20);
+    // The same burst into a 6- and a 12-speaker ring.
+    const auto render = [](int count) {
+        SpatialReverb reverb;
+        SpeakerLayout layout;
+        const auto azimuths = SpeakerLayout::defaultAzimuths(count);
+        layout.setSpeakers(count, azimuths.data());
+        std::vector<float> in(kFrames);
+        std::vector<float> lf(kFrames);
+        std::array<std::vector<float>, kMaxSpeakers> buffers;
+        std::vector<std::vector<double>> out(count);
+        uint32_t noise = 1;
+        for (int c = 0; c < 100; ++c) { // 0.2 s of noise, then the tail
+            for (int f = 0; f < kFrames; ++f) {
+                noise = noise * 1664525u + 1013904223u;
+                in[f] = c < 20 ? static_cast<float>(noise / 4294967296.0 - 0.5) : 0.0f;
+            }
+            std::array<float*, kMaxSpeakers> speakers{};
+            for (int i = 0; i < count; ++i) {
+                buffers[i].assign(kFrames, 0.0f);
+                speakers[i] = buffers[i].data();
+            }
+            reverb.process(in.data(), kFrames, kRate, layout, speakers, lf.data());
+            for (int i = 0; i < count; ++i) {
+                out[i].insert(out[i].end(), buffers[i].begin(), buffers[i].end());
+            }
+        }
+        return out;
+    };
+    const auto begin = static_cast<std::size_t>(0.25 * kRate);
+    const auto end = static_cast<std::size_t>(0.6 * kRate);
+    const auto totalPower = [&](const std::vector<std::vector<double>>& out) {
+        double power = 0;
+        for (const auto& channel : out) {
+            const double level = rmsOf(channel, begin, end);
+            power += level * level;
+        }
+        return power;
+    };
+    const auto six = render(6);
+    const auto twelve = render(12);
+    // Same total power, so the same wet/dry balance on either ring.
+    EXPECT_NEAR(10 * std::log10(totalPower(twelve) / totalPower(six)), 0, 1.5);
+    // Every speaker carries the tail, and every pair is decorrelated.
+    for (int i = 0; i < 12; ++i) {
+        EXPECT_GT(rmsOf(twelve[i], begin, end), 1e-3) << "speaker " << i + 1;
+        for (int j = i + 1; j < 12; ++j) {
+            double cross = 0;
+            double a = 0;
+            double b = 0;
+            for (std::size_t n = begin; n < end; ++n) {
+                cross += twelve[i][n] * twelve[j][n];
+                a += twelve[i][n] * twelve[i][n];
+                b += twelve[j][n] * twelve[j][n];
+            }
+            EXPECT_LT(std::abs(cross) / std::sqrt(a * b), 0.3)
+                    << "speakers " << i + 1 << " and " << j + 1;
+        }
+    }
 }
 
 TEST_F(SpatialFxTest, ShimmerAndFreezeStayBounded) {

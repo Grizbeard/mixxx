@@ -71,6 +71,8 @@ class SpatialReverb {
 
     std::array<DelayLine, kLines> m_lines;
     std::array<OnePole, kLines> m_damping;
+    // Damping for the second output taps (rings of more than 7 speakers).
+    std::array<OnePole, kLines> m_tapDamping;
     std::array<double, kLines> m_lfoPhase{};
     std::array<DelayLine, 4> m_diffusers;
     DelayLine m_predelay;

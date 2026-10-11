@@ -11,6 +11,7 @@
 #include <cmath>
 
 #include "moc_spatialwindow.cpp"
+#include "engine/spatial/spatialmath.h"
 #include "spatial/spatialbasic.h"
 #include "spatial/spatialfield.h"
 #include "spatial/spatialpanels.h"
@@ -46,7 +47,7 @@ class SpatialTopBar : public QWidget {
         m_pLimiter = makePoll(spatial, "limiter_reduction_db");
         m_pPassthrough = makePoll(spatial, "main_passthrough");
         m_pHeadphones = makePoll(spatial, "headphone_spatial");
-        for (int c = 0; c < 8; ++c) {
+        for (int c = 0; c < mixxx::spatial::kMaxOutputChannels; ++c) {
             m_pVu[c] = makePoll(spatial, QStringLiteral("vu_meter_%1").arg(c + 1));
         }
 
@@ -142,8 +143,10 @@ class SpatialTopBar : public QWidget {
             x += 420;
         } else {
             const int shown = m_speakers + (m_lf ? 1 : 0);
+            // Narrower meters for bigger rings, so the bar keeps its width.
+            const double pitch = shown > 8 ? 24 : 30;
             for (int c = 0; c < shown; ++c) {
-                const QRectF well(x + c * 30, 10, 22, height() - 30);
+                const QRectF well(x + c * pitch, 10, pitch - 8, height() - 30);
                 p.setPen(QPen(kBorderDark, 1));
                 p.setBrush(kBar);
                 p.drawRect(well);
@@ -158,7 +161,7 @@ class SpatialTopBar : public QWidget {
                         Qt::AlignCenter,
                         c < m_speakers ? QString::number(c + 1) : QStringLiteral("LF"));
             }
-            x += shown * 30 + 16;
+            x += shown * pitch + 16;
         }
 
         p.setFont(styleFont(13, true));
@@ -176,7 +179,7 @@ class SpatialTopBar : public QWidget {
   private:
     std::unique_ptr<PollingControlProxy> m_pBeat, m_pChannels, m_pSpeakers, m_pLf, m_pLimiter,
             m_pPassthrough, m_pHeadphones;
-    std::array<std::unique_ptr<PollingControlProxy>, 8> m_pVu;
+    std::array<std::unique_ptr<PollingControlProxy>, mixxx::spatial::kMaxOutputChannels> m_pVu;
     SpatialActionButton* m_pFullScreen;
     SpatialActionButton* m_pBasic;
     SpatialActionButton* m_pAdvanced;
@@ -188,7 +191,7 @@ class SpatialTopBar : public QWidget {
     double m_limiter = 0;
     bool m_passthrough = false;
     bool m_headphones = false;
-    std::array<double, 8> m_vu{};
+    std::array<double, mixxx::spatial::kMaxOutputChannels> m_vu{};
 };
 
 SpatialWindow::SpatialWindow(UserSettingsPointer pConfig, QObject* pKeyboardFilter, QWidget* pParent)

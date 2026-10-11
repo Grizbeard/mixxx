@@ -13,8 +13,10 @@
 /// The ring itself is radius 1; the centre of the room is (0, 0).
 namespace mixxx::spatial {
 
-constexpr int kMaxSpeakers = 6;
-constexpr int kMinSpeakers = 4;
+constexpr int kMaxSpeakers = 12;
+constexpr int kMinSpeakers = 3;
+/// Output channels: every speaker, then the LF feed.
+constexpr int kMaxOutputChannels = kMaxSpeakers + 1;
 constexpr double kPi = 3.14159265358979323846;
 
 struct Point {
@@ -57,10 +59,12 @@ class SpeakerLayout {
   public:
     SpeakerLayout();
 
-    /// Defaults with speakers 1 and 2 as the front pair, then clockwise:
+    /// Evenly spaced defaults with speakers 1 and 2 as the front pair either
+    /// side of 0°, then clockwise. For example:
+    /// 3: FL -60, FR 60, rear 180
     /// 4: FL -45, FR 45, RR 135, RL -135
-    /// 5: FL -36, FR 36, R 108, rear 180, L -108
     /// 6: FL -30, FR 30, SR 90, RR 150, RL -150, SL -90
+    /// 8: -22.5, 22.5, 67.5, 112.5, 157.5, -157.5, -112.5, -67.5
     static std::array<double, kMaxSpeakers> defaultAzimuths(int count);
 
     void setSpeakers(int count, const double* pAzimuths);

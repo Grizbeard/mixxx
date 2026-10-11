@@ -115,6 +115,37 @@ TEST_F(SpatialWindowTest, RendersAPerformanceScene) {
     }
 }
 
+TEST_F(SpatialWindowTest, RendersATwelveSpeakerRing) {
+    const AudioOutput output(
+            AudioPath::AudioPathType::Spatial, 0, mixxx::audio::ChannelCount(13));
+    m_pOutput->onOutputConnected(output);
+    set("[Spatial]", "speaker_count", 12);
+    set("[Spatial]", "lf_enabled", 1);
+    config()->setValue(ConfigKey("[SpatialWindow]", "layout"), 0);
+    SpatialWindow window(config(), nullptr, nullptr);
+    window.setAttribute(Qt::WA_DontShowOnScreen);
+    window.resize(1920, 1080);
+    window.show();
+    for (int i = 0; i < 10; ++i) {
+        QTest::qWait(20);
+    }
+    const QImage image = window.grab().toImage();
+    EXPECT_EQ(image.width(), 1920);
+    DlgPrefSpatial page(nullptr, config());
+    page.setAttribute(Qt::WA_DontShowOnScreen);
+    page.resize(900, 1600);
+    page.show();
+    QCoreApplication::processEvents();
+    QString path = qEnvironmentVariable("SPATIAL_SCREENSHOT");
+    if (!path.isEmpty()) {
+        EXPECT_TRUE(image.save(path.replace(QStringLiteral(".png"), QStringLiteral("_ring12.png"))));
+        path = qEnvironmentVariable("SPATIAL_SCREENSHOT");
+        EXPECT_TRUE(page.grab().toImage().save(
+                path.replace(QStringLiteral(".png"), QStringLiteral("_prefs12.png"))));
+    }
+    m_pOutput->onOutputDisconnected(output);
+}
+
 TEST_F(SpatialWindowTest, RendersThePreferencesPage) {
     set("[Spatial]", "speaker_count", 6);
     DlgPrefSpatial page(nullptr, config());

@@ -62,10 +62,10 @@ SpatialField::SpatialField(int decks, QWidget* pParent)
     m_pChannelCount = makePoll(spatial, "channel_count");
     m_pLfEnabled = makePoll(spatial, "lf_enabled");
     m_pHeadphones = makePoll(spatial, "headphone_spatial");
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < mixxx::spatial::kMaxSpeakers; ++i) {
         m_pSpeakerAzimuth[i] = makePoll(spatial, QStringLiteral("speaker_%1_azimuth").arg(i + 1));
     }
-    for (int c = 0; c < 8; ++c) {
+    for (int c = 0; c < mixxx::spatial::kMaxOutputChannels; ++c) {
         m_pVu[c] = makePoll(spatial, QStringLiteral("vu_meter_%1").arg(c + 1));
     }
     for (int u = 0; u < 2; ++u) {
@@ -134,7 +134,9 @@ void SpatialField::poll() {
     QByteArray state;
     QDataStream out(&state, QIODevice::WriteOnly);
 
-    m_speakers = std::clamp(static_cast<int>(std::lround(m_pSpeakerCount->get())), 4, 6);
+    m_speakers = std::clamp(static_cast<int>(std::lround(m_pSpeakerCount->get())),
+            mixxx::spatial::kMinSpeakers,
+            mixxx::spatial::kMaxSpeakers);
     m_channels = static_cast<int>(m_pChannelCount->get());
     if (m_channels > 0) {
         m_speakers = std::min(m_speakers, m_channels);
@@ -146,7 +148,7 @@ void SpatialField::poll() {
         m_azimuths[i] = custom ? m_pSpeakerAzimuth[i]->get() : defaults[i];
         out << m_azimuths[i];
     }
-    for (int c = 0; c < 8; ++c) {
+    for (int c = 0; c < mixxx::spatial::kMaxOutputChannels; ++c) {
         // Quantised so idle meters don't repaint.
         m_vu[c] = std::round(m_pVu[c]->get() * 64) / 64;
         out << m_vu[c];

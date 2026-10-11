@@ -1,6 +1,7 @@
 #include "soundio/soundmanagerutil.h"
 
 #include "engine/channels/enginechannel.h"
+#include "engine/spatial/spatialmath.h"
 
 /// Constructs a ChannelGroup.
 /// @param channelBase the first channel in the group.
@@ -226,8 +227,8 @@ mixxx::audio::ChannelCount AudioPath::minChannelsForType(AudioPathType type) {
     case AudioPathType::VinylControl:
         return mixxx::audio::ChannelCount::stereo();
     case AudioPathType::Spatial:
-        // The smallest ring: four speakers, no LF feed.
-        return mixxx::audio::ChannelCount(4);
+        // The smallest ring: three speakers, no LF feed.
+        return mixxx::audio::ChannelCount(mixxx::spatial::kMinSpeakers);
     default:
         return mixxx::audio::ChannelCount::mono();
     }
@@ -236,8 +237,8 @@ mixxx::audio::ChannelCount AudioPath::minChannelsForType(AudioPathType type) {
 // static
 mixxx::audio::ChannelCount AudioPath::maxChannelsForType(AudioPathType type) {
     if (type == AudioPathType::Spatial) {
-        // Six speakers, LF, and one spare (EngineSpatialOutput::kMaxChannels).
-        return mixxx::audio::ChannelCount(8);
+        // Twelve speakers and LF (EngineSpatialOutput::kMaxChannels).
+        return mixxx::audio::ChannelCount(mixxx::spatial::kMaxOutputChannels);
     }
     return mixxx::audio::ChannelCount::stereo();
 }

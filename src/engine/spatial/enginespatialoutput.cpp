@@ -48,7 +48,7 @@ EngineSpatialOutput::EngineSpatialOutput()
         : m_buffer(kMaxEngineFrames * kMaxChannels),
           m_pChannelCount(std::make_unique<ControlObject>(ConfigKey(kGroup, "channel_count"))),
           m_pChannelBase(std::make_unique<ControlObject>(ConfigKey(kGroup, "channel_base"))),
-          m_pSpeakerCount(makePot(kGroup, "speaker_count", kMinSpeakers, kMaxSpeakers, kMinSpeakers, true)),
+          m_pSpeakerCount(makePot(kGroup, "speaker_count", kMinSpeakers, kMaxSpeakers, 4, true)),
           m_pLayoutCustom(makeToggle(kGroup, "layout_custom", 0, true)),
           m_pLfEnabled(std::make_unique<ControlPushButton>(
                   ConfigKey(kGroup, "lf_enabled"), true, 1.0)),
@@ -88,9 +88,14 @@ EngineSpatialOutput::EngineSpatialOutput()
     m_pTestSignal->setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_pMainPassthrough->setButtonMode(mixxx::control::ButtonMode::Toggle);
 
-    const auto defaults = SpeakerLayout::defaultAzimuths(kMaxSpeakers);
+    // Custom angles start from the six-speaker ring; speakers 7-12 from the
+    // twelve-speaker one.
+    const auto defaults6 = SpeakerLayout::defaultAzimuths(6);
+    const auto defaults12 = SpeakerLayout::defaultAzimuths(kMaxSpeakers);
     for (int i = 0; i < kMaxSpeakers; ++i) {
-        m_pSpeakerAzimuth[i] = makePot(kGroup, speakerKey(i, "azimuth"), -180, 180, defaults[i], true);
+        const double defaultAzimuth = i < 6 ? defaults6[i] : defaults12[i];
+        m_pSpeakerAzimuth[i] = makePot(
+                kGroup, speakerKey(i, "azimuth"), -180, 180, defaultAzimuth, true);
         m_pSpeakerGainDb[i] = makePot(kGroup, speakerKey(i, "gain_db"), -24, 6, 0, true);
         m_pSpeakerDelayMs[i] = makePot(
                 kGroup, speakerKey(i, "delay_ms"), 0, kMaxAlignmentSeconds * 1000, 0, true);

@@ -40,9 +40,9 @@ class SpatialReverb;
 ///
 /// Controls, group [Spatial]:
 ///   channel_count, channel_base  read-only: the connected output group
-///   speaker_count     4-6 speakers on the ring (persisted)
+///   speaker_count     3-12 speakers on the ring (persisted)
 ///   layout_custom     0 = default angles for the count, 1 = speaker_N_azimuth
-///   speaker_N_azimuth / _gain_db / _delay_ms   N = 1..6 (persisted)
+///   speaker_N_azimuth / _gain_db / _delay_ms   N = 1..12 (persisted)
 ///   lf_enabled        the channel after the speakers carries LF (persisted)
 ///   lf_crossover_hz   LR4 crossover, 40-200 Hz (persisted)
 ///   mains_highpass    high-pass the speakers at the crossover (persisted)
@@ -64,7 +64,7 @@ class SpatialReverb;
 /// The Spatial FX macros live in [SpatialFX] (see SpatialFxMetaControls).
 class EngineSpatialOutput : public AudioSource {
   public:
-    static constexpr int kMaxChannels = 8;
+    static constexpr int kMaxChannels = mixxx::spatial::kMaxOutputChannels;
     static constexpr int kMinSpeakers = mixxx::spatial::kMinSpeakers;
     static constexpr int kMaxSpeakers = mixxx::spatial::kMaxSpeakers;
     static constexpr int kMaxDecks = 4;

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "control/pollingcontrolproxy.h"
+#include "engine/spatial/spatialmath.h"
 
 class ControlProxy;
 
@@ -88,16 +89,16 @@ class SpatialField : public QWidget {
     std::unique_ptr<PollingControlProxy> m_pSpeakerCount, m_pLayoutCustom, m_pChannelCount,
             m_pLfEnabled, m_pDelayShape, m_pDelaySize, m_pDelayEnabled, m_pHeadphones;
     std::array<std::unique_ptr<PollingControlProxy>, 8> m_pEchoLevel;
-    std::array<std::unique_ptr<PollingControlProxy>, 6> m_pSpeakerAzimuth;
-    std::array<std::unique_ptr<PollingControlProxy>, 8> m_pVu;
+    std::array<std::unique_ptr<PollingControlProxy>, mixxx::spatial::kMaxSpeakers> m_pSpeakerAzimuth;
+    std::array<std::unique_ptr<PollingControlProxy>, mixxx::spatial::kMaxOutputChannels> m_pVu;
     std::array<std::unique_ptr<PollingControlProxy>, 2> m_pAutopanShape, m_pAutopanSize,
             m_pAutopanPosition;
     std::vector<std::unique_ptr<PollingControlProxy>> m_pStemCount;
 
     // Polled state
     int m_speakers = 6;
-    std::array<double, 6> m_azimuths{};
-    std::array<double, 8> m_vu{};
+    std::array<double, mixxx::spatial::kMaxSpeakers> m_azimuths{};
+    std::array<double, mixxx::spatial::kMaxOutputChannels> m_vu{};
     bool m_lf = false;
     int m_channels = 0;
     bool m_headphones = false;

@@ -13,6 +13,15 @@ constexpr std::array<double, SpatialReverb::kLines> kLineMs = {
 // LFO rates (Hz) for each line's modulation.
 constexpr std::array<double, SpatialReverb::kLines> kLfoHz = {
         0.13, 0.19, 0.23, 0.31, 0.37, 0.43, 0.53, 0.71};
+// Second output taps, as a fraction of each line's length. Rows 1-7 of the
+// Hadamard matrix give 7 decorrelated outputs; rings of 8-12 speakers take
+// the rest from these taps, which hear each line at a different moment.
+constexpr std::array<double, SpatialReverb::kLines> kTapFraction = {
+        0.61, 0.53, 0.67, 0.57, 0.71, 0.59, 0.63, 0.55};
+constexpr int kDecorrelatedRows = 7;
+// The speaker count the levels were tuned on: other rings scale the reverb
+// so its total power, and so the wet/dry balance, stays the same.
+constexpr int kReferenceSpeakers = 6;
 // Input diffusers (ms).
 constexpr std::array<double, 4> kDiffuserMs = {4.77, 3.59, 12.73, 9.31};
 constexpr double kMaxSizeScale = 1.5;
@@ -87,6 +96,9 @@ void SpatialReverb::clear() {
     for (auto& filter : m_damping) {
         filter.y = 0;
     }
+    for (auto& filter : m_tapDamping) {
+        filter.y = 0;
+    }
     m_lowCut[0].y = 0;
     m_lowCut[1].y = 0;
     m_shimmerSample = 0;
@@ -139,6 +151,7 @@ void SpatialReverb::process(const float* pIn,
         lineGain[k] = static_cast<float>(g);
         gainSquares += g * g;
         m_damping[k].setCutoff(freeze ? 20000.0 : 20000.0 * std::pow(0.06, damping), sampleRate);
+        m_tapDamping[k].setCutoff(freeze ? 20000.0 : 20000.0 * std::pow(0.06, damping), sampleRate);
         // Each LFO as a rotating phasor: cheap per sample, renormalised here.
         lfoCos[k] = std::cos(m_lfoPhase[k]);
         lfoSin[k] = std::sin(m_lfoPhase[k]);
@@ -151,6 +164,9 @@ void SpatialReverb::process(const float* pIn,
     const auto inputNorm = static_cast<float>(
             std::sqrt(std::max(0.02, 1.0 - gainSquares / kLines)) / std::sqrt(kLines));
     const float outputNorm = 1.0f / std::sqrt(static_cast<float>(kLines));
+    const auto speakerNorm = static_cast<float>(
+            std::sqrt(static_cast<double>(kReferenceSpeakers) / std::max(1, speakerCount)));
+    const bool secondTaps = speakerCount > kDecorrelatedRows;
 
     const double lowCut = std::clamp(m_pLowCut->get(), 20.0, 1000.0);
     m_lowCut[0].setCutoff(lowCut, sampleRate);
@@ -175,6 +191,7 @@ void SpatialReverb::process(const float* pIn,
 
     float outputPeak = 0;
     std::array<float, kLines> s{};
+    std::array<float, kLines> tap{};
     for (int f = 0; f < frames; ++f) {
         if (m_inputGain < inputTarget) {
             m_inputGain = std::min(inputTarget, m_inputGain + fadeStep);
@@ -210,6 +227,11 @@ void SpatialReverb::process(const float* pIn,
             const double delay = length[k] + modDepth * (1 + lfoSin[k]) + 1;
             s[k] = static_cast<float>(m_damping[k].lowPass(m_lines[k].read(delay))) * lineGain[k];
             sum += s[k];
+            if (secondTaps) {
+                tap[k] = static_cast<float>(m_tapDamping[k].lowPass(
+                                 m_lines[k].read(delay * kTapFraction[k]))) *
+                        lineGain[k];
+            }
         }
         // Householder feedback: lossless, every line feeds every other.
         const float mix = 2.0f / kLines * sum;
@@ -241,13 +263,15 @@ void SpatialReverb::process(const float* pIn,
         m_duckGain += (duckTarget - m_duckGain) * 0.002f;
         const float wet = level * m_enabledGain * m_duckGain;
         for (int i = 0; i < speakerCount; ++i) {
-            // Row 0 is the mono sum; rows 1-6 are mutually decorrelated.
-            const float* pRow = kHadamard.sign[i + 1];
+            // Row 0 is the mono sum; rows 1-7 are mutually decorrelated, on
+            // the main taps for speakers 1-7 and the second taps after that.
+            const float* pRow = kHadamard.sign[i % kDecorrelatedRows + 1];
+            const std::array<float, kLines>& source = i < kDecorrelatedRows ? s : tap;
             float out = 0;
             for (int k = 0; k < kLines; ++k) {
-                out += pRow[k] * s[k];
+                out += pRow[k] * source[k];
             }
-            out *= outputNorm * wet;
+            out *= outputNorm * speakerNorm * wet;
             speakers[i][f] += out;
             outputPeak = std::max(outputPeak, std::abs(out));
         }

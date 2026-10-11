@@ -60,19 +60,20 @@ SpeakerLayout::SpeakerLayout()
           m_ringAzimuth{},
           m_inverse{},
           m_useAngleLaw{} {
-    const auto defaults = defaultAzimuths(kMaxSpeakers);
-    setSpeakers(kMaxSpeakers, defaults.data());
+    // A six-speaker ring until the owner sets its own.
+    const auto defaults = defaultAzimuths(6);
+    setSpeakers(6, defaults.data());
 }
 
 std::array<double, kMaxSpeakers> SpeakerLayout::defaultAzimuths(int count) {
-    switch (count) {
-    case 4:
-        return {-45, 45, 135, -135, 0, 0};
-    case 5:
-        return {-36, 36, 108, 180, -108, 0};
-    default:
-        return {-30, 30, 90, 150, -150, -90};
+    count = std::clamp(count, 1, kMaxSpeakers);
+    const double spacing = 360.0 / count;
+    std::array<double, kMaxSpeakers> azimuths{};
+    azimuths[0] = count == 1 ? 0.0 : -spacing / 2;
+    for (int i = 1; i < count; ++i) {
+        azimuths[i] = wrapDegrees(spacing / 2 + (i - 1) * spacing);
     }
+    return azimuths;
 }
 
 void SpeakerLayout::setSpeakers(int count, const double* pAzimuths) {

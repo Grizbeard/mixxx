@@ -54,7 +54,7 @@ DlgPrefSpatial::DlgPrefSpatial(QWidget* pParent, UserSettingsPointer pConfig)
 
     // The ring.
     m_pSpeakers = new QSpinBox;
-    m_pSpeakers->setRange(4, 6);
+    m_pSpeakers->setRange(mixxx::spatial::kMinSpeakers, mixxx::spatial::kMaxSpeakers);
     m_pLf = new QCheckBox(tr("The channel after the speakers carries the LF (sub) feed"));
     m_pCrossover = new QSpinBox;
     m_pCrossover->setRange(40, 200);
@@ -364,8 +364,8 @@ void DlgPrefSpatial::slotRebuildChannels() {
     if (channels <= 0) {
         m_pStatus->setText(tr("<b>No sound-card channels are assigned to the Spatial output.</b> "
                               "Under Sound Hardware, choose a device and channels for "
-                              "\"Spatial\" in the Output list (for example Channels 1 - 7 "
-                              "for six speakers and LF)."));
+                              "\"Spatial\" in the Output list: one channel per speaker, plus one for "
+                              "the LF feed (for example Channels 1 - 7 for six speakers and LF)."));
     } else {
         m_pStatus->setText(tr("Spatial output: %1 channels, sound-card channels %2 to %3.")
                                    .arg(channels)
