@@ -53,6 +53,22 @@ inline Point rotate(Point p, double degrees) {
     return {p.x * c + p.y * s, -p.x * s + p.y * c};
 }
 
+/// How a pair of speakers shares a source between them.
+enum class PanLaw {
+    // VBAP: the summed pressure points at the source. Right for the lows,
+    // where the ear follows phase.
+    Amplitude,
+    // VBIP: the summed energy points at the source. Right for the highs,
+    // where the ear follows level; a phantom image no longer leans towards
+    // the nearer speaker.
+    Intensity,
+};
+
+/// ||g||_2 / ||g||_p for `count` gains: the factor that takes power-normalised
+/// gains to p-norm-normalised ones. p = 2 gives 1; p = 1 holds the summed
+/// pressure, which is what the lows hear where speakers add coherently.
+double normRatio(const float* pGains, int count, double p);
+
 /// The speakers on the ring, in output order (speaker 1 first), and the
 /// panner over them.
 class SpeakerLayout {
@@ -83,7 +99,10 @@ class SpeakerLayout {
     /// Power-normalised speaker gains for one point source.
     /// `spread` 0 = pairwise panning on the ring (at most two speakers),
     /// 1 = equal power on every speaker, in between a power-domain blend.
-    void gains(double azimuth, double spread, float* pGains) const;
+    void gains(double azimuth,
+            double spread,
+            float* pGains,
+            PanLaw law = PanLaw::Amplitude) const;
 
   private:
     int m_count;

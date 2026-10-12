@@ -59,6 +59,14 @@ class SpatialReverb;
 ///                      output assigned (persisted)
 ///   headphone_room     early reflections for an outside-the-head image 0..1
 ///   headphone_eq       Sennheiser HD 280 PRO correction (AutoEq) (persisted)
+///   pan_even_lows      dual-band panning: below 700 Hz, hold the summed
+///                      pressure so a stem between speakers is not boomier
+///                      than one on a speaker (persisted)
+///   pan_low_room       how far: 0 = dry room (pressure), 1 = very live (as
+///                      the highs, no change) (persisted)
+///   pan_sharp_highs    dual-band panning: above 700 Hz, the intensity law,
+///                      so treble images don't lean to the nearer speaker
+///                      (persisted)
 ///   autopan_focus      which auto-pan unit the Basic layout and a controller's
 ///                      auto-pan column play: 0 = A, 1 = B
 /// The Spatial FX macros live in [SpatialFX] (see SpatialFxMetaControls).
@@ -164,6 +172,9 @@ class EngineSpatialOutput : public AudioSource {
     std::unique_ptr<ControlPushButton> m_pHeadphoneSpatial;
     std::unique_ptr<ControlPotmeter> m_pHeadphoneRoom;
     std::unique_ptr<ControlPushButton> m_pHeadphoneEq;
+    std::unique_ptr<ControlPushButton> m_pEvenLows;
+    std::unique_ptr<ControlPotmeter> m_pLowRoom;
+    std::unique_ptr<ControlPushButton> m_pSharpHighs;
 
     std::vector<std::unique_ptr<mixxx::spatial::SpatialSource>> m_sources;
     std::array<std::unique_ptr<mixxx::spatial::SpatialAutopan>, kAutopanUnits> m_autopans;
@@ -182,6 +193,9 @@ class EngineSpatialOutput : public AudioSource {
     int m_layoutCount = 0;
     mixxx::spatial::SpatialClock m_clock;
     bool m_begun = false;
+    bool m_evenLows = false;
+    double m_lowNorm = 1.5;
+    bool m_sharpHighs = false;
     std::size_t m_frames = 0;
     double m_sampleRate = 0;
     std::vector<bool> m_rendered;

@@ -47,6 +47,7 @@ class DlgPrefSpatial : public DlgPreferencePage {
   private:
     QGroupBox* createAlignmentGroup();
     QGroupBox* createHeadphoneGroup();
+    QGroupBox* createPanningGroup();
     QDoubleSpinBox* bindSpinBox(const QString& key,
             double min,
             double max,

@@ -123,6 +123,48 @@ TEST(SpatialMathTest, PanningIsPowerNormalisedAllAround) {
     }
 }
 
+TEST(SpatialMathTest, EachLawPointsItsVectorAtTheSource) {
+    for (int count = kMinSpeakers; count <= kMaxSpeakers; ++count) {
+        SpeakerLayout layout;
+        const auto azimuths = SpeakerLayout::defaultAzimuths(count);
+        layout.setSpeakers(count, azimuths.data());
+        float gains[kMaxSpeakers];
+        for (int az = -180; az < 180; az += 7) {
+            // Amplitude law: the gain-weighted (velocity) vector points at it.
+            layout.gains(az, 0, gains, PanLaw::Amplitude);
+            Point velocity;
+            for (int i = 0; i < count; ++i) {
+                const Point l = pointAtAzimuth(azimuths[i]);
+                velocity.x += gains[i] * l.x;
+                velocity.y += gains[i] * l.y;
+            }
+            // Intensity law: the energy vector does, and power still sums to 1.
+            layout.gains(az, 0, gains, PanLaw::Intensity);
+            EXPECT_NEAR(sumOfSquares(gains, count), 1.0, 1e-5);
+            Point energy;
+            for (int i = 0; i < count; ++i) {
+                const Point l = pointAtAzimuth(azimuths[i]);
+                energy.x += gains[i] * gains[i] * l.x;
+                energy.y += gains[i] * gains[i] * l.y;
+            }
+            if (count >= 4) { // 3 speakers: 120 degree gaps, still vector panned
+                EXPECT_NEAR(wrapDegrees(azimuthOf(velocity) - az), 0, 1e-3) << count << " " << az;
+                EXPECT_NEAR(wrapDegrees(azimuthOf(energy) - az), 0, 1e-3) << count << " " << az;
+            }
+        }
+    }
+}
+
+TEST(SpatialMathTest, TheNormRatioTakesPowerToPressure) {
+    const float one[] = {1, 0};
+    EXPECT_NEAR(normRatio(one, 2, 1), 1, 1e-9);
+    const auto h = static_cast<float>(M_SQRT1_2);
+    const float pair[] = {h, h};
+    // Summed pressure sqrt(2) -> 1.
+    EXPECT_NEAR(normRatio(pair, 2, 1), M_SQRT1_2, 1e-6);
+    EXPECT_NEAR(normRatio(pair, 2, 2), 1, 1e-6);
+}
+
 TEST(SpatialMathTest, FullSpreadIsEqualOnEverySpeaker) {
     for (int count = kMinSpeakers; count <= kMaxSpeakers; ++count) {
         SpeakerLayout layout;
@@ -397,6 +439,110 @@ TEST_F(SpatialBusTest, AThreeSpeakerRingPansAllAround) {
     ASSERT_EQ(out.size(), 3u);
     EXPECT_NEAR(rmsOf(out[1], kFrames), rmsOf(out[2], kFrames), 1e-3);
     EXPECT_LT(rmsOf(out[0]), 1e-6);
+}
+
+namespace {
+/// The coherent sum of every speaker channel (what the centre of the room
+/// hears where the speakers add in phase), as RMS after `from` frames.
+double pressureOf(const std::vector<std::vector<double>>& out, std::size_t from) {
+    std::vector<double> sum(out[0].size(), 0);
+    for (const auto& channel : out) {
+        for (std::size_t n = 0; n < sum.size(); ++n) {
+            sum[n] += channel[n];
+        }
+    }
+    return rmsOf(sum, from);
+}
+
+/// Direction of the energy vector of the speaker levels after `from`.
+double energyAzimuth(const std::vector<std::vector<double>>& out,
+        const std::array<double, kMaxSpeakers>& azimuths,
+        std::size_t from) {
+    Point energy;
+    for (std::size_t i = 0; i < out.size(); ++i) {
+        const double level = rmsOf(out[i], from);
+        const Point l = pointAtAzimuth(azimuths[i]);
+        energy.x += level * level * l.x;
+        energy.y += level * level * l.y;
+    }
+    return azimuthOf(energy);
+}
+} // namespace
+
+TEST_F(SpatialBusTest, EvenLowsHoldThePressureBetweenSpeakers) {
+    set("[Channel1_Stem1]", "spatial_width", 0);
+    const auto pressureAt = [&](double azimuth, double frequency) {
+        set("[Channel1_Stem1]", "spatial_azimuth", azimuth);
+        return pressureOf(run(20, 0, sines(frequency, frequency, 0.5)), 10 * kFrames);
+    };
+    // Off: half way between speakers 2 (30) and 3 (90) the lows add up 3 dB.
+    const double onSpeakerOff = pressureAt(30, 100);
+    EXPECT_NEAR(20 * std::log10(pressureAt(60, 100) / onSpeakerOff), 3.01, 0.1);
+    // On, dry room: the same pressure either way, in the lows only.
+    set("[Spatial]", "pan_even_lows", 1);
+    set("[Spatial]", "pan_low_room", 0);
+    const double onSpeaker = pressureAt(30, 100);
+    EXPECT_NEAR(onSpeaker, onSpeakerOff, onSpeakerOff * 0.01);
+    EXPECT_NEAR(20 * std::log10(pressureAt(60, 100) / onSpeaker), 0, 0.3);
+    EXPECT_NEAR(20 * std::log10(pressureAt(60, 8000) / pressureAt(30, 8000)), 3.01, 0.1);
+    // A livelier room keeps part of the rise.
+    set("[Spatial]", "pan_low_room", 0.5);
+    const double half = 20 * std::log10(pressureAt(60, 100) / pressureAt(30, 100));
+    EXPECT_GT(half, 0.5);
+    EXPECT_LT(half, 2.5);
+}
+
+TEST_F(SpatialBusTest, SharpHighsPutTheTrebleWhereItIsPanned) {
+    set("[Channel1_Stem1]", "spatial_width", 0);
+    set("[Channel1_Stem1]", "spatial_azimuth", 45); // a quarter of the way 30 -> 90
+    const auto azimuths = SpeakerLayout::defaultAzimuths(6);
+    const auto treble = [&] {
+        return energyAzimuth(run(20, 0, sines(8000, 8000, 0.5)), azimuths, 10 * kFrames);
+    };
+    const auto bass = [&] {
+        return energyAzimuth(run(20, 0, sines(100, 100, 0.5)), azimuths, 10 * kFrames);
+    };
+    // Off: the treble image leans towards speaker 2.
+    const double leaning = treble();
+    EXPECT_LT(leaning, 41);
+    set("[Spatial]", "pan_sharp_highs", 1);
+    EXPECT_NEAR(treble(), 45, 0.5);
+    // The lows keep the amplitude law, so their energy still leans.
+    EXPECT_NEAR(bass(), leaning, 1.0);
+}
+
+TEST_F(SpatialBusTest, DualBandSwitchesGlideWithoutClicks) {
+    set("[Channel1_Stem1]", "spatial_width", 0);
+    set("[Channel1_Stem1]", "spatial_azimuth", 60);
+    std::vector<std::vector<double>> all(6);
+    const auto append = [&](const std::vector<std::vector<double>>& out) {
+        for (int ch = 0; ch < 6; ++ch) {
+            all[ch].insert(all[ch].end(), out[ch].begin(), out[ch].end());
+        }
+    };
+    int frame = 0;
+    const auto input = [&](CSAMPLE* pOut, int) {
+        for (int f = 0; f < kFrames; ++f, ++frame) {
+            const double t = frame / kRate;
+            pOut[2 * f] = pOut[2 * f + 1] = static_cast<CSAMPLE>(0.5 * std::sin(2 * M_PI * 100 * t));
+        }
+    };
+    append(run(10, 0, input));
+    set("[Spatial]", "pan_even_lows", 1);
+    set("[Spatial]", "pan_low_room", 0);
+    set("[Spatial]", "pan_sharp_highs", 1);
+    append(run(10, 0, input));
+    set("[Spatial]", "pan_even_lows", 0);
+    set("[Spatial]", "pan_sharp_highs", 0);
+    append(run(10, 0, input));
+    // A 100 Hz sine of these levels moves at most ~0.007 per sample.
+    for (int ch = 0; ch < 6; ++ch) {
+        double jump = 0;
+        for (std::size_t n = kFrames + 1; n < all[ch].size(); ++n) {
+            jump = std::max(jump, std::abs(all[ch][n] - all[ch][n - 1]));
+        }
+        EXPECT_LT(jump, 0.012) << "speaker " << ch + 1;
+    }
 }
 
 TEST_F(SpatialBusTest, TheLfFeedDoesNotDependOnPosition) {

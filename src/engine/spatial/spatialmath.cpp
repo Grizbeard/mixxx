@@ -120,7 +120,21 @@ double SpeakerLayout::frontWidth() const {
     return std::abs(wrapDegrees(m_azimuth[1] - m_azimuth[0]));
 }
 
-void SpeakerLayout::gains(double azimuth, double spread, float* pGains) const {
+double normRatio(const float* pGains, int count, double p) {
+    double sumSquares = 0;
+    double sumPowers = 0;
+    for (int i = 0; i < count; ++i) {
+        const double g = std::abs(pGains[i]);
+        sumSquares += g * g;
+        sumPowers += std::pow(g, p);
+    }
+    if (sumPowers <= 0) {
+        return 1;
+    }
+    return std::sqrt(sumSquares) / std::pow(sumPowers, 1 / p);
+}
+
+void SpeakerLayout::gains(double azimuth, double spread, float* pGains, PanLaw law) const {
     std::fill(pGains, pGains + m_count, 0.0f);
     if (m_count == 1) {
         pGains[0] = 1;
@@ -162,6 +176,15 @@ void SpeakerLayout::gains(double azimuth, double spread, float* pGains) const {
             gb /= norm;
         } else {
             ga = 1;
+        }
+    }
+    if (law == PanLaw::Intensity) {
+        // The amplitude-law solution gives the squared gains: their energy
+        // vector then points where the amplitude law's pressure did.
+        const double sum = ga + gb;
+        if (sum > 0) {
+            ga = std::sqrt(ga / sum);
+            gb = std::sqrt(gb / sum);
         }
     }
     const int speakerA = m_ring[pair];

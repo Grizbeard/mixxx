@@ -150,7 +150,7 @@ TEST_F(SpatialWindowTest, RendersThePreferencesPage) {
     set("[Spatial]", "speaker_count", 6);
     DlgPrefSpatial page(nullptr, config());
     page.setAttribute(Qt::WA_DontShowOnScreen);
-    page.resize(900, 1400);
+    page.resize(900, 1700);
     page.show();
     QCoreApplication::processEvents();
     const QImage image = page.grab().toImage();

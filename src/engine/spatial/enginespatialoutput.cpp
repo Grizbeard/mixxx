@@ -71,6 +71,9 @@ EngineSpatialOutput::EngineSpatialOutput()
           m_pHeadphoneSpatial(makeToggle(kGroup, "headphone_spatial", 0, true)),
           m_pHeadphoneRoom(makePot(kGroup, "headphone_room", 0, 1, 0.3, true)),
           m_pHeadphoneEq(makeToggle(kGroup, "headphone_eq", 1, true)),
+          m_pEvenLows(makeToggle(kGroup, "pan_even_lows", 0, true)),
+          m_pLowRoom(makePot(kGroup, "pan_low_room", 0, 1, 0.5, true)),
+          m_pSharpHighs(makeToggle(kGroup, "pan_sharp_highs", 0, true)),
           m_pDelay(std::make_unique<SpatialDelay>()),
           m_pReverb(std::make_unique<SpatialReverb>()),
           m_pBinaural(std::make_unique<SpatialBinaural>()),
@@ -205,6 +208,9 @@ void EngineSpatialOutput::beginCallback(std::size_t frames,
     }
     std::fill(m_rendered.begin(), m_rendered.end(), false);
     updateLayout();
+    m_evenLows = m_pEvenLows->toBool();
+    m_lowNorm = 1 + std::clamp(m_pLowRoom->get(), 0.0, 1.0);
+    m_sharpHighs = m_pSharpHighs->toBool();
 
     std::optional<double> beatLength;
     std::optional<double> beatFraction;
@@ -232,6 +238,9 @@ void EngineSpatialOutput::addSource(int deck, int slot, const CSAMPLE* pStereo) 
     context.ppAutopans = m_autopanPointers.data();
     context.autopanCount = kAutopanUnits;
     context.sampleRate = m_sampleRate;
+    context.evenLows = m_evenLows;
+    context.lowNorm = m_lowNorm;
+    context.sharpHighs = m_sharpHighs;
     for (int i = 0; i < kMaxSpeakers; ++i) {
         context.bus.speakers[i] = m_bus[i].data();
     }

@@ -25,6 +25,7 @@ SpatialSource::SpatialSource(const QString& group)
 
 void SpatialSource::targetGains(const SpatialRenderContext& context,
         double t,
+        PanLaw law,
         float* pLeft,
         float* pRight,
         Point* pCentre) {
@@ -48,8 +49,8 @@ void SpatialSource::targetGains(const SpatialRenderContext& context,
         spread = 1 - radius * (1 - manualSpread);
     }
 
-    layout.gains(centreAzimuth - halfWidth, spread, pLeft);
-    layout.gains(centreAzimuth + halfWidth, spread, pRight);
+    layout.gains(centreAzimuth - halfWidth, spread, pLeft, law);
+    layout.gains(centreAzimuth + halfWidth, spread, pRight, law);
     // Where L and R land on the same speakers, they add coherently; trim by
     // up to 3 dB as they overlap so collapsing the width keeps the level.
     double overlap = 0;
@@ -98,7 +99,29 @@ void SpatialSource::render(const CSAMPLE* pStereo,
     std::array<float, kMaxSpeakers> targetRight{};
     std::array<float, kMaxSpeakers> stepLeft{};
     std::array<float, kMaxSpeakers> stepRight{};
+    std::array<float, kMaxSpeakers> lowLeft{};
+    std::array<float, kMaxSpeakers> lowRight{};
+    std::array<float, kMaxSpeakers> lowStepLeft{};
+    std::array<float, kMaxSpeakers> lowStepRight{};
     float peak = 0;
+
+    // Dual band runs while either switch is on, and after both go off until
+    // the low band has glided back onto the main gains.
+    const bool dualBandWanted = context.evenLows || context.sharpHighs;
+    if (dualBandWanted && !m_dualBand) {
+        m_dualBand = true;
+        m_lowDeltaLeft.fill(0);
+        m_lowDeltaRight.fill(0);
+        m_split[0].reset();
+        m_split[1].reset();
+    }
+    if (m_dualBand && rate != m_splitRate) {
+        m_split[0].setLowPass(kBandCrossoverHz, rate);
+        m_split[1].setLowPass(kBandCrossoverHz, rate);
+        m_splitRate = rate;
+    }
+    const PanLaw highLaw = context.sharpHighs ? PanLaw::Intensity : PanLaw::Amplitude;
+    const double lowNorm = std::clamp(context.lowNorm, 1.0, 2.0);
 
     for (int start = 0; start < frames; start += kSubBlock) {
         const int n = std::min(kSubBlock, frames - start);
@@ -108,19 +131,69 @@ void SpatialSource::render(const CSAMPLE* pStereo,
         } else if (m_frontBlend > frontTarget) {
             m_frontBlend = std::max(frontTarget, m_frontBlend - glide);
         }
-        targetGains(context,
-                (start + n * 0.5) / frames,
-                targetLeft.data(),
-                targetRight.data(),
-                &m_centre);
+        const double t = (start + n * 0.5) / frames;
+        targetGains(context, t, highLaw, targetLeft.data(), targetRight.data(), &m_centre);
+        if (m_dualBand) {
+            // The low band: amplitude law, optionally p-norm normalised.
+            if (!dualBandWanted) {
+                lowLeft = targetLeft;
+                lowRight = targetRight;
+            } else {
+                if (highLaw == PanLaw::Amplitude) {
+                    lowLeft = targetLeft;
+                    lowRight = targetRight;
+                } else {
+                    Point unused;
+                    targetGains(context,
+                            t,
+                            PanLaw::Amplitude,
+                            lowLeft.data(),
+                            lowRight.data(),
+                            &unused);
+                }
+                if (context.evenLows) {
+                    const auto ratioLeft =
+                            static_cast<float>(normRatio(lowLeft.data(), speakers, lowNorm));
+                    const auto ratioRight =
+                            static_cast<float>(normRatio(lowRight.data(), speakers, lowNorm));
+                    for (int i = 0; i < speakers; ++i) {
+                        lowLeft[i] *= ratioLeft;
+                        lowRight[i] *= ratioRight;
+                    }
+                }
+            }
+        }
         if (!m_gainsValid) {
             m_gainLeft = targetLeft;
             m_gainRight = targetRight;
+            if (m_dualBand) {
+                for (int i = 0; i < speakers; ++i) {
+                    m_lowDeltaLeft[i] = lowLeft[i] - targetLeft[i];
+                    m_lowDeltaRight[i] = lowRight[i] - targetRight[i];
+                }
+            }
             m_gainsValid = true;
         }
         for (int i = 0; i < speakers; ++i) {
             stepLeft[i] = (targetLeft[i] - m_gainLeft[i]) * alpha / n;
             stepRight[i] = (targetRight[i] - m_gainRight[i]) * alpha / n;
+        }
+        if (m_dualBand) {
+            float residual = 0;
+            for (int i = 0; i < speakers; ++i) {
+                const float deltaLeft = lowLeft[i] - targetLeft[i];
+                const float deltaRight = lowRight[i] - targetRight[i];
+                lowStepLeft[i] = (deltaLeft - m_lowDeltaLeft[i]) * alpha / n;
+                lowStepRight[i] = (deltaRight - m_lowDeltaRight[i]) * alpha / n;
+                residual = std::max(residual,
+                        std::max(std::abs(m_lowDeltaLeft[i]), std::abs(m_lowDeltaRight[i])));
+            }
+            if (!dualBandWanted && residual < 1e-5f) {
+                // Back to one band: nothing left to glide.
+                m_dualBand = false;
+                m_lowDeltaLeft.fill(0);
+                m_lowDeltaRight.fill(0);
+            }
         }
         const float sendStep = (sendTarget - m_send) / n;
 
@@ -129,10 +202,26 @@ void SpatialSource::render(const CSAMPLE* pStereo,
             const float left = pIn[2 * j];
             const float right = pIn[2 * j + 1];
             const int frame = start + j;
-            for (int i = 0; i < speakers; ++i) {
-                m_gainLeft[i] += stepLeft[i];
-                m_gainRight[i] += stepRight[i];
-                bus.speakers[i][frame] += left * m_gainLeft[i] + right * m_gainRight[i];
+            if (m_dualBand) {
+                // Main gains on the full band, plus the low band's difference
+                // on the low-passed input: lows + (full - lows) = full, so
+                // there is no crossover phase to hear where the bands agree.
+                const auto lowInLeft = static_cast<float>(m_split[0].process(left));
+                const auto lowInRight = static_cast<float>(m_split[1].process(right));
+                for (int i = 0; i < speakers; ++i) {
+                    m_gainLeft[i] += stepLeft[i];
+                    m_gainRight[i] += stepRight[i];
+                    m_lowDeltaLeft[i] += lowStepLeft[i];
+                    m_lowDeltaRight[i] += lowStepRight[i];
+                    bus.speakers[i][frame] += left * m_gainLeft[i] + right * m_gainRight[i] +
+                            lowInLeft * m_lowDeltaLeft[i] + lowInRight * m_lowDeltaRight[i];
+                }
+            } else {
+                for (int i = 0; i < speakers; ++i) {
+                    m_gainLeft[i] += stepLeft[i];
+                    m_gainRight[i] += stepRight[i];
+                    bus.speakers[i][frame] += left * m_gainLeft[i] + right * m_gainRight[i];
+                }
             }
             bus.lf[frame] += 0.5f * (left + right);
             m_send += sendStep;

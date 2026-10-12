@@ -119,6 +119,7 @@ DlgPrefSpatial::DlgPrefSpatial(QWidget* pParent, UserSettingsPointer pConfig)
     pLayout->addWidget(createAlignmentGroup());
     pLayout->addWidget(pChannels);
     pLayout->addWidget(pTest);
+    pLayout->addWidget(createPanningGroup());
     pLayout->addWidget(createHeadphoneGroup());
     pLayout->addWidget(pPass);
     pLayout->addStretch(1);
@@ -281,6 +282,28 @@ QGroupBox* DlgPrefSpatial::createAlignmentGroup() {
             QStringLiteral("limiter_ceiling_db"), -12, 0, 0.1, 1, tr(" dBFS")));
     pLimiterRow->addStretch(1);
     pLayout->addLayout(pLimiterRow);
+    return pGroup;
+}
+
+QGroupBox* DlgPrefSpatial::createPanningGroup() {
+    auto* pGroup = new QGroupBox(tr("Panning (dual band, split at 700 Hz)"));
+    auto* pLayout = new QVBoxLayout(pGroup);
+    auto* pHelp = new QLabel(tr("The ear judges lows by phase and highs by level, so one panning "
+                                "rule can't be right for both. Each switch changes one band; "
+                                "with both off, stems pan exactly as before."));
+    pHelp->setWordWrap(true);
+    pLayout->addWidget(pHelp);
+    pLayout->addWidget(bindCheckBox(QStringLiteral("pan_even_lows"),
+            tr("Even lows: a stem between two speakers is no boomier than one on a speaker")));
+    auto* pRoomRow = new QHBoxLayout;
+    pRoomRow->addSpacing(24);
+    pRoomRow->addWidget(new QLabel(tr("Room (0 = dry, 1 = very live):")));
+    pRoomRow->addWidget(bindSpinBox(QStringLiteral("pan_low_room"), 0, 1, 0.05, 2, QString()));
+    pRoomRow->addStretch(1);
+    pLayout->addLayout(pRoomRow);
+    pLayout->addWidget(bindCheckBox(QStringLiteral("pan_sharp_highs"),
+            tr("Sharp highs: treble images stay where they are panned, instead of leaning "
+               "to the nearer speaker")));
     return pGroup;
 }
 

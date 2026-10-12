@@ -26,7 +26,20 @@ struct SpatialRenderContext {
     int autopanCount = 0;
     double sampleRate = 48000;
     SpatialBus bus;
+    // Dual-band panning, split at kBandCrossoverHz. With both off a source
+    // renders as one band, exactly as before.
+    // Even lows: the low band is normalised by `lowNorm`, a p-norm from 1
+    // (the summed pressure stays constant) to 2 (power, as the highs), so a
+    // source between two speakers is not louder in the lows than one on a
+    // speaker.
+    bool evenLows = false;
+    double lowNorm = 1.5;
+    // Sharp highs: the high band pans with the intensity law.
+    bool sharpHighs = false;
 };
+
+/// Where dual-band panning splits lows from highs (Hughes et al. 2018).
+constexpr double kBandCrossoverHz = 700;
 
 /// One spatial source: a stem of a deck (or a whole stereo track), with its
 /// position controls, panned onto the ring.
@@ -65,6 +78,7 @@ class SpatialSource {
   private:
     void targetGains(const SpatialRenderContext& context,
             double t,
+            PanLaw law,
             float* pLeft,
             float* pRight,
             Point* pCentre);
@@ -88,6 +102,13 @@ class SpatialSource {
     std::array<float, kMaxSpeakers> m_gainLeft{};
     std::array<float, kMaxSpeakers> m_gainRight{};
     bool m_gainsValid = false;
+    // Dual band: the low band's gains minus the main gains, applied to the
+    // low-passed input, so equal gains reduce exactly to one band.
+    std::array<float, kMaxSpeakers> m_lowDeltaLeft{};
+    std::array<float, kMaxSpeakers> m_lowDeltaRight{};
+    bool m_dualBand = false;
+    Biquad m_split[2];
+    double m_splitRate = 0;
     float m_send = 0;
     double m_frontBlend = 0;
     float m_peak = 0;
